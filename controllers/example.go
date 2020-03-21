@@ -29,3 +29,7 @@ func (h *ExampleController) Index(ctx echo.Context) error {
 	echoapp_util.ExtractEntry(ctx).Info(renderParams)
 	return ctx.Render(http.StatusOK, "index", renderParams)
 }
+
+func (h *ExampleController) Hello(ctx echo.Context) error {
+	return ctx.HTML(http.StatusOK, "hello world")
+}

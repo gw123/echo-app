@@ -63,7 +63,9 @@ func startHttp() {
 	}))
 	//Actions
     exampleController := controllers.ExampleController{}
+    qrcodeController := controllers.NewQrcodeController()
     e.GET("/index", exampleController.Index)
+	e.GET("/getQrcode", qrcodeController.GetQrcode)
 	//
 	if err := e.Start(echoapp.Config.Env.Addr); err != nil {
 		echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

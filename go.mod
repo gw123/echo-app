@@ -14,9 +14,10 @@ require (
 	github.com/labstack/gommon v0.3.0
 	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/nelsonken/cos-go-sdk-v5 v0.0.0-20180622024522-5247afdb7a80 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.4.2
+	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect

@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -25,7 +26,7 @@ type Response struct {
 type BaseController struct {
 }
 
-func (this *BaseController) Success(ctx echo.Context, data interface{}) error {
+func (b *BaseController) Success(ctx echo.Context, data interface{}) error {
 	response := Response{
 		ErrorCode: 0,
 		Msg:       "success",
@@ -34,10 +35,11 @@ func (this *BaseController) Success(ctx echo.Context, data interface{}) error {
 	return ctx.JSON(http.StatusOK, response)
 }
 
-func (this *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerErr error) error {
+func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerErr error) error {
 	innerErrStr := ""
 	if innerErr != nil {
 		innerErrStr = innerErr.Error()
+		echoapp_util.ExtractEntry(ctx).WithError(innerErr).Info("requestFail")
 	}
 
 	response := Response{
