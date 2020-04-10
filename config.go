@@ -1,7 +1,7 @@
 package echoapp
 
 import (
-	"github.com/go-playground/validator"
+	"fmt"
 	"github.com/spf13/viper"
 )
 
@@ -13,11 +13,10 @@ var Config ConfigOptions
 var Viper *viper.Viper
 
 type ConfigOptions struct {
-	Asset    Asset `yaml:"asset" mapstructure:"asset"`
-	Env      *Environments
-	Database *DatabaseOptions
-	Redis    *CacheOptions
-	Origins  []string
+	Asset   Asset `yaml:"asset" mapstructure:"asset"`
+	Env     *Environments
+	Redis   *CacheOptions
+	Origins []string
 }
 
 type Environments struct {
@@ -28,24 +27,10 @@ type Environments struct {
 
 type Asset struct {
 	PublicRoot string `yaml:"public_root" mapstructure:"public_root"`
+	AreaRoot   string `yaml:"area_root" mapstructure:"area_root"`
 	ViewRoot   string `yaml:"view_root" mapstructure:"view_root"`
 	Version    string `yaml:"version" mapstructure:"version"`
 	PublicHost string `yaml:"public_host" mapstructure:"public_host"`
-}
-
-// staticFileURL 拼接静态文件路径
-func StaticFileURL(tp, uri string) string {
-	host := Config.Asset.PublicHost
-	version := Config.Asset.Version
-
-	if Config.Env.AppMode == "development" || Config.Env.AppMode == "dev" {
-		if tp == "" {
-			return host + "/" + uri + "?version=" + version
-		} else {
-			return host + "/" + tp + "/" + uri + "?version=" + version
-		}
-	}
-	return host + "/mobile/" + tp + "/" + uri
 }
 
 func InitConfig(cfgFile string) {
@@ -64,14 +49,5 @@ func InitConfig(cfgFile string) {
 	if err := viper.Unmarshal(&Config); err != nil {
 		panic(err)
 	}
+	fmt.Println("Config.Asset:",Config.Asset)
 }
-
-type CustomValidator struct {
-	Validator *validator.Validate
-}
-
-func (cv *CustomValidator) Validate(i interface{}) error {
-	return cv.Validator.Struct(i)
-}
-
-

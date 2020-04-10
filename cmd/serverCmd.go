@@ -62,10 +62,12 @@ func startHttp() {
 		StackSize: 1 << 10, // 1 KB
 	}))
 	//Actions
-    exampleController := controllers.ExampleController{}
-    qrcodeController := controllers.NewQrcodeController()
-    e.GET("/index", exampleController.Index)
+	exampleController := controllers.ExampleController{}
+	qrcodeController := controllers.NewQrcodeController()
+	areaCtl := controllers.NewAreaController()
+	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
+	e.GET("/getAreaList", areaCtl.GetAreaList)
 	//
 	if err := e.Start(echoapp.Config.Env.Addr); err != nil {
 		echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

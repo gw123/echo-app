@@ -21,4 +21,5 @@ server
 debug/
 dev.sh
 echoapp
+upload
 

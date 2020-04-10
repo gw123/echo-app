@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	qrcode "github.com/skip2/go-qrcode"
 	"net/http"
-	"strconv"
+	"strings"
 )
 
 type QrcodeController struct {
@@ -21,14 +21,14 @@ func NewQrcodeController() *QrcodeController {
 
 func (h *QrcodeController) GetQrcode(ctx echo.Context) error {
 	code := ctx.QueryParam("code")
-	_, err := strconv.Atoi(code)
-	if err != nil {
-		return h.Fail(ctx, echoapp.Error_ArgumentError, "", errors.Wrap(err,"参数错误"))
+	count := strings.Count(code, "")
+	if count > 64 {
+		return h.Fail(ctx, echoapp.Error_ArgumentError, "", errors.Wrap(errors.New("code 长度大于64"), "参数错误"))
 	}
 
 	png, err := qrcode.Encode(code, qrcode.Medium, 160)
 	if err != nil {
-		return h.Fail(ctx, echoapp.Error_ArgumentError, "", errors.Wrap(err,"qrcode编码错误"))
+		return h.Fail(ctx, echoapp.Error_ArgumentError, "", errors.Wrap(err, "qrcode编码错误"))
 	}
 
 	ctx.Response().Header().Set(echo.HeaderContentType, "image/png")

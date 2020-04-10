@@ -21,7 +21,6 @@ func NewExampleController() *ExampleController {
 
 
 func (h *ExampleController) Index(ctx echo.Context) error {
-	//staticParams := echoapp.Config.Asset
 	renderParams := map[string]interface{}{
 		"ip":  ctx.RealIP(),
 		"time": time.Now().String(),
@@ -31,5 +30,6 @@ func (h *ExampleController) Index(ctx echo.Context) error {
 }
 
 func (h *ExampleController) Hello(ctx echo.Context) error {
+
 	return ctx.HTML(http.StatusOK, "hello world")
 }
