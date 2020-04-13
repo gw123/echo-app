@@ -13,16 +13,16 @@ var Config ConfigOptions
 var Viper *viper.Viper
 
 type ConfigOptions struct {
-	Asset   Asset `yaml:"asset" mapstructure:"asset"`
-	Env     *Environments
-	Redis   *CacheOptions
-	Origins []string
+	Asset  Asset `yaml:"asset" mapstructure:"asset"`
+	Server *Server
+	Redis  *CacheOptions
 }
 
-type Environments struct {
-	Addr      string `yaml:"addr" mapstructure:"addr"`
-	AppMode   string `yaml:"app_mode" mapstructure:"app_mode"`
-	JwtPubkey string `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
+type Server struct {
+	Addr      string   `yaml:"addr" mapstructure:"addr"`
+	Origins   []string `yaml:"origins" mapstructure:"origins"`
+	AppMode   string   `yaml:"app_mode" mapstructure:"app_mode"`
+	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
 }
 
 type Asset struct {
@@ -49,5 +49,5 @@ func InitConfig(cfgFile string) {
 	if err := viper.Unmarshal(&Config); err != nil {
 		panic(err)
 	}
-	fmt.Println("Config.Asset:",Config.Asset)
+	fmt.Println("Config.Asset:", Config.Asset)
 }

@@ -15,11 +15,20 @@ func NewAreaController() *AreaController {
 	return temp
 }
 
-func (t *AreaController) GetAreaList(ctx echo.Context) error {
-	areaId := ctx.QueryParam("areaId")
-	areaList, err := app.MustGetAreaService().GetAreaList(areaId)
+func (c *AreaController) GetAreaMap(ctx echo.Context) error {
+	areaId := ctx.QueryParam("area_id")
+	areaMap, err := app.MustGetAreaService().GetAreaMap(areaId)
 	if err != nil {
-
+		return c.BaseController.Fail(ctx, echoapp.Error_ArgumentError, "", err)
 	}
-	return t.BaseController.Success(ctx, areaList)
+	return c.BaseController.Success(ctx, areaMap)
+}
+
+func (c *AreaController) GetAreaArray(ctx echo.Context) error {
+	areaId := ctx.QueryParam("area_id")
+	areaArray, err := app.MustGetAreaService().GetAreaArray(areaId)
+	if err != nil {
+		return c.BaseController.Fail(ctx, echoapp.Error_ArgumentError, "", err)
+	}
+	return c.BaseController.Success(ctx, areaArray)
 }

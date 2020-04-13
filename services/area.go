@@ -2,8 +2,10 @@ package services
 
 import (
 	"encoding/json"
+	echoapp "github.com/gw123/echo-app"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"sort"
 )
 
 type Area struct {
@@ -30,23 +32,42 @@ func NewAreaService(araesPath string) (*AreaService, error) {
 	return &AreaService{areaMap: areaMap, areasPath: araesPath}, nil
 }
 
-func (t *AreaService) GetAreaList(areaId string) (map[string]string, error) {
+func (aSvr *AreaService) GetAreaMap(areaId string) (map[string]string, error) {
+	areaArray, err := aSvr.GetAreaArray(areaId)
+	if err != nil {
+		return nil, err
+	}
+	areaMap := make(map[string]string)
+	for _, item := range areaArray {
+		areaMap[item.Id] = item.Name
+	}
+
+	return areaMap, nil
+}
+
+func (aSvr *AreaService) GetAreaArray(areaId string) ([]echoapp.AreaOption, error) {
 	length := len(areaId)
-	areaList := make(map[string]string)
+	areaList := make(echoapp.AreaOptionArray, 0)
 	if length == 0 {
-		for key, p := range t.areaMap {
-			areaList[key] = p.Name
+		for key, p := range aSvr.areaMap {
+			areaList = append(areaList, echoapp.AreaOption{
+				Id:   key,
+				Name: p.Name,
+			})
 		}
 	} else if length == 2 {
-		cityList, ok := t.areaMap[areaId]
+		cityList, ok := aSvr.areaMap[areaId]
 		if !ok {
 			return nil, errors.New("参数错误")
 		}
 		for index, item := range cityList.Children {
-			areaList[index] = item.Name
+			areaList = append(areaList, echoapp.AreaOption{
+				Id:   index,
+				Name: item.Name,
+			})
 		}
 	} else if length == 4 {
-		cityList, ok := t.areaMap[areaId[0:2]]
+		cityList, ok := aSvr.areaMap[areaId[0:2]]
 		if !ok {
 			return nil, errors.New("参数错误")
 		}
@@ -55,17 +76,28 @@ func (t *AreaService) GetAreaList(areaId string) (map[string]string, error) {
 			return nil, errors.New("参数错误")
 		}
 		for index, item := range areaList1.Children {
-			areaList[index] = item.Name
+			areaList = append(areaList, echoapp.AreaOption{
+				Id:   index,
+				Name: item.Name,
+			})
 		}
 	} else if length == 6 {
-		data, err := ioutil.ReadFile(t.areasPath + "/town/" + areaId + ".json")
+		data, err := ioutil.ReadFile(aSvr.areasPath + "/town/" + areaId + ".json")
 		if err != nil {
 			return nil, errors.Wrap(err, "解析失败")
 		}
-		err = json.Unmarshal(data, &areaList)
+		areaMap := make(map[string]string)
+		err = json.Unmarshal(data, &areaMap)
 		if err != nil {
 			return nil, errors.Wrap(err, "解析失败")
+		}
+		for key, name := range areaMap {
+			areaList = append(areaList, echoapp.AreaOption{
+				Id:   key,
+				Name: name,
+			})
 		}
 	}
+	sort.Sort(areaList)
 	return areaList, nil
 }

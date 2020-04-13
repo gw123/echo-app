@@ -25,6 +25,9 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 )
 
 func startHttp() {
@@ -42,7 +45,7 @@ func startHttp() {
 	fmt.Println(assetConfig)
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.Config.Origins
+	origins := echoapp.Config.Server.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -67,12 +70,22 @@ func startHttp() {
 	areaCtl := controllers.NewAreaController()
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
-	e.GET("/getAreaList", areaCtl.GetAreaList)
-	//
-	if err := e.Start(echoapp.Config.Env.Addr); err != nil {
-		echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
-	}
-	ctx := context.Background()
+	e.GET("/getAreaMap", areaCtl.GetAreaMap)
+	e.GET("/getAreaArray", areaCtl.GetAreaArray)
+
+	go func() {
+		if err := e.Start(echoapp.Config.Server.Addr); err != nil {
+			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
+			os.Exit(-1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
 		echoapp_util.DefaultLogger().WithError(err).Error("服务关闭异常")
 	}
