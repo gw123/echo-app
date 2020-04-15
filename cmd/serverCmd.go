@@ -31,21 +31,21 @@ import (
 )
 
 func startHttp() {
-	echoapp_util.DefaultLogger().Infof("%+v", echoapp.Config)
+	echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
 
-	if echoapp.Config.Asset.PublicRoot != "" {
-		e.Static("/", echoapp.Config.Asset.PublicRoot)
+	if echoapp.ConfigOpts.Asset.PublicRoot != "" {
+		e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	}
 
-	assetConfig := echoapp.Config.Asset
+	assetConfig := echoapp.ConfigOpts.Asset
 	fmt.Println(assetConfig)
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.Config.Server.Origins
+	origins := echoapp.ConfigOpts.Server.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -67,14 +67,16 @@ func startHttp() {
 	//Actions
 	exampleController := controllers.ExampleController{}
 	qrcodeController := controllers.NewQrcodeController()
-	areaCtl := controllers.NewAreaController()
+	areaCtr := controllers.NewAreaController()
+	smsCtr := controllers.NewSmsController()
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
-	e.GET("/getAreaMap", areaCtl.GetAreaMap)
-	e.GET("/getAreaArray", areaCtl.GetAreaArray)
+	e.GET("/getAreaMap", areaCtr.GetAreaMap)
+	e.GET("/getAreaArray", areaCtr.GetAreaArray)
+	e.POST("/sendMessage", smsCtr.SendMessageByToken)
 
 	go func() {
-		if err := e.Start(echoapp.Config.Server.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}

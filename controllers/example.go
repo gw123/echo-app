@@ -8,21 +8,17 @@ import (
 	"time"
 )
 
-
 type ExampleController struct {
 	echoapp.BaseController
 }
 
 func NewExampleController() *ExampleController {
-	help := &ExampleController{
-	}
-	return help
+	return &ExampleController{}
 }
-
 
 func (h *ExampleController) Index(ctx echo.Context) error {
 	renderParams := map[string]interface{}{
-		"ip":  ctx.RealIP(),
+		"ip":   ctx.RealIP(),
 		"time": time.Now().String(),
 	}
 	echoapp_util.ExtractEntry(ctx).Info(renderParams)
@@ -30,6 +26,5 @@ func (h *ExampleController) Index(ctx echo.Context) error {
 }
 
 func (h *ExampleController) Hello(ctx echo.Context) error {
-
 	return ctx.HTML(http.StatusOK, "hello world")
 }

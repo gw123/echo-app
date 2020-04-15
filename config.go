@@ -9,13 +9,14 @@ const (
 	DefaultConfigFile = "config.yaml"
 )
 
-var Config ConfigOptions
+var ConfigOpts ConfigOptions
 var Viper *viper.Viper
 
 type ConfigOptions struct {
-	Asset  Asset `yaml:"asset" mapstructure:"asset"`
-	Server *Server
-	Redis  *CacheOptions
+	Asset             Asset `yaml:"asset" mapstructure:"asset"`
+	Server            *Server
+	Redis             *CacheOptions
+	SmsOptionTokenMap map[string]SmsOption `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 }
 
 type Server struct {
@@ -33,6 +34,11 @@ type Asset struct {
 	PublicHost string `yaml:"public_host" mapstructure:"public_host"`
 }
 
+type SmsOption struct {
+	AccessKey    string `yaml:"access_key" mapstructure:"access_key"`
+	AccessSecret string `yaml:"access_secret" mapstructure:"access_secret"`
+}
+
 func InitConfig(cfgFile string) {
 	if cfgFile == "" {
 		cfgFile = DefaultConfigFile
@@ -46,8 +52,8 @@ func InitConfig(cfgFile string) {
 		panic(err)
 	}
 
-	if err := viper.Unmarshal(&Config); err != nil {
+	if err := viper.Unmarshal(&ConfigOpts); err != nil {
 		panic(err)
 	}
-	fmt.Println("Config.Asset:", Config.Asset)
+	fmt.Println("ConfigOpts.Asset:", ConfigOpts.Asset)
 }
