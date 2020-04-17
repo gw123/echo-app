@@ -1,7 +1,6 @@
 package echoapp
 
 import (
-	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -14,6 +13,7 @@ const (
 	Error_ArgumentError = 404
 	Error_NotAllow      = 405
 	Error_EtcdError     = 406
+	Error_InnerError    = 407
 )
 
 type Response struct {
@@ -39,13 +39,14 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 	innerErrStr := ""
 	if innerErr != nil {
 		innerErrStr = innerErr.Error()
-		echoapp_util.ExtractEntry(ctx).WithError(innerErr).Info("requestFail")
+		//为了避免重复记录 下面日志留到中间件记录
+		//echoapp_util.ExtractEntry(ctx).WithError(innerErr).Info("requestFail")
 	}
-
 	response := Response{
 		ErrorCode:  errcode,
 		Msg:        msg,
 		InnerError: innerErrStr,
 	}
-	return ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, response)
+	return innerErr
 }

@@ -1,13 +1,15 @@
 package echoapp
 
+import "github.com/labstack/echo"
+
 type SendMessageOptions struct {
-	Token         string
-	PhoneNumbers  []string
-	SignName      string
-	TemplateCode  string
-	TemplateParam string
+	Token         string   `json:"token"`
+	PhoneNumbers  []string `json:"phone_numbers"`
+	SignName      string   `json:"sign_name"`
+	TemplateCode  string   `json:"template_code"`
+	TemplateParam string   `json:"template_param"`
 }
 
 type SmsService interface {
-	SendMessage(opt SendMessageOptions) error
+	SendMessage(ctx echo.Context, opt SendMessageOptions) error
 }

@@ -17,6 +17,7 @@ type ConfigOptions struct {
 	Server            *Server
 	Redis             *CacheOptions
 	SmsOptionTokenMap map[string]SmsOption `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption  `yaml:"dbmap" mapstructure:"dbmap"`
 }
 
 type Server struct {
@@ -37,6 +38,14 @@ type Asset struct {
 type SmsOption struct {
 	AccessKey    string `yaml:"access_key" mapstructure:"access_key"`
 	AccessSecret string `yaml:"access_secret" mapstructure:"access_secret"`
+}
+
+type DBOption struct {
+	Driver    string `yaml:"dirver" mapstructure:"driver"`
+	DSN       string `yaml:"dsn" mapstructure:"dsn"`
+	KeepAlive int    `yaml:"keey_alive" mapstructure:"keey_alive"`
+	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
+	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
 }
 
 func InitConfig(cfgFile string) {

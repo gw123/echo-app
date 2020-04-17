@@ -17,6 +17,7 @@ require (
 	github.com/nelsonken/cos-go-sdk-v5 v0.0.0-20180622024522-5247afdb7a80 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
+	github.com/prometheus/common v0.4.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/spf13/cobra v0.0.5

@@ -1,9 +1,7 @@
 package echoapp
 
-import (
-	"github.com/jinzhu/gorm"
-)
+import "github.com/jinzhu/gorm"
 
 type DbPool interface {
-	GetDbByName(dbname string) *gorm.DB
+	Db(dbname string) (*gorm.DB, error)
 }

@@ -4,6 +4,7 @@ import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/labstack/echo"
+	"github.com/pkg/errors"
 )
 
 type SendMessageParams struct {
@@ -26,9 +27,9 @@ func (sCtr *SmsController) SendMessageByToken(ctx echo.Context) error {
 	if err := ctx.Bind(&params); err != nil {
 		return sCtr.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), err)
 	}
-	err := sCtr.smsSvr.SendMessage(params.SendMessageOptions)
+	err := sCtr.smsSvr.SendMessage(ctx, params.SendMessageOptions)
 	if err != nil {
-		return sCtr.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), err)
+		return sCtr.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), errors.Wrap(err, "短信发送失败,"))
 	}
 	return sCtr.Success(ctx, nil)
 }

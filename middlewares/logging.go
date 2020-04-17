@@ -10,8 +10,8 @@ import (
 )
 
 type LoggingMiddlewareConfig struct {
-	Name    string
-	Skipper middleware.Skipper
+	Name      string
+	Skipper   middleware.Skipper
 	Generator func() string
 	// logger
 	Logger *logrus.Entry
@@ -20,7 +20,7 @@ type LoggingMiddlewareConfig struct {
 var (
 	// DefaultRequestIDConfig is the default RequestID middleware config.
 	DefaultLoggingMiddlewareConfig = LoggingMiddlewareConfig{
-		Name: "echo-app",
+		Name:      "echo-app",
 		Skipper:   middleware.DefaultSkipper,
 		Generator: generatorId,
 		Logger:    echoapp_util.NewDefaultEntry(),
@@ -72,22 +72,19 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			logger := echoapp_util.ExtractEntry(c).
 				WithField("App", config.Name).
 				WithFields(fields)
-
-			if err := next(c); err != nil {
-				c.Error(err)
-				echoapp_util.ExtractEntry(c).WithError(err)
-			}
-
+			echoapp_util.ToContext(c, logger)
+			err := next(c)
 			// in case any step changed the logger context
-			logger = echoapp_util.ExtractEntry(c).
-				WithField("App", config.Name).
-				WithFields(fields)
-
+			logger = echoapp_util.ExtractEntry(c)
 			latency := time.Since(start)
 			resp := c.Response()
-			logger.WithField("status", resp.Status)
-			logger.WithField("latency",latency.Nanoseconds() / int64(time.Millisecond)).
-				Info("LoggingMiddleware request over.")
+			if err != nil {
+				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
+					Error(err.Error())
+			} else {
+				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
+					Info("LoggingMiddleware request over.")
+			}
 
 			return nil
 		}

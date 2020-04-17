@@ -3,6 +3,7 @@ package app
 import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/services"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
@@ -12,6 +13,7 @@ var App *EchoApp
 type EchoApp struct {
 	areaSvc echoapp.AreaService
 	smsSvc  echoapp.SmsService
+	dbPool  echoapp.DbPool
 }
 
 func init() {
@@ -53,4 +55,21 @@ func MustGetSmsService() echoapp.SmsService {
 		panic(err)
 	}
 	return areaSvc
+}
+
+func GetDb(dbname string) (*gorm.DB, error) {
+	if App.dbPool != nil {
+		return App.dbPool.Db(dbname)
+	}
+	dbPool := services.NewDbPool(echoapp.ConfigOpts.DBMap)
+	App.dbPool = dbPool
+	return dbPool.Db(dbname)
+}
+
+func MustGetDb(dbName string) *gorm.DB {
+	db, err := GetDb(dbName)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
