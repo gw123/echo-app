@@ -19,7 +19,10 @@ type SmsService struct {
 }
 
 func NewSmsService(options map[string]echoapp.SmsOption) *SmsService {
-	return &SmsService{smsOptionMap: options}
+	return &SmsService{
+		smsOptionMap: options,
+		clientMap: map[string]*dysmsapi.Client{},
+	}
 }
 
 func (mSvr SmsService) SendMessage(ctx echo.Context, opt echoapp.SendMessageOptions) error {

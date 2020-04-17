@@ -17,7 +17,7 @@ type ConfigOptions struct {
 	Server            *Server
 	Redis             *CacheOptions
 	SmsOptionTokenMap map[string]SmsOption `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption  `yaml:"dbmap" mapstructure:"dbmap"`
+	DBMap             map[string]DBOption  `yaml:"database" mapstructure:"database"`
 }
 
 type Server struct {

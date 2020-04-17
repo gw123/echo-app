@@ -69,11 +69,14 @@ func startHttp() {
 	qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
+	userCtl := controllers.NewUserController()
+
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
 	e.POST("/sendMessage", smsCtr.SendMessageByToken)
+	e.POST("/addUserScore", userCtl.AddUserScore)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
