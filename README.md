@@ -20,4 +20,4 @@
 ## 记录日志方法，通过下面方式记录可以把 request_id 记录到日志中方便同一个请求链路追踪, 并且还可以导出其他ctx中记录的信息
 echoapp_util.ExtractEntry(ctx).Info(renderParams)
 
-
+##添加了用户注册，登录，角色创建，权限创建

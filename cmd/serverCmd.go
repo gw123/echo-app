@@ -17,6 +17,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
@@ -24,10 +29,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startHttp() {
@@ -65,19 +66,35 @@ func startHttp() {
 		StackSize: 1 << 10, // 1 KB
 	}))
 	//Actions
-	exampleController := controllers.ExampleController{}
+	//exampleController := controllers.ExampleController{}
 	qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
-	userCtl := controllers.NewUserController()
 
-	e.GET("/index", exampleController.Index)
+	//e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
+
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
-	e.POST("/sendMessage", smsCtr.SendMessageByToken)
-	e.POST("/addUserScore", userCtl.AddUserScore)
 
+	e.POST("/sendMessage", smsCtr.SendMessageByToken)
+
+	usercontroller := controllers.NewUserController()
+	goodcontroller := controllers.Goodcontroller{}
+
+	e.GET("/goodlist", goodcontroller.GoodList)
+	e.POST("/addgood", goodcontroller.AddGood)
+	e.POST("/login/addcomment", goodcontroller.AddUserComment)
+
+	e.POST("/addUserScore", usercontroller.AddUserScore)
+	e.POST("/adduser", usercontroller.Adduser)
+	e.POST("/login", usercontroller.Login)
+	e.POST("/addroles", usercontroller.Addroles)
+	//e.POST("/adduserroles", usercontroller.)
+	e.POST("/addpermission", usercontroller.Addpermissions)
+	//e.POST("/roleandpermission", usercontroller.RoleHasPermission)
+
+	//
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
