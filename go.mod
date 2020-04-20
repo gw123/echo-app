@@ -22,6 +22,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.4.0
+	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect
 	github.com/uniplaces/carbon v0.1.6 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect

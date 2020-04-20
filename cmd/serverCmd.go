@@ -31,6 +31,7 @@ import (
 )
 
 func startHttp() {
+	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {

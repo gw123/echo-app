@@ -36,7 +36,7 @@ var smsDaemonCmd = &cobra.Command{
 	Short: "短信",
 	Long:  `短信消费者`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startHttp()
+		startSmsDaemon()
 	},
 }
 

@@ -16,8 +16,10 @@ type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
 	Redis             *CacheOptions
-	SmsOptionTokenMap map[string]SmsOption `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption  `yaml:"database" mapstructure:"database"`
+	SmsOptionTokenMap map[string]SmsOption       `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption        `yaml:"database" mapstructure:"database"`
+	MQMap             map[string]RabbitMqOption  `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
+	TongChengMap      map[string]TongchengOption `yaml:"tongcheng_keys" mapstructure:"tongcheng_keys"`
 }
 
 type Server struct {
@@ -38,6 +40,15 @@ type Asset struct {
 type SmsOption struct {
 	AccessKey    string `yaml:"access_key" mapstructure:"access_key"`
 	AccessSecret string `yaml:"access_secret" mapstructure:"access_secret"`
+}
+
+type RabbitMqOption struct {
+	Url string `yaml:"url" mapstructure:"url"`
+}
+
+type TongchengOption struct {
+	Key    string `yaml:"key" mapstructure:"key"`
+	UserId string `yaml:"usr_id" mapstructure:"user_id"`
 }
 
 type DBOption struct {
