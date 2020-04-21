@@ -11,10 +11,11 @@ var App *EchoApp
 
 //私有变量 防止未初始化调用
 type EchoApp struct {
-	areaSvc echoapp.AreaService
-	smsSvc  echoapp.SmsService
-	UserSvr echoapp.UserService
-	dbPool  echoapp.DbPool
+	areaSvc     echoapp.AreaService
+	smsSvc      echoapp.SmsService
+	UserSvr     echoapp.UserService
+	dbPool      echoapp.DbPool
+	resourceSvc echoapp.ResourceService
 }
 
 func init() {
@@ -92,4 +93,22 @@ func MustUserService() echoapp.UserService {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}
 	return userSvr
+}
+func GetResourceService() (echoapp.ResourceService, error) {
+	if App.resourceSvc != nil {
+		return App.resourceSvc, nil
+	}
+	userDb, err := GetDb("user")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	App.resourceSvc = services.NewResourceService(userDb)
+	return App.resourceSvc, nil
+}
+func MustGetResService() echoapp.ResourceService {
+	resource, err := GetResourceService()
+	if err != nil {
+		panic(err)
+	}
+	return resource
 }

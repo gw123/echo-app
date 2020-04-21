@@ -17,6 +17,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
@@ -24,10 +29,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startHttp() {
@@ -71,13 +72,26 @@ func startHttp() {
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
 	userCtl := controllers.NewUserController()
+	resourceController := controllers.NewResourceController()
 
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
 	e.POST("/sendMessage", smsCtr.SendMessageByToken)
+
 	e.POST("/addUserScore", userCtl.AddUserScore)
+	e.POST("/subUserScore", userCtl.SubUserScore)
+	e.POST("/adduser", userCtl.Adduser)
+	e.POST("/login", userCtl.Login)
+	e.POST("/addRole", userCtl.Addroles)
+	e.POST("/addPermission", userCtl.Addpermissions)
+	e.POST("/rolehaspermission", userCtl.RoleHasPermission)
+
+	e.POST("/savereource", resourceController.SaveResource)
+	e.GET("/getresourcebyID", resourceController.GetResourceById)
+	e.POST("/getresourcesbytagID", resourceController.GetResourcesByTagID)
+	e.POST("/getuserpamentresources", resourceController.GetUserPaymentResources)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {

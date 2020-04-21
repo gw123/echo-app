@@ -2,7 +2,9 @@ package echoapp
 
 import (
 	"encoding/json"
+
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
 )
 
 type Category struct {
@@ -81,11 +83,11 @@ type Testpaper struct {
 
 type ResourceService interface {
 	SaveResource(resource Resource) error
-	GetResourceById(id uint) (*Resource, error)
+	GetResourceById(c echo.Context, id uint) (*Resource, error)
 	//通过tagId查找资源
-	GetResourcesByTagID(tagID uint, from, limit int) ([]*Resource, error)
+	GetResourcesByTagID(c echo.Context, tagID uint, from int, limit int) ([]*Resource, error)
 	//用户上传的资源
-	GetSelfResources(userId uint, from, limit int) ([]*Resource, error)
+	GetSelfResources(c echo.Context, userId uint, from int, limit int) ([]*Resource, error)
 	//用户购买的资源
-	GetUserPaymentResources(userId uint, from, limit int) ([]*Resource, error)
+	GetUserPaymentResources(c echo.Context, userId uint, from int, limit int) ([]*Resource, error)
 }
