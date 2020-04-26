@@ -1,6 +1,12 @@
 package services
 
 import (
+	"crypto/md5"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
+	"io"
+	"io/ioutil"
 	"sync"
 
 	echoapp "github.com/gw123/echo-app"
@@ -22,7 +28,8 @@ func NewResourceService(db *gorm.DB) *ResourceService {
 	return help
 }
 
-func (rsv *ResourceService) SaveResource(resource echoapp.Resource) error {
+func (rsv *ResourceService) SaveResource(resource *echoapp.Resource) error {
+	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Resource{})
 	return rsv.db.Create(resource).Error
 }
 func (rsv *ResourceService) GetResourceById(c echo.Context, id uint) (*echoapp.Resource, error) {
@@ -61,4 +68,24 @@ func (rsv *ResourceService) GetUserPaymentResources(c echo.Context, userId uint,
 
 func (rsv *ResourceService) GetSelfResources(c echo.Context, userId uint, from int, limit int) ([]*echoapp.Resource, error) {
 	return nil, nil
+}
+func (rsv *ResourceService) GetMd5String(path string) string {
+	h := md5.New()
+	h.Write([]byte(path))
+	return hex.EncodeToString(h.Sum(nil))
+}
+func (rsv *ResourceService) Md5SumFile(file string) (value [md5.Size]byte, err error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return
+	}
+	value = md5.Sum(data)
+	return value, nil
+}
+func (rsv *ResourceService) UniqueID() string {
+	b := make([]byte, 48)
+	if _, err := io.ReadFull(rand.Reader, b); err != nil {
+		return ""
+	}
+	return rsv.GetMd5String(base64.URLEncoding.EncodeToString(b))
 }

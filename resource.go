@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"crypto/md5"
 	"encoding/json"
 
 	"github.com/jinzhu/gorm"
@@ -67,6 +68,8 @@ type Resource struct {
 	Type      string     `json:"type"`
 	Article   *Article   `json:"article" gorm:"ForeignKey:rid"`
 	Testpaper *Testpaper `json:"testpaper" gorm:"ForeignKey:rid"`
+	Md5File   [16]byte   `json:"md5_file" gorm:"unique"`
+	Path      string     `json:"path"`
 }
 
 type Article struct {
@@ -82,7 +85,7 @@ type Testpaper struct {
 }
 
 type ResourceService interface {
-	SaveResource(resource Resource) error
+	SaveResource(resource *Resource) error
 	GetResourceById(c echo.Context, id uint) (*Resource, error)
 	//通过tagId查找资源
 	GetResourcesByTagID(c echo.Context, tagID uint, from int, limit int) ([]*Resource, error)
@@ -90,4 +93,6 @@ type ResourceService interface {
 	GetSelfResources(c echo.Context, userId uint, from int, limit int) ([]*Resource, error)
 	//用户购买的资源
 	GetUserPaymentResources(c echo.Context, userId uint, from int, limit int) ([]*Resource, error)
+	GetMd5String(path string) string
+	Md5SumFile(file string) (value [md5.Size]byte, err error)
 }

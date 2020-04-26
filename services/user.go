@@ -46,12 +46,12 @@ func (uSvr UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*ech
 
 }
 
-func (uSvr UserService) GetUserById(ctx echo.Context, userId int) (*echoapp.User, error) {
+func (uSvr UserService) GetUserById(ctx echo.Context, userID int) (*echoapp.User, error) {
 	user := &echoapp.User{}
-	if err := uSvr.db.Where("id = ?", userId).First(user).Error; err != nil {
+	if err := uSvr.db.Where("id = ?", userID).First(user).Error; err != nil {
 		return nil, err
 	}
-	echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userId)
+	echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userID)
 	return user, nil
 }
 
@@ -71,8 +71,6 @@ func (t *UserService) RegisterUser(c echo.Context, param *echoapp.RegisterUser) 
 	err := t.db.Table("users").Where("phone=?", param.Phone)
 	if err.Error != nil && err.RecordNotFound() {
 		return errors.Wrap(err.Error, "Record has Found")
-	} else if err.RecordNotFound() {
-		return errors.New("Record has Found")
 	}
 	echoapp_util.ExtractEntry(c).Infof("mobile:%s,pwd:%s", param.Phone, param.Pwd)
 	return t.Create(c, param)
@@ -83,16 +81,14 @@ func (t *UserService) Addroles(c echo.Context, param *echoapp.Role) error {
 	res := t.db.Table("roles").Where("name=?", param.Name)
 	if res.Error != nil && res.RecordNotFound() {
 		return errors.Wrap(res.Error, "Record has Found")
-	} else if res.RecordNotFound() {
-		return errors.New("Record has Found")
 	}
 	err := t.db.Create(param)
 	if err.Error != nil && t.db.NewRecord(param) {
-		return errors.Wrap(err.Error, "role  create failed")
+		return errors.Wrap(err.Error, "role create failed")
 	} else if t.db.NewRecord(param) {
 		return errors.New("not NewRecord")
 	}
-	echoapp_util.ExtractEntry(c).Infof("role name:%s", param.Name)
+	echoapp_util.ExtractEntry(c).Infof("create role name:%s", param.Name)
 	return nil
 }
 func (t *UserService) AddPermission(c echo.Context, param *echoapp.Permission) error {
@@ -100,20 +96,18 @@ func (t *UserService) AddPermission(c echo.Context, param *echoapp.Permission) e
 	res := t.db.Table("permissions").Where("name=?", param.Name)
 	if res.Error != nil && res.RecordNotFound() {
 		return errors.Wrap(res.Error, "Record has Found")
-	} else if res.RecordNotFound() {
-		return errors.New("Record has Found")
 	}
 	err := t.db.Create(param)
 	if err.Error != nil && t.db.NewRecord(param) {
-		return errors.Wrap(err.Error, "role  create failed")
+		return errors.Wrap(err.Error, "permiseeion create failed")
 	} else if t.db.NewRecord(param) {
 		return errors.New("not NewRecord")
 	}
-	echoapp_util.ExtractEntry(c).Infof("permission name:%s", param.Name)
+	echoapp_util.ExtractEntry(c).Infof("create permission name:%s", param.Name)
 	return nil
 }
 
-func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPermissionParam) (*echoapp.Role_Has_Permission, error) {
+func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPermissionParam) (*echoapp.RoleHasPermission, error) {
 	role := &echoapp.Role{}
 	permission := &echoapp.Permission{}
 	res := t.db.Where("name=?", param.Role).Find(role)
@@ -128,7 +122,7 @@ func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPe
 	} else if res.RecordNotFound() {
 		return nil, errors.New("Permission Record has Found")
 	}
-	rolehaspermission := &echoapp.Role_Has_Permission{
+	rolehaspermission := &echoapp.RoleHasPermission{
 		RoleID:       role.ID,
 		PermissionID: permission.ID,
 	}

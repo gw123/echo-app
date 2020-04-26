@@ -21,7 +21,7 @@ func NewResourceController() *ResourceController {
 }
 
 func (rCtrl *ResourceController) SaveResource(ctx echo.Context) error {
-	params := echoapp.Resource{}
+	params := &echoapp.Resource{}
 	if err := ctx.Bind(params); err != nil {
 		return rCtrl.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), err)
 	}

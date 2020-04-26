@@ -17,7 +17,10 @@ const (
 	size      = 255
 )
 
-func (hash *HashCodeService) HashEncode(code string) ([]byte, error) {
+func NewHashCodeService() *HashCodeService {
+	return &HashCodeService{}
+}
+func (hash *HashCodeService) HashQrEncode(code string) ([]byte, error) {
 	number, err := strconv.Atoi(code)
 	if err != nil {
 		return nil, err
@@ -40,6 +43,5 @@ func (hash *HashCodeService) HashDecode(code string) ([]int, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "解码错误")
 	}
-	//decodestring := strconv.Itoa(decode[0])
 	return decodeArr, nil
 }

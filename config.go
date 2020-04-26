@@ -2,6 +2,7 @@ package echoapp
 
 import (
 	"fmt"
+
 	"github.com/spf13/viper"
 )
 
@@ -35,6 +36,7 @@ type Asset struct {
 	ViewRoot   string `yaml:"view_root" mapstructure:"view_root"`
 	Version    string `yaml:"version" mapstructure:"version"`
 	PublicHost string `yaml:"public_host" mapstructure:"public_host"`
+	WatchRoot  string `yanml:"watch_root"  mapstructure:"watch_root"`
 }
 
 type SmsOption struct {

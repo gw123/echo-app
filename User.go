@@ -64,7 +64,7 @@ type RoleandPermissionParam struct {
 	Role       string `json:"role"`
 	Permission string `json:"permission"`
 }
-type Role_Has_Permission struct {
+type RoleHasPermission struct {
 	RoleID       uint `json:"role_id"`
 	PermissionID uint `json:"permission_id"`
 }
@@ -74,10 +74,10 @@ type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
-	GetUserById(ctx echo.Context, userId int) (*User, error)
+	GetUserById(ctx echo.Context, userID int) (*User, error)
 	Create(c echo.Context, user *RegisterUser) error
 	Addroles(c echo.Context, param *Role) error
 	AddPermission(c echo.Context, param *Permission) error
 	RegisterUser(c echo.Context, param *RegisterUser) error
-	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*Role_Has_Permission, error)
+	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*RoleHasPermission, error)
 }

@@ -15,11 +15,12 @@
 package cmd
 
 import (
+	"os"
+	"os/signal"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
-	"os"
-	"os/signal"
 )
 
 func startSmsDaemon() {

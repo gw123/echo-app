@@ -4,6 +4,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.113
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/fatedier/frp v0.29.0 // indirect
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-playground/validator v9.29.1+incompatible // indirect
