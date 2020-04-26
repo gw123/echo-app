@@ -33,6 +33,7 @@ type User struct {
 	Email  string `json:"email"`
 	Mobile string `json:"mobile"`
 	Score  int    `json:"score"`
+	Token  int    `json:"api_token"`
 }
 
 type UserService interface {
@@ -41,4 +42,5 @@ type UserService interface {
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param LoginParam) (*User, error)
 	GetUserById(ctx echo.Context, userId int) (*User, error)
+	GetUserByToken(token string) (*User, error)
 }

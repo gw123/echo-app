@@ -26,6 +26,7 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect
 	github.com/uniplaces/carbon v0.1.6 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
 

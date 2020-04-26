@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func startHttp() {
+func startLocalHttp() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
@@ -64,21 +64,11 @@ func startHttp() {
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize: 1 << 10, // 1 KB
 	}))
-
 	//Actions
 	usrSvr := app.MustUserService()
-	exampleController := controllers.ExampleController{}
-	qrcodeController := controllers.NewQrcodeController()
-	areaCtr := controllers.NewAreaController()
-	smsCtr := controllers.NewSmsController()
-	userCtl := controllers.NewUserController(usrSvr)
-
-	e.GET("/index", exampleController.Index)
-	e.GET("/getQrcode", qrcodeController.GetQrcode)
-	e.GET("/getAreaMap", areaCtr.GetAreaMap)
-	e.GET("/getAreaArray", areaCtr.GetAreaArray)
-	e.POST("/sendMessage", smsCtr.SendMessageByToken)
-	e.POST("/addUserScore", userCtl.AddUserScore)
+	wsCtl := controllers.NewWsController(usrSvr)
+	e.GET("/createWsClient", wsCtl.CreateWsClient)
+	e.GET("/sendCmd", wsCtl.SendCmd)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
@@ -99,15 +89,15 @@ func startHttp() {
 }
 
 // serverCmd represents the server command
-var serverCmd = &cobra.Command{
-	Use:   "server",
+var localServerCmd = &cobra.Command{
+	Use:   "local_server",
 	Short: "服务",
 	Long:  `测试服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startHttp()
+		startLocalHttp()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(localServerCmd)
 }

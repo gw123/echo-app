@@ -2,7 +2,6 @@ package controllers
 
 import (
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
@@ -12,9 +11,9 @@ type UserController struct {
 	echoapp.BaseController
 }
 
-func NewUserController() *UserController {
+func NewUserController(usrSvr echoapp.UserService) *UserController {
 	return &UserController{
-		userSvr: app.MustUserService(),
+		userSvr: usrSvr,
 	}
 }
 

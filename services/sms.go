@@ -3,8 +3,6 @@ package services
 import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dysmsapi"
 	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"strings"
 	"sync"
@@ -21,12 +19,11 @@ type SmsService struct {
 func NewSmsService(options map[string]echoapp.SmsOption) *SmsService {
 	return &SmsService{
 		smsOptionMap: options,
-		clientMap: map[string]*dysmsapi.Client{},
+		clientMap:    map[string]*dysmsapi.Client{},
 	}
 }
 
-func (mSvr SmsService) SendMessage(ctx echo.Context, opt echoapp.SendMessageOptions) error {
-	echoapp_util.ExtractEntry(ctx).Info("发送短信,请求内容:", opt)
+func (mSvr SmsService) SendMessage(opt *echoapp.SendMessageOptions) error {
 	client, ok := mSvr.clientMap[opt.Token]
 	if !ok || client == nil {
 		smsOption, ok := mSvr.smsOptionMap[opt.Token]
@@ -44,6 +41,9 @@ func (mSvr SmsService) SendMessage(ctx echo.Context, opt echoapp.SendMessageOpti
 		defer mSvr.mu.Unlock()
 		mSvr.clientMap[opt.Token] = client
 	}
+
+	opt.SignName = mSvr.smsOptionMap[opt.Token].SignName
+	opt.TemplateCode = mSvr.smsOptionMap[opt.Token].TemplateCode
 
 	request := dysmsapi.CreateSendSmsRequest()
 	request.Scheme = "https"

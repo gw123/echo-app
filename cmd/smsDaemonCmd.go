@@ -15,16 +15,56 @@
 package cmd
 
 import (
+	"encoding/json"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
+	"github.com/streadway/amqp"
 	"os"
 	"os/signal"
 )
 
-func startSmsDaemon() {
-	echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
+func doSMSWorker() {
+	conn, err := amqp.Dial(echoapp.ConfigOpts.MQMap["sms"].Url)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	defer ch.Close()
 
+	smsSvr := app.MustGetSmsService()
+	msgs, err := ch.Consume(
+		"send-sms", // queue
+		"",         // consumer
+		false,      // auto-ack
+		false,      // exclusive
+		false,      // no-local
+		false,      // no-wait
+		nil,        // args
+	)
+
+	go func() {
+		for msg := range msgs {
+			echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+			job := &echoapp.SendMessageJob{}
+			if err := json.Unmarshal(msg.Body, job); err != nil {
+				echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
+				continue
+			}
+
+			if err := smsSvr.SendMessage(&job.SendMessageOptions); err != nil {
+				echoapp_util.DefaultLogger().Errorf("sendSMS: %s", err.Error())
+				continue
+			}
+			msg.Ack(true)
+		}
+	}()
+}
+func startSmsDaemon() {
+	echoapp_util.DefaultLogger().Infof("开启短信服务")
+	doMqWorker()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
