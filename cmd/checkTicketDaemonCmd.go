@@ -25,9 +25,6 @@ import (
 	"os/signal"
 )
 
-type TikcetData struct {
-}
-
 func doMqWorker() {
 	conn, err := amqp.Dial(echoapp.ConfigOpts.MQMap["ticket"].Url)
 	if err != nil {
@@ -48,26 +45,24 @@ func doMqWorker() {
 		nil,            // args
 	)
 
-	go func() {
-		for msg := range msgs {
-			echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
-			job := &echoapp.CheckTicketJob{}
-			if err := json.Unmarshal(msg.Body, job); err != nil {
-				echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
-				continue
-			}
-			if err := tongchengSvr.CheckTicket(job); err != nil {
-				echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
-				continue
-			}
-			msg.Ack(true)
+	for msg := range msgs {
+		echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+		job := &echoapp.CheckTicketJob{}
+		if err := json.Unmarshal(msg.Body, job); err != nil {
+			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
+			continue
 		}
-	}()
+		if err := tongchengSvr.CheckTicket(job); err != nil {
+			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
+			continue
+		}
+		msg.Ack(true)
+	}
 }
 
 func startCheckTicketDaemon() {
 	echoapp_util.DefaultLogger().Infof("开始消息推送服务")
-	doMqWorker()
+	go doMqWorker()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

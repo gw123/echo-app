@@ -6,11 +6,11 @@ term() {
 trap _term SIGTERM
 
 if [ -f upload ]; then
-    mv upload main
-    chmod +x main
+    mv upload echoapp
+    chmod +x echoapp
 fi
 
-./main server --config=config.yaml &
+./echoapp server --config=config.yaml &
 
 child=$!
 wait "$child"

@@ -4,8 +4,11 @@ import (
 	"github.com/pkg/errors"
 
 	echoapp "github.com/gw123/echo-app"
+<<<<<<< HEAD
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
+=======
+>>>>>>> refs/remotes/origin/master
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
@@ -15,9 +18,9 @@ type UserController struct {
 	echoapp.BaseController
 }
 
-func NewUserController() *UserController {
+func NewUserController(usrSvr echoapp.UserService) *UserController {
 	return &UserController{
-		userSvr: app.MustUserService(),
+		userSvr: usrSvr,
 	}
 }
 

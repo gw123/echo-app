@@ -1,7 +1,6 @@
 package echoapp
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 )
 
@@ -40,6 +39,8 @@ type Asset struct {
 type SmsOption struct {
 	AccessKey    string `yaml:"access_key" mapstructure:"access_key"`
 	AccessSecret string `yaml:"access_secret" mapstructure:"access_secret"`
+	SignName     string `yaml:"sign_name" mapstructure:"sign_name"`
+	TemplateCode string `yaml:"template_code" mapstructure:"template_code"`
 }
 
 type RabbitMqOption struct {
@@ -75,5 +76,4 @@ func InitConfig(cfgFile string) {
 	if err := viper.Unmarshal(&ConfigOpts); err != nil {
 		panic(err)
 	}
-	fmt.Println("ConfigOpts.Asset:", ConfigOpts.Asset)
 }

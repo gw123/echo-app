@@ -16,15 +16,6 @@ package cmd
 
 import (
 	"context"
-<<<<<<< HEAD
-	"fmt"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
-
-=======
->>>>>>> refs/remotes/origin/master
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -33,9 +24,13 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
 )
 
-func startHttp() {
+func startLocalHttp() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
@@ -69,38 +64,11 @@ func startHttp() {
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize: 1 << 10, // 1 KB
 	}))
-
 	//Actions
 	usrSvr := app.MustUserService()
-	exampleController := controllers.ExampleController{}
-	qrcodeController := controllers.NewQrcodeController()
-	areaCtr := controllers.NewAreaController()
-	smsCtr := controllers.NewSmsController()
-<<<<<<< HEAD
-	userCtl := controllers.NewUserController()
-	resourceController := controllers.NewResourceController()
-=======
-	userCtl := controllers.NewUserController(usrSvr)
->>>>>>> refs/remotes/origin/master
-
-	e.GET("/index", exampleController.Index)
-	e.GET("/getQrcode", qrcodeController.GetQrcode)
-	e.GET("/getAreaMap", areaCtr.GetAreaMap)
-	e.GET("/getAreaArray", areaCtr.GetAreaArray)
-	e.POST("/sendMessage", smsCtr.SendMessageByToken)
-
-	e.POST("/addUserScore", userCtl.AddUserScore)
-	e.POST("/subUserScore", userCtl.SubUserScore)
-	e.POST("/adduser", userCtl.Adduser)
-	e.POST("/login", userCtl.Login)
-	e.POST("/addRole", userCtl.Addroles)
-	e.POST("/addPermission", userCtl.Addpermissions)
-	e.POST("/rolehaspermission", userCtl.RoleHasPermission)
-
-	e.POST("/savereource", resourceController.SaveResource)
-	e.GET("/getresourcebyID", resourceController.GetResourceById)
-	e.POST("/getresourcesbytagID", resourceController.GetResourcesByTagID)
-	e.POST("/getuserpamentresources", resourceController.GetUserPaymentResources)
+	wsCtl := controllers.NewWsController(usrSvr)
+	e.GET("/createWsClient", wsCtl.CreateWsClient)
+	e.GET("/sendCmd", wsCtl.SendCmd)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
@@ -121,15 +89,15 @@ func startHttp() {
 }
 
 // serverCmd represents the server command
-var serverCmd = &cobra.Command{
-	Use:   "server",
+var localServerCmd = &cobra.Command{
+	Use:   "local_server",
 	Short: "服务",
 	Long:  `测试服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startHttp()
+		startLocalHttp()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(localServerCmd)
 }

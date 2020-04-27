@@ -5,6 +5,7 @@ import (
 )
 
 type CheckTicketJob struct {
+	BaseMqMsg
 	ComId string `json:"com_id"`
 	TongchengRequestBody
 }

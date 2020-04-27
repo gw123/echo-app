@@ -32,11 +32,14 @@ sms_tokens:
   echoapp:
     access_key: ''
     access_secret: ''
+    sign_name: 'xxx'
+    template_code: 'SMS_197752288'
+
 rabbit_mq:
   xyt:
     url: 'amqp://{username}:{password}@localhost:5672/{vhost}'
 
 tongcheng_keys:
-  14:
+  1:
     key: '4MTU1KBG'
     user_id: 'be3ItcG2WLeCbZVDSjIQG6p6ygFOGr

@@ -38,6 +38,7 @@ type User struct {
 	Email  string `json:"email"`
 	Phone  string `json:"mobile"`
 	Score  int    `json:"score"`
+<<<<<<< HEAD:User.go
 	Role   string `json:"role"`
 }
 
@@ -67,6 +68,9 @@ type RoleandPermissionParam struct {
 type Role_Has_Permission struct {
 	RoleID       uint `json:"role_id"`
 	PermissionID uint `json:"permission_id"`
+=======
+	Token  int    `json:"api_token"`
+>>>>>>> refs/remotes/origin/master:user.go
 }
 
 type UserService interface {
@@ -75,9 +79,13 @@ type UserService interface {
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
 	GetUserById(ctx echo.Context, userId int) (*User, error)
+<<<<<<< HEAD:User.go
 	Create(c echo.Context, user *RegisterUser) error
 	Addroles(c echo.Context, param *Role) error
 	AddPermission(c echo.Context, param *Permission) error
 	RegisterUser(c echo.Context, param *RegisterUser) error
 	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*Role_Has_Permission, error)
+=======
+	GetUserByToken(token string) (*User, error)
+>>>>>>> refs/remotes/origin/master:user.go
 }
