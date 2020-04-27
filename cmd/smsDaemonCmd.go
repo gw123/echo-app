@@ -15,14 +15,23 @@
 package cmd
 
 import (
+<<<<<<< HEAD
 	"encoding/json"
+=======
+	"os"
+	"os/signal"
+
+>>>>>>> feature/2020-04-26-watchercmd
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
+<<<<<<< HEAD
 	"github.com/streadway/amqp"
 	"os"
 	"os/signal"
+=======
+>>>>>>> feature/2020-04-26-watchercmd
 )
 
 func doSMSWorker() {

@@ -65,7 +65,7 @@ type RoleandPermissionParam struct {
 	Role       string `json:"role"`
 	Permission string `json:"permission"`
 }
-type Role_Has_Permission struct {
+type RoleHasPermission struct {
 	RoleID       uint `json:"role_id"`
 	PermissionID uint `json:"permission_id"`
 =======
@@ -78,14 +78,22 @@ type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
+<<<<<<< HEAD:user.go
 	GetUserById(ctx echo.Context, userId int) (*User, error)
 <<<<<<< HEAD:User.go
+=======
+	GetUserById(ctx echo.Context, userID int) (*User, error)
+>>>>>>> feature/2020-04-26-watchercmd:User.go
 	Create(c echo.Context, user *RegisterUser) error
 	Addroles(c echo.Context, param *Role) error
 	AddPermission(c echo.Context, param *Permission) error
 	RegisterUser(c echo.Context, param *RegisterUser) error
+<<<<<<< HEAD:user.go
 	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*Role_Has_Permission, error)
 =======
 	GetUserByToken(token string) (*User, error)
 >>>>>>> refs/remotes/origin/master:user.go
+=======
+	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*RoleHasPermission, error)
+>>>>>>> feature/2020-04-26-watchercmd:User.go
 }

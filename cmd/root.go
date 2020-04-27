@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"github.com/gw123/echo-app"
+
+	echoapp "github.com/gw123/echo-app"
 	"github.com/spf13/cobra"
 )
 
