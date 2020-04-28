@@ -127,7 +127,8 @@ func (ws *WsClientModel) DealMsg(eventName string, body []byte, ) error {
 		}
 		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType: %s; Status: %s, result: %s",
 			eventName, result.Status, result.Result)
-	case echoapp.WsEventTypeLog: fallthrough
+	case echoapp.WsEventTypeLog:
+		//echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))
 	case echoapp.WsEventTypePing:
 		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))
 	default:

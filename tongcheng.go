@@ -40,8 +40,8 @@ type TongchengResponse struct {
 		ResCode   string `json:"res_code"`
 		ResMsg    string `json:"res_msg"`
 		Timestamp int    `json:"timestamp"`
-	} `json:"response_head"`
-	ResponseBody string `json:"response_body"`
+	} `json:"responseHead"`
+	ResponseBody string `json:"responseBody"`
 }
 
 type TongchengService interface {
