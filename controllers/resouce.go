@@ -10,7 +10,7 @@ import (
 
 type ResourceController struct {
 	resourceSvc echoapp.ResourceService
-	userSvc     echoapp.UserService
+	//userSvc     echoapp.UserService
 	echoapp.BaseController
 }
 
@@ -55,10 +55,7 @@ type Params struct {
 }
 
 func (resourceCtrl *ResourceController) GetResourcesByTagID(c echo.Context) error {
-	/*tagid := c.QueryParams("tagid")
-	from := c.QueryParams("from")
-	limit := c.QueryParams("limit")
-	*/
+
 	params := &Params{}
 	if err := c.Bind(params); err != nil {
 		return resourceCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "Bind"))

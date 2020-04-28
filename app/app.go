@@ -81,7 +81,7 @@ func GetUserService() (echoapp.UserService, error) {
 	}
 	userDb, err := GetDb("user")
 	if err != nil {
-		return nil, errors.Wrap(err, "GetDb")
+		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
 	App.UserSvr = services.NewUserService(userDb)
 	return App.UserSvr, nil
@@ -90,7 +90,7 @@ func GetUserService() (echoapp.UserService, error) {
 func MustUserService() echoapp.UserService {
 	userSvr, err := GetUserService()
 	if err != nil {
-		panic(errors.Wrap(err, "GetUserSvr"))
+		panic(errors.Wrap(err, "MustuserSer-> GetUserSvr"))
 	}
 	return userSvr
 }
@@ -100,7 +100,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	}
 	userDb, err := GetDb("user")
 	if err != nil {
-		return nil, errors.Wrap(err, "GetDb")
+		return nil, errors.Wrap(err, "GetResourceService->GetDb")
 	}
 	App.resourceSvc = services.NewResourceService(userDb)
 	return App.resourceSvc, nil

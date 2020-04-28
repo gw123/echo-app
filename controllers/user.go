@@ -4,11 +4,7 @@ import (
 	"github.com/pkg/errors"
 
 	echoapp "github.com/gw123/echo-app"
-<<<<<<< HEAD
-	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
-=======
->>>>>>> refs/remotes/origin/master
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )

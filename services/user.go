@@ -17,6 +17,11 @@ type UserService struct {
 	mu sync.Mutex
 }
 
+func NewUserService(db *gorm.DB) *UserService {
+	return &UserService{
+		db: db,
+	}
+}
 func (uSvr UserService) GetUserByToken(token string) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := uSvr.db.Where("api_token = ?", token).First(user).Error; err != nil {
@@ -24,13 +29,6 @@ func (uSvr UserService) GetUserByToken(token string) (*echoapp.User, error) {
 	}
 	return user, nil
 }
-
-func NewUserService(db *gorm.DB) *UserService {
-	return &UserService{
-		db: db,
-	}
-}
-
 func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
 	user.Score += amount
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)

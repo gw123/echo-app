@@ -16,6 +16,11 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -24,10 +29,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startLocalHttp() {

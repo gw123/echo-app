@@ -2,16 +2,14 @@ package services
 
 import (
 	"crypto/md5"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
-	"io"
 	"io/ioutil"
 	"sync"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
+	"github.com/pkg/errors"
 
 	"github.com/jinzhu/gorm"
 )
@@ -82,10 +80,19 @@ func (rsv *ResourceService) Md5SumFile(file string) (value [md5.Size]byte, err e
 	value = md5.Sum(data)
 	return value, nil
 }
-func (rsv *ResourceService) UniqueID() string {
-	b := make([]byte, 48)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		return ""
+
+func (rsv *ResourceService) GetResourceByPath(path string) (*echoapp.Resource, error) {
+	resource := &echoapp.Resource{}
+	res := rsv.db.Where("path=?", path).Find(resource)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GetResourcePath-path in DB")
 	}
-	return rsv.GetMd5String(base64.URLEncoding.EncodeToString(b))
+	return resource, nil
+
+}
+func (rsv *ResourceService) ModifyResource(resource *echoapp.Resource) error {
+	return rsv.db.Save(resource).Error
+}
+func (rsv *ResourceService) DeleteResource(resource *echoapp.Resource) error {
+	return rsv.db.Delete(resource).Error
 }

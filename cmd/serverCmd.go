@@ -16,15 +16,11 @@ package cmd
 
 import (
 	"context"
-<<<<<<< HEAD
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-=======
->>>>>>> refs/remotes/origin/master
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -76,13 +72,8 @@ func startHttp() {
 	qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
-<<<<<<< HEAD
-	userCtl := controllers.NewUserController()
-	resourceController := controllers.NewResourceController()
-=======
 	userCtl := controllers.NewUserController(usrSvr)
->>>>>>> refs/remotes/origin/master
-
+	resourceCtl := controllers.NewResourceController()
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
@@ -97,10 +88,10 @@ func startHttp() {
 	e.POST("/addPermission", userCtl.Addpermissions)
 	e.POST("/rolehaspermission", userCtl.RoleHasPermission)
 
-	e.POST("/savereource", resourceController.SaveResource)
-	e.GET("/getresourcebyID", resourceController.GetResourceById)
-	e.POST("/getresourcesbytagID", resourceController.GetResourcesByTagID)
-	e.POST("/getuserpamentresources", resourceController.GetUserPaymentResources)
+	e.POST("/savereource", resourceCtl.SaveResource)
+	e.GET("/getresourcebyID", resourceCtl.GetResourceById)
+	e.POST("/getresourcesbytagID", resourceCtl.GetResourcesByTagID)
+	e.POST("/getuserpamentresources", resourceCtl.GetUserPaymentResources)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {

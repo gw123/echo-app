@@ -86,6 +86,7 @@ type Testpaper struct {
 
 type ResourceService interface {
 	SaveResource(resource *Resource) error
+
 	GetResourceById(c echo.Context, id uint) (*Resource, error)
 	//通过tagId查找资源
 	GetResourcesByTagID(c echo.Context, tagID uint, from int, limit int) ([]*Resource, error)
@@ -95,4 +96,7 @@ type ResourceService interface {
 	GetUserPaymentResources(c echo.Context, userId uint, from int, limit int) ([]*Resource, error)
 	GetMd5String(path string) string
 	Md5SumFile(file string) (value [md5.Size]byte, err error)
+	ModifyResource(resource *Resource) error
+	DeleteResource(resource *Resource) error
+	GetResourceByPath(path string) (*Resource, error)
 }
