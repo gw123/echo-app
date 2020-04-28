@@ -143,7 +143,7 @@
         //alert(window.api.deviceId)
       },
       createWsClient() {
-        var url = 'ws://192.168.30.127:8082/createWsClient?token=MTAwMDAwMDAx2334016c6181afc8a5cad07e6a3b35a3'
+        var url = 'ws://192.168.30.127:8082/gapi/createWsClient?token=MTAwMDAwMDAx2334016c6181afc8a5cad07e6a3b35a3'
         this.ws = new WebSocket(url);
       },
       sendWsLogEvent(content) {

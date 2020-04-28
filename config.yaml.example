@@ -39,7 +39,10 @@ rabbit_mq:
   xyt:
     url: 'amqp://{username}:{password}@localhost:5672/{vhost}'
 
-tongcheng_keys:
-  1:
-    key: '4MTU1KBG'
-    user_id: 'be3ItcG2WLeCbZVDSjIQG6p6ygFOGr
+tongcheng:
+  notify_url: "http://www.lvcang.cn/jingqu/OpenAPI/OpenService/Scenery"
+  client_map:
+    1:
+      access_key: 'LTAIuxzW62YjGhY1'
+      access_secret: 'jTKscagoOE6vWWiVSVIlkLI49bULaT'
+
