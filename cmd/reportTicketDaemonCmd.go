@@ -35,7 +35,7 @@ type RealGateDay struct {
 }
 
 type RealPeopleNumber struct {
-	ScenicCode string `json:"scenic_code"`
+	ScenicCode string `json:"scenicCode"`
 	UpTime     string `json:"upPime"`
 	Total      int    `json:"total"`
 }
@@ -82,18 +82,19 @@ func reportDailyTicket() error {
 		}
 
 		var count int
-		if err := db.Debug().Table("tickets").
+		if err := db.Table("tickets").
 			Where("com_id = ?", options.ComId).
 			Where("used_at > ? and used_at < ?", today, nextDay).
 			Count(&count).Error; err != nil {
 			return errors.Wrap(err, "Query")
 		}
 
-		reportDataRequest := &RealGateDay{
+		reportDataRequest := []RealGateDay{{
 			ScenicCode: options.ScenicCode,
 			Day:        today,
 			Count:      count,
-		}
+		}}
+
 		data, err := json.Marshal(reportDataRequest)
 		if err != nil {
 			return errors.Wrap(err, "json.Marshal")
@@ -128,7 +129,7 @@ func reportHourTicket() error {
 		toTime := now.Format("2006-01-02 15:04")
 		fromTime := now.Format("2006-01-02")
 		var count int
-		if err := db.Debug().Table("tickets").
+		if err := db.Table("tickets").
 			Where("com_id = ?", options.ComId).
 			Where("used_at > ? and used_at < ?", fromTime, toTime+":59").
 			Count(&count).Error; err != nil {
@@ -140,11 +141,13 @@ func reportHourTicket() error {
 			Total:      count,
 		}
 		data, err := json.Marshal(reportDataRequest)
-		echoapp_util.DefaultLogger().Info(string(data))
+		echoapp_util.DefaultLogger().Infof("请求数据: %s", string(data))
 		if err != nil {
 			return errors.Wrap(err, "json.Marshal")
 		}
-		url := options.BaseUrl + "/upload-data/tourist/real-gate-day"
+
+		//入园
+		url := options.BaseUrl + "/upload-data/tourist/real-people-number"
 		responseData, err := doReportHttpRequest(url, options.AppKey, data)
 		if err != nil {
 			return errors.Wrap(err, "doReportHttpRequest")
@@ -154,7 +157,20 @@ func reportHourTicket() error {
 		if err = json.Unmarshal(responseData, reportDataResponse); err != nil {
 			return errors.Wrap(err, "doReportHttpRequest")
 		}
-		echoapp_util.DefaultLogger().Info(string(responseData))
+		echoapp_util.DefaultLogger().Infof("返回结果:%s", string(responseData))
+
+		//出园
+		exitUrl := options.BaseUrl + "/upload-data/tourist/real-exit-people-number"
+		exitResponseData, err := doReportHttpRequest(exitUrl, options.AppKey, data)
+		if err != nil {
+			return errors.Wrap(err, "doReportHttpRequest")
+		}
+
+		reportExitDataResponse := &ReportDataResponse{}
+		if err = json.Unmarshal(exitResponseData, reportExitDataResponse); err != nil {
+			return errors.Wrap(err, "doReportHttpRequest")
+		}
+		echoapp_util.DefaultLogger().Infof("返回结果:%s", string(exitResponseData))
 	}
 	return nil
 }
