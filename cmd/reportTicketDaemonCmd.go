@@ -36,7 +36,7 @@ type RealGateDay struct {
 
 type RealPeopleNumber struct {
 	ScenicCode string `json:"scenicCode"`
-	UpTime     string `json:"upPime"`
+	UpTime     string `json:"upTime"`
 	Total      int    `json:"total"`
 }
 
