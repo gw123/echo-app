@@ -25,7 +25,7 @@ import (
 	"os/signal"
 )
 
-func doMqWorker() {
+func doCheckTicketWorker() {
 	conn, err := amqp.Dial(echoapp.ConfigOpts.MQMap["ticket"].Url)
 	if err != nil {
 		panic(err)
@@ -33,8 +33,8 @@ func doMqWorker() {
 	defer conn.Close()
 	ch, err := conn.Channel()
 	defer ch.Close()
-
-	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongChengMap)
+	echoapp_util.DefaultLogger().Info(echoapp.ConfigOpts.TongchengConfig)
+	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	msgs, err := ch.Consume(
 		"check-ticket", // queue
 		"",             // consumer
@@ -62,7 +62,7 @@ func doMqWorker() {
 
 func startCheckTicketDaemon() {
 	echoapp_util.DefaultLogger().Infof("开始消息推送服务")
-	go doMqWorker()
+	go doCheckTicketWorker()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

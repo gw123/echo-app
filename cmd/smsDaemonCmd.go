@@ -46,26 +46,26 @@ func doSMSWorker() {
 		nil,        // args
 	)
 
-	go func() {
-		for msg := range msgs {
-			echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
-			job := &echoapp.SendMessageJob{}
-			if err := json.Unmarshal(msg.Body, job); err != nil {
-				echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
-				continue
-			}
-
-			if err := smsSvr.SendMessage(&job.SendMessageOptions); err != nil {
-				echoapp_util.DefaultLogger().Errorf("sendSMS: %s", err.Error())
-				continue
-			}
+	for msg := range msgs {
+		echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+		job := &echoapp.SendMessageJob{}
+		if err := json.Unmarshal(msg.Body, job); err != nil {
+			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
 			msg.Ack(true)
+			continue
 		}
-	}()
+		if err := smsSvr.SendMessage(&job.SendMessageOptions); err != nil {
+			echoapp_util.DefaultLogger().Errorf("sendSMS: 发送失败 %s", err.Error())
+			msg.Ack(true)
+			continue
+		}
+		echoapp_util.DefaultLogger().Infof("sendSMS: 发送成功 %+v", job.PhoneNumbers)
+		msg.Ack(true)
+	}
 }
 func startSmsDaemon() {
 	echoapp_util.DefaultLogger().Infof("开启短信服务")
-	doMqWorker()
+	go doSMSWorker()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

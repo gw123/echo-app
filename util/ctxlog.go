@@ -35,6 +35,20 @@ func DefaultLogger() *logrus.Logger {
 	if defaultLogger == nil {
 		defaultLogger = logrus.New()
 	}
+	defaultLogger.SetFormatter(&logrus.TextFormatter{
+		TimestampFormat:  "2006-01-02 15:04:05",
+		DisableTimestamp: false,
+		FieldMap:         nil,
+		CallerPrettyfier: nil,
+	})
+	return defaultLogger
+}
+
+// 为了方便创建一个默认的Logger
+func DefaultJsonLogger() *logrus.Logger {
+	if defaultLogger == nil {
+		defaultLogger = logrus.New()
+	}
 	defaultLogger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat:  "2006-01-02 15:04:05",
 		DisableTimestamp: false,

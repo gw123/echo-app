@@ -25,9 +25,10 @@ type TongchengService struct {
 	mu                 sync.Mutex
 }
 
-func NewTongchengService(options map[string]echoapp.TongchengOption) *TongchengService {
+func NewTongchengService(config echoapp.TongchengConfig) *TongchengService {
 	return &TongchengService{
-		tongchengOptionMap: options,
+		ConsumeNoticeUrl:   config.NotifyUrl,
+		tongchengOptionMap: config.ClientMap,
 	}
 }
 
@@ -75,14 +76,14 @@ func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
 		return errors.Wrap(err, "CheckTicket->DoResponse:"+string(base64ResponseData))
 	}
 
-	responseData := make([]byte, 0)
-	if _, err = base64.StdEncoding.Decode(responseData, base64ResponseData); err != nil {
-		return errors.Wrap(err, "CheckTicket->Decode:"+string(base64ResponseData))
+	var responseData []byte
+	if responseData, err = base64.StdEncoding.DecodeString(string(base64ResponseData)); err != nil {
+		return errors.Wrap(err, "CheckTicket->Base64Decode:"+string(base64ResponseData))
 	}
-
+	echoapp_util.DefaultLogger().Info(string(responseData))
 	tongchengResponse := &echoapp.TongchengResponse{}
 	if err = json.Unmarshal(responseData, tongchengResponse); err != nil {
-		return errors.Wrap(err, "CheckTicket->Decode:"+string(base64ResponseData))
+		return errors.Wrap(err, "CheckTicket->JsonDecode:"+string(base64ResponseData))
 	}
 
 	if tongchengResponse.ResponseHead.ResCode == "1000" {
@@ -113,7 +114,10 @@ func (mSvr TongchengService) DoRequest(url string, params interface{}) ([]byte, 
 	}
 	base64Body := make([]byte, len(body)*2)
 	base64.StdEncoding.Encode(base64Body, body)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(base64Body))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(base64Body))
+	if err != nil {
+		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
+	}
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

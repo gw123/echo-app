@@ -17,10 +17,11 @@ type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
 	Redis             *CacheOptions
-	SmsOptionTokenMap map[string]SmsOption       `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption        `yaml:"database" mapstructure:"database"`
-	MQMap             map[string]RabbitMqOption  `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
-	TongChengMap      map[string]TongchengOption `yaml:"tongcheng_keys" mapstructure:"tongcheng_keys"`
+	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
+	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
+	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
+	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_ticket_map" mapstructure:"report_ticket_map"`
 }
 
 type Server struct {
@@ -50,9 +51,21 @@ type RabbitMqOption struct {
 	Url string `yaml:"url" mapstructure:"url"`
 }
 
+type TongchengConfig struct {
+	NotifyUrl string                     `yaml:"notify_url" mapstructure:"notify_url"`
+	ClientMap map[string]TongchengOption `yaml:"client_map" mapstructure:"client_map"`
+}
+
 type TongchengOption struct {
 	Key    string `yaml:"key" mapstructure:"key"`
 	UserId string `yaml:"usr_id" mapstructure:"user_id"`
+}
+
+type ReportTicketOption struct {
+	Addr     string `yaml:"addr" mapstructure:"addr"`
+	ComId    int    `yaml:"com_id" mapstructure:"com_id"`
+	Username string `yaml:"username" mapstructure:"username"`
+	Password string `yaml:"password" mapstructure:"password"`
 }
 
 type DBOption struct {
@@ -80,4 +93,5 @@ func InitConfig(cfgFile string) {
 		panic(err)
 	}
 	fmt.Println("ConfigOpts.Asset:", ConfigOpts.Asset)
+	fmt.Println("ConfigOpts.ReportTicketMa:", ConfigOpts.ReportTicketMap)
 }

@@ -56,14 +56,14 @@ func watchDir(dir string) {
 							watch.Add(ev.Name)
 							fmt.Println("添加监控 : ", ev.Name)
 						} else {
-							// Md5file, err := resourceSvc.Md5SumFile(ev.Name)
-							//  if err != nil {
-							//  	panic(err)
-							//  }
+							Md5file, err := resourceSvc.Md5SumFile(ev.Name)
+							if err != nil {
+								fmt.Println(err)
+							}
 							resourceSvc.SaveResource(&echoapp.Resource{
-								Path: ev.Name,
-								//Md5File: Md5file,
-								Type: path.Ext(ev.Name),
+								Path:    ev.Name,
+								Md5File: Md5file,
+								Type:    path.Ext(ev.Name),
 							})
 						}
 					}
@@ -71,17 +71,16 @@ func watchDir(dir string) {
 						fmt.Println("写入文件 : ", ev.Name)
 						Md5file, err := resourceSvc.Md5SumFile(ev.Name)
 						if err != nil {
-							panic(err)
+							fmt.Println(err)
 						}
 						res, err := resourceSvc.GetResourceByPath(ev.Name)
 						if err != nil {
-							panic(err)
+							fmt.Println(err)
 						}
 						res.Md5File = Md5file
 						resourceSvc.ModifyResource(res)
 					}
 					if ev.Op&fsnotify.Remove == fsnotify.Remove {
-						fmt.Println("删除文件 : ", ev.Name)
 
 						//如果删除文件是目录，则移除监控
 						fi, err := os.Stat(ev.Name)
@@ -97,7 +96,15 @@ func watchDir(dir string) {
 						}
 					}
 					if ev.Op&fsnotify.Rename == fsnotify.Rename {
-						fmt.Println("重命名文件 : ", ev.Name)
+						fmt.Println("重命名文件(删除文件) : ", ev.Name)
+						res, err := resourceSvc.GetResourceByPath(ev.Name)
+
+						if err != nil {
+							fmt.Println(err)
+						}
+						if err := resourceSvc.DeleteResource(res); err != nil {
+							fmt.Println(err)
+						}
 
 						//如果重命名文件是目录，则移除监控
 						//注意这里无法使用os.Stat来判断是否是目录了

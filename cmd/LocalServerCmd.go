@@ -61,16 +61,17 @@ func startLocalHttp() {
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
 	})
-	e.Use(loggerMiddleware)
+	//e.Use(loggerMiddleware)
 	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 		StackSize: 1 << 10, // 1 KB
 	}))
 	//Actions
 	usrSvr := app.MustUserService()
 	wsCtl := controllers.NewWsController(usrSvr)
-	e.GET("/createWsClient", wsCtl.CreateWsClient)
-	e.GET("/sendCmd", wsCtl.SendCmd)
-
+	authGroup := e.Group("/gapi", loggerMiddleware)
+	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)
+	authGroup.GET("/sendCmd", wsCtl.SendCmd)
+	e.Static("/", assetConfig.PublicRoot)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

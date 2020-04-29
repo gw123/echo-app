@@ -72,13 +72,14 @@ func (rsv *ResourceService) GetMd5String(path string) string {
 	h.Write([]byte(path))
 	return hex.EncodeToString(h.Sum(nil))
 }
-func (rsv *ResourceService) Md5SumFile(file string) (value [md5.Size]byte, err error) {
+func (rsv *ResourceService) Md5SumFile(file string) (string, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return
+		return "ReadFile", err
 	}
-	value = md5.Sum(data)
-	return value, nil
+	h := md5.New()
+	h.Write(data)
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 func (rsv *ResourceService) GetResourceByPath(path string) (*echoapp.Resource, error) {
