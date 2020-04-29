@@ -46,3 +46,9 @@ tongcheng:
       access_key: 'LTAIuxzW62YjGhY1'
       access_secret: 'jTKscagoOE6vWWiVSVIlkLI49bULaT'
 
+report_tickets:
+  xyt:
+    com_id: 1
+    app_key: ''
+    base_url: 'https://bigd.tourage.cn'
+    scenic_code: ''
