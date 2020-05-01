@@ -21,7 +21,7 @@ type ConfigOptions struct {
 	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
-	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_ticket_map" mapstructure:"report_ticket_map"`
+	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 }
 
 type Server struct {
@@ -62,10 +62,10 @@ type TongchengOption struct {
 }
 
 type ReportTicketOption struct {
-	Addr     string `yaml:"addr" mapstructure:"addr"`
-	ComId    int    `yaml:"com_id" mapstructure:"com_id"`
-	Username string `yaml:"username" mapstructure:"username"`
-	Password string `yaml:"password" mapstructure:"password"`
+	ComId      int    `yaml:"com_id" mapstructure:"com_id"`
+	AppKey     string `yaml:"app_key" mapstructure:"app_key"`
+	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
+	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 }
 
 type DBOption struct {

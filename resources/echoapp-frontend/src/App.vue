@@ -1,8 +1,8 @@
 <template>
   <div id="app2">
     <div id="nav">
-      <router-link to="/">功能</router-link> |
-      <router-link to="/server">日志</router-link>
+      <router-link to="/">客户端</router-link> |
+      <router-link to="/server">服务端</router-link>
     </div>
     <router-view/>
   </div>
