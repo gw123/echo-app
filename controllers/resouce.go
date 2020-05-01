@@ -1,8 +1,11 @@
 package controllers
 
 import (
+	"path"
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
+	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -14,9 +17,9 @@ type ResourceController struct {
 	echoapp.BaseController
 }
 
-func NewResourceController() *ResourceController {
+func NewResourceController(resourceSvr echoapp.ResourceService) *ResourceController {
 	return &ResourceController{
-		resourceSvc: app.MustGetResService(),
+		resourceSvc: resourceSvr,
 	}
 }
 
@@ -40,7 +43,7 @@ func (resourceCtrl *ResourceController) GetResourceById(c echo.Context) error {
 	if err := c.Bind(param); err != nil {
 		return resourceCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "Bind"))
 	}
-	res, err := resourceCtrl.resourceSvc.GetResourceById(c, param.UserID)
+	res, err := resourceCtrl.resourceSvc.GetResourceById(c, param.ID)
 	if err != nil {
 		return resourceCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceById"))
 	}
@@ -48,19 +51,20 @@ func (resourceCtrl *ResourceController) GetResourceById(c echo.Context) error {
 }
 
 type Params struct {
+	ID     uint `json:"id"`
 	UserID uint `json:"user_id"`
 	From   int  `json:"from"`
 	Limit  int  `json:"limit"`
 	TagID  uint `json:"tag_id"`
 }
 
-func (resourceCtrl *ResourceController) GetResourcesByTagID(c echo.Context) error {
+func (resourceCtrl *ResourceController) GetResourcesByTagId(c echo.Context) error {
 
 	params := &Params{}
 	if err := c.Bind(params); err != nil {
 		return resourceCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "Bind"))
 	}
-	res, err := resourceCtrl.resourceSvc.GetResourcesByTagID(c, params.TagID, params.From, params.Limit)
+	res, err := resourceCtrl.resourceSvc.GetResourcesByTagId(c, params.TagID, params.From, params.Limit)
 	if err != nil {
 		return resourceCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceByTagId"))
 	}
@@ -81,4 +85,45 @@ func (resourceCtrl *ResourceController) GetUserPaymentResources(c echo.Context) 
 
 func (resourceCtrl *ResourceController) GetSelfResources(c echo.Context) error {
 	return nil
+}
+func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
+	path, err := rCtrl.resourceSvc.UploadFile(ctx, "pdffile", echoapp.ConfigOpts.Asset.WatchRoot)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.Error_ArgumentError, "SaveFile", err)
+	}
+	return rCtrl.Success(ctx, path)
+}
+func (rCtrl *ResourceController) GetResourceList(c echo.Context) error {
+	from := c.QueryParam("from")
+	limit := c.QueryParam("limit")
+	fromint, _ := strconv.Atoi(from)
+	limitint, _ := strconv.Atoi(limit)
+	filelist, err := rCtrl.resourceSvc.GetResourceList(c, fromint, limitint)
+	if err != nil {
+		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "GetPDFList", err)
+	}
+	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", from, limit)
+	return rCtrl.Success(c, filelist)
+}
+func (rCtrl *ResourceController) GetResourceByPath(c echo.Context) error {
+	path := c.QueryParam("path")
+
+	res, err := rCtrl.resourceSvc.GetResourceByPath(path)
+	if err != nil {
+		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceByPath"))
+	}
+	return rCtrl.Success(c, res)
+}
+
+// 路径有些问题 数据库存储的是 ev.name  文件所在的项目目录(/home/gh/.../resource/tmp)， path （是当前目录 ./resource/tmp）
+func (rCtrl *ResourceController) GetResourceByName(c echo.Context) error {
+	name := c.QueryParam("name")
+	t := path.Ext(name)
+	path := echoapp.ConfigOpts.Asset.WatchRoot + "/" + t[1:] + "/" + name
+	echoapp_util.ExtractEntry(c).Info("path:", path)
+	res, err := rCtrl.resourceSvc.GetResourceByPath(path)
+	if err != nil {
+		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceByPath"))
+	}
+	return rCtrl.Success(c, res)
 }

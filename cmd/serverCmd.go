@@ -68,14 +68,15 @@ func startHttp() {
 
 	//Actions
 	usrSvr := app.MustUserService()
-	exampleController := controllers.ExampleController{}
-	qrcodeController := controllers.NewQrcodeController()
+	resourceSvr := app.MustGetResService()
+	//exampleController := controllers.ExampleController{}
+	// qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
 	userCtl := controllers.NewUserController(usrSvr)
-	resourceCtl := controllers.NewResourceController()
-	e.GET("/index", exampleController.Index)
-	e.GET("/getQrcode", qrcodeController.GetQrcode)
+	resourceCtl := controllers.NewResourceController(resourceSvr)
+	// e.GET("/index", exampleController.Index)
+	// e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
 	e.POST("/sendMessage", smsCtr.SendMessageByToken)
@@ -89,9 +90,13 @@ func startHttp() {
 	e.POST("/rolehaspermission", userCtl.RoleHasPermission)
 
 	e.POST("/savereource", resourceCtl.SaveResource)
-	e.GET("/getresourcebyID", resourceCtl.GetResourceById)
-	e.POST("/getresourcesbytagID", resourceCtl.GetResourcesByTagID)
+	e.POST("/getresourcebyId", resourceCtl.GetResourceById)
+	e.POST("/getresourcesbytagId", resourceCtl.GetResourcesByTagId)
 	e.POST("/getuserpamentresources", resourceCtl.GetUserPaymentResources)
+	e.POST("/uploadsource", resourceCtl.UploadResource)
+	e.GET("/resourcelist", resourceCtl.GetResourceList)
+	e.GET("/getResourcebypath", resourceCtl.GetResourceByPath)
+	e.GET("/getResourcebyname", resourceCtl.GetResourceByName)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {

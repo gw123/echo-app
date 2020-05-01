@@ -60,11 +60,14 @@ func watchDir(dir string) {
 							if err != nil {
 								fmt.Println(err)
 							}
-							resourceSvc.SaveResource(&echoapp.Resource{
-								Path:    ev.Name,
-								Md5File: Md5file,
-								Type:    path.Ext(ev.Name),
+							err = resourceSvc.SaveResource(&echoapp.Resource{
+								Name: ev.Name,
+								Path: Md5file[:2] + Md5file + path.Ext(ev.Name),
+								Type: path.Ext(ev.Name),
 							})
+							if err != nil {
+								fmt.Println(err)
+							}
 						}
 					}
 					if ev.Op&fsnotify.Write == fsnotify.Write {
@@ -77,8 +80,11 @@ func watchDir(dir string) {
 						if err != nil {
 							fmt.Println(err)
 						}
-						res.Md5File = Md5file
-						resourceSvc.ModifyResource(res)
+						res.Path = Md5file[:2] + Md5file + path.Ext(ev.Name)
+						err = resourceSvc.ModifyResource(res)
+						if err != nil {
+							fmt.Println(err)
+						}
 					}
 					if ev.Op&fsnotify.Remove == fsnotify.Remove {
 
@@ -87,13 +93,13 @@ func watchDir(dir string) {
 						if err == nil && fi.IsDir() {
 							watch.Remove(ev.Name)
 							fmt.Println("删除监控 : ", ev.Name)
-						} else {
-							res, err := resourceSvc.GetResourceByPath(ev.Name)
-							if err != nil {
-								panic(err)
-							}
-							resourceSvc.DeleteResource(res)
-						}
+						} //else {
+						// res, err := resourceSvc.GetResourceByPath(ev.Name)
+						// if err != nil {
+						// 	panic(err)
+						// }
+						// resourceSvc.DeleteResource(res)
+						//	}
 					}
 					if ev.Op&fsnotify.Rename == fsnotify.Rename {
 						fmt.Println("重命名文件(删除文件) : ", ev.Name)

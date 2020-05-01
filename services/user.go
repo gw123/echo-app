@@ -3,13 +3,11 @@ package services
 import (
 	"sync"
 
-	"github.com/pkg/errors"
-
 	echoapp "github.com/gw123/echo-app"
-
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"github.com/pkg/errors"
 )
 
 type UserService struct {
@@ -52,12 +50,12 @@ func (uSvr UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*ech
 
 }
 
-func (uSvr UserService) GetUserById(ctx echo.Context, userID int) (*echoapp.User, error) {
+func (uSvr UserService) GetUserById(ctx echo.Context, userId int) (*echoapp.User, error) {
 	user := &echoapp.User{}
-	if err := uSvr.db.Where("id = ?", userID).First(user).Error; err != nil {
+	if err := uSvr.db.Where("id = ?", userId).First(user).Error; err != nil {
 		return nil, err
 	}
-	echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userID)
+	echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userId)
 	return user, nil
 }
 
