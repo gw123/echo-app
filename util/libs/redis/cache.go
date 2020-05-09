@@ -10,7 +10,6 @@ type CacheOptions struct {
 	PoolSize int    `yaml:"pool_size" mapstructure:"pool_size"`
 }
 
-var RedisClient *redis.Client
 
 func InitRedis(co *CacheOptions) error {
 	redisOptions := &redis.Options{
