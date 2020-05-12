@@ -20,6 +20,7 @@ type ConfigOptions struct {
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
+	TestMap           map[string]Test               `yaml:"test" mapstructure:"test"`
 }
 
 type Server struct {
@@ -30,12 +31,15 @@ type Server struct {
 }
 
 type Asset struct {
-	PublicRoot string `yaml:"public_root" mapstructure:"public_root"`
-	AreaRoot   string `yaml:"area_root" mapstructure:"area_root"`
-	ViewRoot   string `yaml:"view_root" mapstructure:"view_root"`
-	Version    string `yaml:"version" mapstructure:"version"`
-	PublicHost string `yaml:"public_host" mapstructure:"public_host"`
-	WatchRoot  string `yaml:"watch_root" mapstructure:"watch_root"`
+	PublicRoot        string `yaml:"public_root" mapstructure:"public_root"`
+	AreaRoot          string `yaml:"area_root" mapstructure:"area_root"`
+	ViewRoot          string `yaml:"view_root" mapstructure:"view_root"`
+	Version           string `yaml:"version" mapstructure:"version"`
+	PublicHost        string `yaml:"public_host" mapstructure:"public_host"`
+	WatchRoot         string `yaml:"watch_root" mapstructure:"watch_root"`
+	TmpRoot           string `yaml:"tmp_root" mapstructure:"tmp_root"`
+	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
+	MyURL             string `yaml:"my_url" mapstructure:"my_url"`
 }
 
 type SmsOption struct {
@@ -65,7 +69,11 @@ type ReportTicketOption struct {
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 }
+type Test struct {
+	ComId int `yaml:"com_id" mapstructure:"com_id"`
 
+	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
+}
 type DBOption struct {
 	Driver    string `yaml:"dirver" mapstructure:"driver"`
 	DSN       string `yaml:"dsn" mapstructure:"dsn"`

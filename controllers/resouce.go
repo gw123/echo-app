@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"path"
 	"strconv"
 
 	echoapp "github.com/gw123/echo-app"
@@ -13,7 +12,7 @@ import (
 
 type ResourceController struct {
 	resourceSvc echoapp.ResourceService
-	//userSvc     echoapp.UserService
+
 	echoapp.BaseController
 }
 
@@ -87,11 +86,22 @@ func (resourceCtrl *ResourceController) GetSelfResources(c echo.Context) error {
 	return nil
 }
 func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
-	path, err := rCtrl.resourceSvc.UploadFile(ctx, "pdffile", echoapp.ConfigOpts.Asset.WatchRoot)
+
+	filename, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.WatchRoot, echoapp.ConfigOpts.Asset.UploadMaxFileSize)
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.Error_ArgumentError, "SaveFile", err)
 	}
-	return rCtrl.Success(ctx, path)
+	return rCtrl.Success(ctx, filename+" upload")
+}
+func (rCtrl *ResourceController) DownloadResource(c echo.Context) error {
+	name := c.QueryParam("name")
+	downloadPath := c.QueryParam("downloadPath")
+	path := echoapp.ConfigOpts.Asset.MyURL + name + ".ppt"
+	filename, err := rCtrl.resourceSvc.DownloadFile(path, downloadPath)
+	if err != nil {
+		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "resourceSvc.DownloadFile", err)
+	}
+	return rCtrl.Success(c, filename+"download")
 }
 func (rCtrl *ResourceController) GetResourceList(c echo.Context) error {
 	from := c.QueryParam("from")
@@ -105,23 +115,10 @@ func (rCtrl *ResourceController) GetResourceList(c echo.Context) error {
 	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", from, limit)
 	return rCtrl.Success(c, filelist)
 }
-func (rCtrl *ResourceController) GetResourceByPath(c echo.Context) error {
-	path := c.QueryParam("path")
-
-	res, err := rCtrl.resourceSvc.GetResourceByPath(path)
-	if err != nil {
-		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceByPath"))
-	}
-	return rCtrl.Success(c, res)
-}
-
-// 路径有些问题 数据库存储的是 ev.name  文件所在的项目目录(/home/gh/.../resource/tmp)， path （是当前目录 ./resource/tmp）
 func (rCtrl *ResourceController) GetResourceByName(c echo.Context) error {
-	name := c.QueryParam("name")
-	t := path.Ext(name)
-	path := echoapp.ConfigOpts.Asset.WatchRoot + "/" + t[1:] + "/" + name
-	echoapp_util.ExtractEntry(c).Info("path:", path)
-	res, err := rCtrl.resourceSvc.GetResourceByPath(path)
+	path := c.QueryParam("name")
+
+	res, err := rCtrl.resourceSvc.GetResourceByName(path)
 	if err != nil {
 		return rCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceByPath"))
 	}

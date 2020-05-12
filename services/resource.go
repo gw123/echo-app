@@ -2,10 +2,13 @@ package services
 
 import (
 	"crypto/md5"
-	"encoding/hex"
 	"fmt"
+	"time"
+
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"sync"
@@ -70,11 +73,7 @@ func (rsv *ResourceService) GetUserPaymentResources(c echo.Context, userId uint,
 func (rsv *ResourceService) GetSelfResources(c echo.Context, userId uint, from int, limit int) ([]*echoapp.Resource, error) {
 	return nil, nil
 }
-func (rsv *ResourceService) GetMd5String(path string) string {
-	h := md5.New()
-	h.Write([]byte(path))
-	return hex.EncodeToString(h.Sum(nil))
-}
+
 func (rsv *ResourceService) Md5SumFile(file string) (string, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -85,11 +84,11 @@ func (rsv *ResourceService) Md5SumFile(file string) (string, error) {
 	return sign, nil
 }
 
-func (rsv *ResourceService) GetResourceByPath(path string) (*echoapp.Resource, error) {
+func (rsv *ResourceService) GetResourceByName(name string) (*echoapp.Resource, error) {
 	resource := &echoapp.Resource{}
-	res := rsv.db.Where("name=?", path).Find(resource)
+	res := rsv.db.Where("name=?", name).Find(resource)
 	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "Servicec->GetResourcePath")
+		return nil, errors.Wrap(res.Error, "ResourceServicec->GetResourceByName")
 	}
 
 	return resource, nil
@@ -102,7 +101,8 @@ func (rsv *ResourceService) DeleteResource(resource *echoapp.Resource) error {
 	return rsv.db.Delete(resource).Error
 }
 
-func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath string) (string, error) {
+func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (string, error) {
+	//r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize)
 	file, err := c.FormFile(formname)
 	if err != nil {
 		return "", err
@@ -115,7 +115,7 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath stri
 	var fullPath string
 	if rsv.GetFileType(file.Filename) == "pdf" {
 		fullPath = uploadpath + "/pdf/" + file.Filename
-	} else if rsv.GetFileType(file.Filename) == "pptx" {
+	} else if rsv.GetFileType(file.Filename) == "ppt" {
 		fullPath = uploadpath + "/ppt/" + file.Filename
 	}
 
@@ -125,21 +125,65 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath stri
 	}
 	defer dst.Close()
 	echoapp_util.ExtractEntry(c).Info("uploadpath:%s,fullpath:%s", uploadpath, fullPath)
-	if _, err = io.Copy(dst, src); err != nil {
+	size, err := io.Copy(dst, src)
+	if err != nil {
 		return "", err
 	}
-	return fullPath, nil
+	if size > maxfilesize {
+		return "", errors.New("File size over limit")
+	}
+	return file.Filename, nil
 }
+func (rsv *ResourceService) DownloadFile(durl, localpath string) (string, error) {
+	uri, err := url.ParseRequestURI(durl)
+	if err != nil {
+		return "", errors.Wrap(err, "url err")
+	}
+	filename := path.Base(uri.Path)
+	if _, err := rsv.GetResourceByName(filename); err != nil {
+		return "", errors.Wrap(err, "GetResourceByName")
+	}
+	req, err := http.NewRequest("GET", durl, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "DoRequest->http.NewRequest")
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", errors.Wrap(err, "DoRequest->Do")
+	}
+	http.DefaultClient.Timeout = time.Second * 60 //超时设置
+	file, err := os.Create(localpath + filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	if _, err := io.Copy(file, resp.Body); err != nil {
+		return "", err
+	}
+	if resp.Body == nil {
+		return "", errors.New("Body is Null")
+	}
+	defer resp.Body.Close()
+	return filename, nil
+}
+
 func (rsv *ResourceService) GetFileType(filename string) string {
 	s := path.Ext(filename)
 	return s[1:]
 }
-func (rsv *ResourceService) GetResourceList(c echo.Context, from, limit int) ([]echoapp.ResFilePathParam, error) {
-	var filepath []echoapp.ResFilePathParam
-	//res := rsv.db.Table("resources").Find(&filepath)
-	res := rsv.db.Table("resources").Offset(limit * from).Limit(limit).Find(&filepath)
+func (rsv *ResourceService) GetResourceList(c echo.Context, from, limit int) ([]*echoapp.GetResourceOptions, error) {
+	var options []*echoapp.GetResourceOptions
+	res := rsv.db.Table("resources").Offset(limit * from).Limit(limit).Find(options)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GetPDFList")
 	}
-	return filepath, nil
+	return options, nil
+}
+func (rsv *ResourceService) GetResourceByMd5(c echo.Context, path string) (*echoapp.Resource, error) {
+	resource := &echoapp.Resource{}
+	res := rsv.db.Where("path=?", path).Find(resource)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "Servicec->GetResourceByMd5")
+	}
+	return resource, nil
 }

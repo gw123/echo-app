@@ -1,21 +1,100 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"path/filepath"
+	"regexp"
 
 	"github.com/fsnotify/fsnotify"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
+	"github.com/pkg/errors"
 
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
 )
 
 //监控目录
+func copy(src, dst string) (string, error) {
+	sourceFileStat, err := os.Stat(src)
+	if err != nil {
+		return "", err
+	}
+	if !sourceFileStat.Mode().IsRegular() {
+		return "", fmt.Errorf("%s is not a regular file", src)
+	}
+
+	source, err := os.Open(src)
+	if err != nil {
+		return "", err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return "", err
+	}
+	defer destination.Close()
+	if _, err = io.Copy(destination, source); err != nil {
+		return "", err
+	}
+	return "", nil
+}
+
+func doHttpRequest(url string) ([]byte, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "DoRequest->Do")
+	}
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "DoRequest->ReadAll")
+	}
+	if res.StatusCode == http.StatusOK {
+		return data, errors.Wrapf(err, "StatusCode:%d", res.StatusCode)
+	}
+	return data, nil
+}
+
+func getPPTCoverUrl(pptUrl string) ([]string, error) {
+	testMap := echoapp.ConfigOpts.TestMap
+	for key, options := range testMap {
+		echoapp_util.DefaultLogger().Infof("访问%s,com_id:%d", key, options.ComId)
+		//ppturl :=
+		url := options.BaseUrl + "onlinePreview" + "?url=" + pptUrl
+		data, err := doHttpRequest(url)
+		if err != nil {
+			return nil, errors.Wrap(err, "doHttpRequest")
+		}
+		strdata := string(data)
+
+		reg := regexp.MustCompile(`\<img .*?title=\"查看大图\" .*?data-src=\"(\S*)\" .*?\>`)
+		if reg == nil {
+			return nil, errors.Wrap(err, "regexp.MustCompile err")
+		}
+		res := reg.FindAllStringSubmatch(strdata, -1)
+		urls := make([]string, 0)
+		for _, text := range res {
+			url := text[1]
+			urls = append(urls, url)
+		}
+		return urls, nil
+	}
+	return nil, nil
+}
+
 func watchDir(dir string) {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -42,6 +121,7 @@ func watchDir(dir string) {
 	})
 
 	resourceSvc := app.MustGetResService()
+	goodsSvc := app.MustGetGoodsService()
 	go func() {
 		for {
 			select {
@@ -56,60 +136,117 @@ func watchDir(dir string) {
 							watch.Add(ev.Name)
 							fmt.Println("添加监控 : ", ev.Name)
 						} else {
-							Md5file, err := resourceSvc.Md5SumFile(ev.Name)
+							Md5fileStr32, err := resourceSvc.Md5SumFile(ev.Name)
 							if err != nil {
-								fmt.Println(err)
+								fmt.Println(errors.Wrap(err, "Create resourceSvc.Md5SumFile"))
+								continue
 							}
-							err = resourceSvc.SaveResource(&echoapp.Resource{
-								Name: ev.Name,
-								Path: Md5file[:2] + Md5file + path.Ext(ev.Name),
-								Type: path.Ext(ev.Name),
+							Md5path := Md5fileStr32[:2] + Md5fileStr32 + path.Ext(ev.Name)
+							CopyDstfullPath := echoapp.ConfigOpts.Asset.TmpRoot + "/ppt/" + Md5path
+							if _, err := copy(ev.Name, CopyDstfullPath); err != nil {
+								fmt.Println("copy err")
+								continue
+							}
+
+							strArr, err := getPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + path.Base(ev.Name))
+							if err != nil && len(strArr) < 2 {
+								fmt.Println(errors.Wrap(err, "Create  getPPTCoverUrl"))
+								continue
+							}
+
+							data, err := json.Marshal(strArr)
+							if err != nil {
+								fmt.Println(errors.Wrap(err, "Create json.Marsha"))
+								continue
+							}
+							err = goodsSvc.SaveGoods(&echoapp.Goods{
+								Name:       path.Base(ev.Name),
+								Price:      0.2,
+								GoodType:   path.Ext(ev.Name),
+								RealPrice:  0.5,
+								Covers:     strArr[0],
+								SmallCover: string(data),
+								Tags:       path.Dir(ev.Name),
+								Pages:      len(strArr),
 							})
 							if err != nil {
-								fmt.Println(err)
+								fmt.Println(errors.Wrap(err, "Create  goodsSvc.SaveGoods"))
+								continue
 							}
+							res, err := goodsSvc.GetGoodsByName(path.Base(ev.Name))
+							if err != nil {
+								fmt.Println(errors.Wrap(err, "Create  goodsSvc.GetGoodsByName"))
+								continue
+							}
+							err = goodsSvc.SaveTags(&echoapp.Tags{
+								GoodsId: res.ID,
+								Name:    path.Dir(ev.Name),
+							})
+							if err != nil {
+								fmt.Println(errors.Wrap(err, "Create  goodsSvc.SaveTags"))
+								continue
+							}
+							err = resourceSvc.SaveResource(&echoapp.Resource{
+
+								Name:       path.Base(ev.Name),
+								Path:       Md5path,
+								Type:       path.Ext(ev.Name),
+								Covers:     strArr[0],
+								SmallCover: string(data),
+								GoodsId:    res.ID,
+								Pages:      len(strArr),
+							})
+							if err != nil {
+								fmt.Println(errors.Wrap(err, "Create  resourceSvc.SaveResource"))
+								continue
+							}
+
 						}
 					}
 					if ev.Op&fsnotify.Write == fsnotify.Write {
 						fmt.Println("写入文件 : ", ev.Name)
 						Md5file, err := resourceSvc.Md5SumFile(ev.Name)
 						if err != nil {
-							fmt.Println(err)
+							fmt.Println(errors.Wrap(err, "Write  resourceSvc.Md5SumFile"))
+							continue
 						}
-						res, err := resourceSvc.GetResourceByPath(ev.Name)
+						res, err := resourceSvc.GetResourceByName(path.Base(ev.Name))
 						if err != nil {
-							fmt.Println(err)
+							fmt.Println(errors.Wrap(err, "Write resourceSvc.GetResourceByName"))
+							continue
 						}
 						res.Path = Md5file[:2] + Md5file + path.Ext(ev.Name)
 						err = resourceSvc.ModifyResource(res)
 						if err != nil {
-							fmt.Println(err)
+							fmt.Println(errors.Wrap(err, "Write resourceSvc.ModifyResource"))
+							continue
 						}
 					}
-					if ev.Op&fsnotify.Remove == fsnotify.Remove {
-
-						//如果删除文件是目录，则移除监控
-						fi, err := os.Stat(ev.Name)
-						if err == nil && fi.IsDir() {
-							watch.Remove(ev.Name)
-							fmt.Println("删除监控 : ", ev.Name)
-						} //else {
-						// res, err := resourceSvc.GetResourceByPath(ev.Name)
-						// if err != nil {
-						// 	panic(err)
-						// }
-						// resourceSvc.DeleteResource(res)
-						//	}
-					}
+					// if ev.Op&fsnotify.Remove == fsnotify.Remove {
+					// 	fmt.Println("删除文件 : ", ev.Name)
+					// 	//如果删除文件是目录，则移除监控
+					// 	fi, err := os.Stat(ev.Name)
+					// 	if err == nil && fi.IsDir() {
+					// 		watch.Remove(ev.Name)
+					// 		fmt.Println("删除监控 : ", ev.Name)
+					// 	} else {
+					// 		res, err := resourceSvc.GetResourceByName(path.Base(ev.Name))
+					// 		if err != nil {
+					// 			continue
+					// 		}
+					// 		resourceSvc.DeleteResource(res)
+					// 	}
+					// }
 					if ev.Op&fsnotify.Rename == fsnotify.Rename {
-						fmt.Println("重命名文件(删除文件) : ", ev.Name)
-						res, err := resourceSvc.GetResourceByPath(ev.Name)
-
+						fmt.Println("重命名文件:", ev.Name)
+						res, err := resourceSvc.GetResourceByName(path.Base(ev.Name))
 						if err != nil {
-							fmt.Println(err)
+							fmt.Println(errors.Wrap(err, "Rename resourceSvc.GetResourceByName"))
+							continue
 						}
 						if err := resourceSvc.DeleteResource(res); err != nil {
-							fmt.Println(err)
+							fmt.Println(errors.Wrap(err, "Rename resourceSvc.DeleteResource"))
+							continue
 						}
 
 						//如果重命名文件是目录，则移除监控
@@ -138,7 +275,7 @@ func startWatcher() {
 
 	echoapp_util.DefaultLogger().Infof("开始监控服务")
 	watchDir(echoapp.ConfigOpts.Asset.WatchRoot)
-	//select {}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

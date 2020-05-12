@@ -16,6 +16,8 @@ type EchoApp struct {
 	UserSvr     echoapp.UserService
 	dbPool      echoapp.DbPool
 	resourceSvc echoapp.ResourceService
+	goodsSvc    echoapp.GoodsService
+	orderSvc    echoapp.OrderService
 }
 
 func init() {
@@ -111,4 +113,40 @@ func MustGetResService() echoapp.ResourceService {
 		panic(err)
 	}
 	return resource
+}
+func GetGoodsService() (echoapp.GoodsService, error) {
+	if App.goodsSvc != nil {
+		return App.goodsSvc, nil
+	}
+	db, err := GetDb("laraveltest")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetGoodsService->GetDb")
+	}
+	App.goodsSvc = services.NewGoodsService(db)
+	return App.goodsSvc, nil
+}
+func MustGetGoodsService() echoapp.GoodsService {
+	goods, err := GetGoodsService()
+	if err != nil {
+		panic(err)
+	}
+	return goods
+}
+func GetOrderService() (echoapp.OrderService, error) {
+	if App.orderSvc != nil {
+		return App.orderSvc, nil
+	}
+	db, err := GetDb("laraveltest")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetOrderService->GetDb")
+	}
+	App.orderSvc = services.NewOrderService(db)
+	return App.orderSvc, nil
+}
+func MustGetOrderService() echoapp.OrderService {
+	goods, err := GetOrderService()
+	if err != nil {
+		panic(err)
+	}
+	return goods
 }
