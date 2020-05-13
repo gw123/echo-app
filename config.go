@@ -20,7 +20,9 @@ type ConfigOptions struct {
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
-	TestMap           map[string]Test               `yaml:"test" mapstructure:"test"`
+	PPTImages         map[string]PPTImagesOpion     `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
+	WjdUserMap        map[string]WjdUserMapOption   `yaml:"user_map" mapstructure:"user_map"`
+	QiniuKeys         QiniuKey                      `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
 type Server struct {
@@ -69,7 +71,11 @@ type ReportTicketOption struct {
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 }
-type Test struct {
+type WjdUserMapOption struct {
+	ComId   int    `yaml:"com_id" mapstructure:"com_id"`
+	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
+}
+type PPTImagesOpion struct {
 	ComId int `yaml:"com_id" mapstructure:"com_id"`
 
 	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
@@ -80,6 +86,10 @@ type DBOption struct {
 	KeepAlive int    `yaml:"keey_alive" mapstructure:"keey_alive"`
 	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
 	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
+}
+type QiniuKey struct {
+	AccessKey string `yaml:"access_key" mapstructure:"access_key"`
+	SecretKey string `yaml:"secret_key" mapstructure:"secret_key"`
 }
 
 func InitConfig(cfgFile string) {

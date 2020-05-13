@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,8 @@ import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/pkg/errors"
+	"github.com/qiniu/api.v7/auth/qbox"
+	"github.com/qiniu/api.v7/storage"
 
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
@@ -69,8 +72,8 @@ func doHttpRequest(url string) ([]byte, error) {
 }
 
 func getPPTCoverUrl(pptUrl string) ([]string, error) {
-	testMap := echoapp.ConfigOpts.TestMap
-	for key, options := range testMap {
+	clientMap := echoapp.ConfigOpts.PPTImages
+	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("访问%s,com_id:%d", key, options.ComId)
 		//ppturl :=
 		url := options.BaseUrl + "onlinePreview" + "?url=" + pptUrl
@@ -95,6 +98,48 @@ func getPPTCoverUrl(pptUrl string) ([]string, error) {
 	return nil, nil
 }
 
+type MyPutRet struct {
+	Key    string
+	Hash   string
+	Fsize  int
+	Bucket string
+	Name   string
+}
+
+func uploadFileToQiniu(localFile, key string) (*MyPutRet, error) {
+
+	bucket := "if-pbl"
+	//key := "github-x.png"
+	putPolicy := storage.PutPolicy{
+		Scope:      bucket,
+		ReturnBody: `{"key":"$(key)","hash":"$(etag)","fsize":$(fsize),"bucket":"$(bucket)","name":"$(x:name)"}`,
+	}
+	mac := qbox.NewMac(echoapp.ConfigOpts.QiniuKeys.AccessKey, echoapp.ConfigOpts.QiniuKeys.SecretKey)
+	upToken := putPolicy.UploadToken(mac)
+	cfg := storage.Config{}
+	// 空间对应的机房
+	cfg.Zone = &storage.ZoneHuanan
+	// 是否使用https域名
+	cfg.UseHTTPS = false
+	// 上传是否使用CDN上传加速
+	cfg.UseCdnDomains = false
+	// 构建表单上传的对象
+	formUploader := storage.NewFormUploader(&cfg)
+
+	ret := MyPutRet{}
+	// 可选配置
+	putExtra := storage.PutExtra{
+		Params: map[string]string{
+			"x:name": "xyt ppt",
+		},
+	}
+	err := formUploader.PutFile(context.Background(), &ret, upToken, key, localFile, &putExtra)
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.Wrap(err, "formUploader.PutFile")
+	}
+	return &ret, nil
+}
 func watchDir(dir string) {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -145,6 +190,11 @@ func watchDir(dir string) {
 							CopyDstfullPath := echoapp.ConfigOpts.Asset.TmpRoot + "/ppt/" + Md5path
 							if _, err := copy(ev.Name, CopyDstfullPath); err != nil {
 								fmt.Println("copy err")
+								continue
+							}
+
+							if _, err := uploadFileToQiniu(CopyDstfullPath, Md5path); err != nil {
+								fmt.Println(errors.Wrap(err, "uploadFileToQiniu"))
 								continue
 							}
 

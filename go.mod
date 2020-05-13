@@ -20,6 +20,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
 	github.com/prometheus/common v0.4.0
+	github.com/qiniu/api.v7 v7.2.5+incompatible
+	github.com/qiniu/x v7.0.8+incompatible // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -29,8 +31,9 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect
 	github.com/uniplaces/carbon v0.1.6 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect
-	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
+	qiniupkg.com/x v7.0.8+incompatible // indirect
 )
 
 module github.com/gw123/echo-app
