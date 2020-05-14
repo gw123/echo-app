@@ -1,11 +1,10 @@
 package services
 
 import (
-	"bytes"
 	"crypto/md5"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
@@ -37,25 +36,14 @@ func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
 	if !ok {
 		return errors.New("com not found")
 	}
-
-	encryptBody, err := mSvr.encryptBody([]byte(comInfo.Key), info)
+	rawbody, err := json.Marshal(info.TongchengRequestBody)
 	if err != nil {
-		return errors.Wrap(err, "encryptBody")
+		return errors.Wrap(err, "json marshal")
 	}
-
-	t := echoapp.TongchengConsumeNoticeRequest{
-		RequestHead: echoapp.TongchengRequestHead{
-			UserId:    comInfo.UserId,
-			Method:    "ConsumeNotice",
-			Timestamp: time.Now().Unix(),
-			Version:   "v1.0",
-			Sign:      "",
-		},
-		RequestBody: info.TongchengRequestBody,
+	encryptBody, err := echoapp_util.EntryptDesECB(rawbody, []byte(comInfo.Key))
+	if err != nil {
+		return errors.Wrap(err, "encryptbody")
 	}
-	tt, _ := json.Marshal(t)
-	log.Infof("tt : %s", string(tt))
-
 	tongchengRequest := echoapp.TongchengRequest{
 		RequestHead: echoapp.TongchengRequestHead{
 			UserId:    comInfo.UserId,
@@ -64,12 +52,14 @@ func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
 			Version:   "v1.0",
 			Sign:      "",
 		},
-		RawRequestBody: encryptBody,
+		RawRequestBody:     string(rawbody),
+		EncryptRequestBody: encryptBody,
+		RequestBody:        info.TongchengRequestBody,
 	}
 	signStr := mSvr.Sign(comInfo.Key, tongchengRequest)
 	tongchengRequest.RequestHead.Sign = signStr
 	log.Infof("tongchengRequest.SingStr: %s", signStr)
-	log.Infof("tongchengRequest.Body: %s", tongchengRequest.RawRequestBody)
+	log.Infof("tongchengRequest.Body: %+v", tongchengRequest)
 
 	base64ResponseData, err := mSvr.DoRequest(mSvr.ConsumeNoticeUrl, tongchengRequest)
 	if err != nil {
@@ -93,18 +83,22 @@ func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
 	return errors.Errorf("Code:%s,Msg:%s", tongchengResponse.ResponseHead.ResCode, tongchengResponse.ResponseHead.ResMsg)
 }
 
+/***
+9a86097b-b95d-4fd4-bbb9-a18aaafc84b1ConsumeNotice1588219228v1.0sBE4yQDodGqnKpe0BfeLzxdb6ntDQdaRlIEbgsS8OViJwcbTMydj8WVpT8Hgrd3Jq+lT4dz1ULPPWnew344FmLysGcYYLLRF5k1xLiNMaFsJv3ykoK1hao1OuBKZekWp4MTU1KBG
+*/
 func (mSvr TongchengService) Sign(key string, request echoapp.TongchengRequest) string {
 	strBuf := strings.Builder{}
 	strBuf.WriteString(request.RequestHead.UserId)
 	strBuf.WriteString(request.RequestHead.Method)
 	strBuf.WriteString(strconv.Itoa(int(request.RequestHead.Timestamp)))
 	strBuf.WriteString(request.RequestHead.Version)
-	strBuf.WriteString(request.RawRequestBody)
+	strBuf.WriteString(request.EncryptRequestBody)
 	strBuf.WriteString(key)
-	hash := md5.New()
-	hash.Write([]byte(strBuf.String()))
-	strBuf.Reset()
-	return hex.EncodeToString(hash.Sum(nil))
+	log.Info("MD5 Content: " + strBuf.String())
+	rawMd5 := md5.Sum([]byte(strBuf.String()))
+	sign := fmt.Sprintf("%x", rawMd5)
+	defer strBuf.Reset()
+	return sign
 }
 
 func (mSvr TongchengService) DoRequest(url string, params interface{}) ([]byte, error) {
@@ -112,9 +106,10 @@ func (mSvr TongchengService) DoRequest(url string, params interface{}) ([]byte, 
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->Marshal")
 	}
-	base64Body := make([]byte, len(body)*2)
-	base64.StdEncoding.Encode(base64Body, body)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(base64Body))
+	log.Info(string(body))
+	str := base64.StdEncoding.EncodeToString(body)
+	log.Info("请求base64 ： " + string(str))
+	req, err := http.NewRequest("POST", url, strings.NewReader(str))
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
 	}

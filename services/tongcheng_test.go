@@ -2,6 +2,7 @@ package services
 
 import (
 	echoapp "github.com/gw123/echo-app"
+	echoapp_util "github.com/gw123/echo-app/util"
 	"sync"
 	"testing"
 )
@@ -24,21 +25,31 @@ func TestTongchengService_Sign(t *testing.T) {
 		want   string
 	}{
 		{
-			name:   "001",
+			name: "001",
 			fields: fields{
-				ConsumeNoticeUrl:   "",
+				ConsumeNoticeUrl: "",
 				tongchengOptionMap: map[string]echoapp.TongchengOption{
-					"14" : {
+					"14": {
 						Key:    "4MTU1KBG",
-						UserId: "be3ItcG2WLeCbZVDSjIQG6p6ygFOGr",
+						UserId: "9a86097b-b95d-4fd4-bbb9-a18aaafc84b1",
 					},
 				},
 			},
-			args:   args{
-				key:     "",
-				request: echoapp.TongchengRequest{},
+			args: args{
+				key: "4MTU1KBG",
+				request: echoapp.TongchengRequest{
+					RequestHead: echoapp.TongchengRequestHead{
+						Sign:      "",
+						UserId:    "9a86097b-b95d-4fd4-bbb9-a18aaafc84b1",
+						Method:    "ConsumeNotice",
+						Version:   "v1.0",
+						Timestamp: 1588219228,
+					},
+					RawRequestBody: `{"orderSerialId":"123","partnerOrderId":"123","consumeDate":"2020-04-08 00:00:00","tickets":1}`,
+					//EncryptRequestBody: `sBE4yQDodGqnKpe0BfeLzxdb6ntDQdaRlIEbgsS8OViJwcbTMydj8WVpT8Hgrd3Jq+lT4dz1ULPPWnew344FmLysGcYYLLRF5k1xLiNMaFsJv3ykoK1hao1OuBKZekWp`,
+				},
 			},
-			want:   "",
+			want: "abf78614e9878708adfd21cee13c7ab3",
 		},
 	}
 
@@ -49,6 +60,8 @@ func TestTongchengService_Sign(t *testing.T) {
 				tongchengOptionMap: tt.fields.tongchengOptionMap,
 				mu:                 tt.fields.mu,
 			}
+			tt.args.request.EncryptRequestBody, _ = echoapp_util.EntryptDesECB([]byte( tt.args.request.RawRequestBody), []byte(tt.args.key))
+
 			if got := mSvr.Sign(tt.args.key, tt.args.request); got != tt.want {
 				t.Errorf("Sign() = %v, want %v", got, tt.want)
 			}

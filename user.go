@@ -1,6 +1,5 @@
-package echoapp
+package models
 
-import "github.com/labstack/echo"
 
 type RegisterParam struct {
 	Mobile   string `json:"mobile"`
