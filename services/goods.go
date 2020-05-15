@@ -73,7 +73,6 @@ func (rsv *GoodsService) DeleteGoods(goods *echoapp.Goods) error {
 }
 func (rsv *GoodsService) GetGoodsList(c echo.Context, from, limit int) ([]*echoapp.GetGoodsOptions, error) {
 	var goodsoptions []*echoapp.GetGoodsOptions
-
 	res := rsv.db.Table("goods").Offset(limit * from).Limit(limit).Find(goodsoptions)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsList")
@@ -86,6 +85,5 @@ func (rsv *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
 	}
-
 	return goods, nil
 }

@@ -20,9 +20,9 @@ type ConfigOptions struct {
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
-	PPTImages         map[string]PPTImagesOpion     `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
-	WjdUserMap        map[string]WjdUserMapOption   `yaml:"user_map" mapstructure:"user_map"`
-	QiniuKeys         QiniuKey                      `yaml:"qiniu_key" mapstructure:"qiniu_key"`
+	PPTImages         map[string]PPTImagesOption    `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
+
+	QiniuKeys QiniuKeyOption `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
 type Server struct {
@@ -71,11 +71,8 @@ type ReportTicketOption struct {
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 }
-type WjdUserMapOption struct {
-	ComId   int    `yaml:"com_id" mapstructure:"com_id"`
-	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
-}
-type PPTImagesOpion struct {
+
+type PPTImagesOption struct {
 	ComId int `yaml:"com_id" mapstructure:"com_id"`
 
 	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
@@ -83,11 +80,11 @@ type PPTImagesOpion struct {
 type DBOption struct {
 	Driver    string `yaml:"dirver" mapstructure:"driver"`
 	DSN       string `yaml:"dsn" mapstructure:"dsn"`
-	KeepAlive int    `yaml:"keey_alive" mapstructure:"keey_alive"`
+	KeepAlive int    `yaml:"keep_alive" mapstructure:"keep_alive"`
 	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
 	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
 }
-type QiniuKey struct {
+type QiniuKeyOption struct {
 	AccessKey string `yaml:"access_key" mapstructure:"access_key"`
 	SecretKey string `yaml:"secret_key" mapstructure:"secret_key"`
 }
