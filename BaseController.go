@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	Error_NotFound      = 400
-	Error_NoAuth        = 401
-	Error_DBError       = 402
-	Error_CacheError    = 403
-	Error_ArgumentError = 404
-	Error_NotAllow      = 405
-	Error_EtcdError     = 406
-	Error_InnerError    = 407
+	Err_NotFound   = 400
+	Err_NoAuth     = 401
+	Err_DBError    = 402
+	Err_CacheError = 403
+	Err_Argument   = 404
+	Err_NotAllow   = 405
+	Err_EtcdError  = 406
+	Err_InnerError = 501
 )
 
 type Response struct {
@@ -36,16 +36,9 @@ func (b *BaseController) Success(ctx echo.Context, data interface{}) error {
 }
 
 func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerErr error) error {
-	innerErrStr := ""
-	if innerErr != nil {
-		innerErrStr = innerErr.Error()
-		//为了避免重复记录 下面日志留到中间件记录
-		//echoapp_util.ExtractEntry(ctx).WithError(innerErr).Info("requestFail")
-	}
 	response := Response{
-		ErrorCode:  errcode,
-		Msg:        msg,
-		InnerError: innerErrStr,
+		ErrorCode: errcode,
+		Msg:       msg,
 	}
 	ctx.JSON(http.StatusOK, response)
 	return innerErr

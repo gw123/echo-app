@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func startLocalHttp() {
+func startUserServer() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
@@ -60,18 +60,30 @@ func startLocalHttp() {
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
 	})
-	//e.Use(loggerMiddleware)
-	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-		StackSize: 1 << 10, // 1 KB
-	}))
+	e.Use(loggerMiddleware)
+	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+	//	StackSize: 1 << 10, // 1 KB
+	//}))
+
 	//Actions
 	usrSvr := app.MustUserService()
-	wsCtl := controllers.NewWsController(usrSvr)
-	authGroup := e.Group("/gapi", loggerMiddleware)
-	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)
-	authGroup.GET("/sendCmd", wsCtl.SendCmd)
-	e.Static("/", assetConfig.PublicRoot)
-	e.Static("/resource/", assetConfig.StorageRoot+"/ppt")
+	userCtl := controllers.NewUserController(usrSvr)
+	normal := e.Group("/v1/user")
+	normal.POST("/login", userCtl.Login)
+	normal.POST("/register", userCtl.Register)
+	normal.POST("/logout", userCtl.Logout)
+	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
+	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
+
+	jwsAuth := e.Group("/v1/user")
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
+	jwsAuth.Use(jwsMiddleware, userMiddleware)
+	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
+	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
+	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
+	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
@@ -91,15 +103,15 @@ func startLocalHttp() {
 }
 
 // serverCmd represents the server command
-var localServerCmd = &cobra.Command{
-	Use:   "local_server",
-	Short: "服务",
-	Long:  `测试服务`,
+var userServerCmd = &cobra.Command{
+	Use:   "user",
+	Short: "用户服务",
+	Long:  `用户服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startLocalHttp()
+		startUserServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(localServerCmd)
+	rootCmd.AddCommand(userServerCmd)
 }

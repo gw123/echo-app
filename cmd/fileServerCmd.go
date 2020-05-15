@@ -30,9 +30,8 @@ import (
 	"time"
 )
 
-func startLocalHttp() {
+func startFileServer() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
-	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
@@ -60,18 +59,20 @@ func startLocalHttp() {
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
 	})
-	//e.Use(loggerMiddleware)
-	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-		StackSize: 1 << 10, // 1 KB
-	}))
+	e.Use(loggerMiddleware)
+	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+	//	StackSize: 1 << 10, // 1 KB
+	//}))
+
 	//Actions
 	usrSvr := app.MustUserService()
-	wsCtl := controllers.NewWsController(usrSvr)
-	authGroup := e.Group("/gapi", loggerMiddleware)
-	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)
-	authGroup.GET("/sendCmd", wsCtl.SendCmd)
-	e.Static("/", assetConfig.PublicRoot)
-	e.Static("/resource/", assetConfig.StorageRoot+"/ppt")
+	userCtl := controllers.NewUserController(usrSvr)
+	jwsAuth := e.Group("/v1/file")
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	//userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
+	jwsAuth.Use(jwsMiddleware)
+	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
@@ -91,15 +92,15 @@ func startLocalHttp() {
 }
 
 // serverCmd represents the server command
-var localServerCmd = &cobra.Command{
-	Use:   "local_server",
-	Short: "服务",
-	Long:  `测试服务`,
+var fileServerCmd = &cobra.Command{
+	Use:   "file",
+	Short: "文件服务",
+	Long:  `文件服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startLocalHttp()
+		startFileServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(localServerCmd)
+	rootCmd.AddCommand(fileServerCmd)
 }

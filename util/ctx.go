@@ -1,10 +1,12 @@
 package echoapp_util
 
 import (
+	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"strconv"
 )
-
 
 type ctxLogger struct {
 	logger *logrus.Entry
@@ -18,13 +20,83 @@ type Record struct {
 	Place     string `json:"place"`
 }
 
-const ctxLoggerKey  = "ctxLoggerKey"
-const ctxRequestIdKey  = echo.HeaderXRequestID
+const ctxRequestIdKey = echo.HeaderXRequestID
 
 var (
 	defaultLogger *logrus.Logger
 	isDebug       = false
 )
+
+const (
+	//ctxkeys
+	ctxUserKey      = "&userKey{}"
+	ctxUserIdKey    = "&userIdKey{}"
+	ctxComKey       = "&comKey{}"
+	ctxUserRolesKey = "&userRolesKey{}"
+	ctxLoggerKey    = "&loggerKey{}"
+)
+
+
+func SetCtxUserId(ctx echo.Context, userId int64) {
+	AddField(ctx, ctxUserIdKey, strconv.FormatInt(userId, 10))
+	ctx.Set(ctxUserIdKey, userId)
+}
+
+func GetCtxtUserId(ctx echo.Context) (int64, error) {
+	userId, ok := ctx.Get(ctxUserIdKey).(int64)
+	if !ok {
+		return 0, errors.New("get ctxUserId flied")
+	}
+	return userId, nil
+}
+
+func SetCtxUser(ctx echo.Context, user *echoapp.User) {
+	ctx.Set(ctxUserKey, user)
+}
+
+func GetCtxtUser(ctx echo.Context) (*echoapp.User, error) {
+	user, ok := ctx.Get(ctxUserKey).(*echoapp.User)
+	if !ok {
+		return nil, errors.New("get ctxUser flied")
+	}
+	return user, nil
+}
+
+func SetCtxCompany(ctx echo.Context, company *echoapp.Company) {
+	ctx.Set(ctxComKey, company)
+}
+
+func GetCtxtCompany(ctx echo.Context) (*echoapp.Company, error) {
+	company, ok := ctx.Get(ctxComKey).(*echoapp.Company)
+	if !ok {
+		return nil, errors.New("get ctxCompany flied")
+	}
+	return company, nil
+}
+
+func SetCtxUserRoles(ctx echo.Context, company []echoapp.Role) {
+	ctx.Set(ctxComKey, company)
+}
+
+func GetCtxtUserRoles(ctx echo.Context) ([]echoapp.Role, error) {
+	roles, ok := ctx.Get(ctxComKey).([]echoapp.Role)
+	if !ok {
+		return nil, errors.New("get userRoles flied")
+	}
+	return roles, nil
+}
+
+func SetCtxJwsPayload(ctx echo.Context, payload string) {
+	ctx.Set(ctxComKey, payload)
+}
+
+func GetCtxtJwsPayload(ctx echo.Context) (string, error) {
+	payload, ok := ctx.Get(ctxComKey).(string)
+	if !ok {
+		return "", errors.New("get ctxPayload flied")
+	}
+	return payload, nil
+}
 
 func SetDebug(flag bool) {
 	isDebug = flag
@@ -65,7 +137,7 @@ func NewDefaultEntry() *logrus.Entry {
 }
 
 // 添加logrus.Entry到context, 这个操作添加的logrus.Entry在后面AddFields和Extract都会使用到
-func ToContext(ctx echo.Context, entry *logrus.Entry)  {
+func ToContext(ctx echo.Context, entry *logrus.Entry) {
 	l := &ctxLogger{
 		logger: entry,
 		fields: logrus.Fields{},
@@ -120,7 +192,7 @@ func ExtractEntry(ctx echo.Context) *logrus.Entry {
 	}
 
 	requestId := ExtractRequestId(ctx)
-	if requestId != ""{
+	if requestId != "" {
 		fields[ctxRequestIdKey] = requestId
 	}
 	return l.logger.WithFields(fields)

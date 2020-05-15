@@ -125,7 +125,7 @@ func (ws *WsClientModel) DealMsg(eventName string, body []byte, ) error {
 		if err != nil {
 			return errors.Wrap(err, "DealMsg json.Unmarshal")
 		}
-		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType: %s; Status: %s, result: %s",
+		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType: %s; Status: %d, result: %s",
 			eventName, result.Status, result.Result)
 	case echoapp.WsEventTypeLog:
 		//echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))

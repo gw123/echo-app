@@ -1,4 +1,4 @@
-package gsafe
+package echoapp_util
 
 import (
 	"encoding/hex"

@@ -1,4 +1,4 @@
-package gsafe
+package components
 
 import (
 	"crypto/rsa"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestJwsHelper_CreateToken(t *testing.T) {
+func TestJwsHelper_CreateTokenAndParseToken(t *testing.T) {
 	type fields struct {
 		opt        JwsHelperOpt
 		publicKey  *rsa.PublicKey
@@ -32,8 +32,8 @@ func TestJwsHelper_CreateToken(t *testing.T) {
 					Audience:       "xyt",
 					Issuer:         "gw123",
 					Timeout:        3600 * 24,
-					PublicKeyPath:  "./demo/test/sample_key.pub",
-					PrivateKeyPath: "./demo/test/sample_key",
+					PublicKeyPath:  "./test/sample_key.pub",
+					PrivateKeyPath: "./test/sample_key",
 					HashIdsSalt:    "123456",
 				},
 			},
@@ -51,8 +51,8 @@ func TestJwsHelper_CreateToken(t *testing.T) {
 					Audience:       "xyt",
 					Issuer:         "gw123",
 					Timeout:        3600 * 24,
-					PublicKeyPath:  "./demo/test/sample_key.pub",
-					PrivateKeyPath: "./demo/test/sample_key",
+					PublicKeyPath:  "./test/sample_key.pub",
+					PrivateKeyPath: "./test/sample_key",
 					HashIdsSalt:    "",
 				},
 			},
@@ -70,8 +70,8 @@ func TestJwsHelper_CreateToken(t *testing.T) {
 					Audience:       "xyt",
 					Issuer:         "gw123",
 					Timeout:        60,
-					PublicKeyPath:  "./demo/test/sample_key.pub",
-					PrivateKeyPath: "./demo/test/sample_key",
+					PublicKeyPath:  "./test/sample_key.pub",
+					PrivateKeyPath: "./test/sample_key",
 					HashIdsSalt:    "",
 				},
 			},
@@ -89,8 +89,8 @@ func TestJwsHelper_CreateToken(t *testing.T) {
 					Audience:       "xyt",
 					Issuer:         "gw123",
 					Timeout:        1,
-					PublicKeyPath:  "./demo/test/sample_key.pub",
-					PrivateKeyPath: "./demo/test/sample_key",
+					PublicKeyPath:  "./test/sample_key.pub",
+					PrivateKeyPath: "./test/sample_key",
 					HashIdsSalt:    "",
 				},
 			},
@@ -110,8 +110,8 @@ func TestJwsHelper_CreateToken(t *testing.T) {
 					Audience:       "xyt",
 					Issuer:         "gw123",
 					Timeout:        1,
-					PublicKeyPath:  "./demo/test/1_rsa_public_key.pem",
-					PrivateKeyPath: "./demo/test/1_rsa_private_key.pem",
+					PublicKeyPath:  "./test/1_rsa_public_key.pem",
+					PrivateKeyPath: "./test/1_rsa_private_key.pem",
 					HashIdsSalt:    "",
 				},
 			},

@@ -1,4 +1,4 @@
-package echoapp_util
+package components
 
 import (
 	"github.com/go-redis/redis/v7"

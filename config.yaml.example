@@ -33,7 +33,7 @@ sms_tokens:
     access_key: ''
     access_secret: ''
     sign_name: 'xxx'
-    template_code: 'SMS_197752288'
+    template_code: 'SMS_1977288'
 
 rabbit_mq:
   xyt:
@@ -43,7 +43,7 @@ tongcheng:
   notify_url: "http://www.lvcang.cn/jingqu/OpenAPI/OpenService/Scenery"
   client_map:
     1:
-      access_key: 'LTAIuxzW62YjGhY1'
+      access_key: 'LTAIuxzW6YjGhY1'
       access_secret: 'jTKscagoOE6vWWiVSVIlkLI49bULaT'
 
 report_tickets:
@@ -52,3 +52,11 @@ report_tickets:
     app_key: ''
     base_url: 'https://bigd.tourage.cn'
     scenic_code: ''
+
+jws:
+  audience: "abc"
+  issuer: "xytschool"
+  timeout: 360000
+  public_key_path: "./resource/keys/jws_public_key.pem"
+  private_key_path: "./resource/keys/jws_private_key.pem"
+  hash_ids_salt: "123456"

@@ -1,30 +1,25 @@
-package gsafe
+package components
 
 import (
 	"crypto/rsa"
 	"github.com/dgrijalva/jwt-go"
+	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/util"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"strconv"
 	"time"
 )
 
-type JwsHelperOpt struct {
-	Audience       string
-	Issuer         string
-	Timeout        int64  //秒
-	PublicKeyPath  string //接受者需要提供公钥(不需要提供公钥)
-	PrivateKeyPath string //签发者需要知道私钥
-	HashIdsSalt    string //配置后使用hashIds　混淆UserId
-}
+
 
 type JwsHelper struct {
-	opt        JwsHelperOpt
+	opt        echoapp.JwsHelperOpt
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
 }
 
-func NewJwsHelper(opt JwsHelperOpt) (*JwsHelper, error) {
+func NewJwsHelper(opt echoapp.JwsHelperOpt) (*JwsHelper, error) {
 	jwsHelper := &JwsHelper{opt: opt}
 	if opt.PrivateKeyPath != "" {
 		keyData, _ := ioutil.ReadFile(opt.PrivateKeyPath)
@@ -50,7 +45,7 @@ func (jws *JwsHelper) CreateToken(userId int64, payload string) (string, error) 
 	var userIdHash string
 	var err error
 	if jws.opt.HashIdsSalt != "" {
-		userIdHash, err = EncodeInt64(userId, jws.opt.HashIdsSalt)
+		userIdHash, err = echoapp_util.EncodeInt64(userId, jws.opt.HashIdsSalt)
 		if err != nil {
 			return "", errors.Wrap(err, "hashids.EncodeInt64")
 		}
@@ -101,7 +96,7 @@ func (jws *JwsHelper) ParseToken(tokenStr string) (id int64, payload string, err
 		return 0, "", errors.Errorf("claim is not StandardClaims: %+v", token.Claims)
 	}
 	if jws.opt.HashIdsSalt != "" {
-		userId, err = DecodeInt64(userIdStr, jws.opt.HashIdsSalt)
+		userId, err = echoapp_util.DecodeInt64(userIdStr, jws.opt.HashIdsSalt)
 		if err != nil {
 			return 0, "", errors.Wrap(err, "hashids.EncodeInt64")
 		}

@@ -17,7 +17,6 @@ package cmd
 import (
 	"context"
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -66,19 +65,16 @@ func startHttp() {
 	}))
 
 	//Actions
-	usrSvr := app.MustUserService()
 	exampleController := controllers.ExampleController{}
 	qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
-	userCtl := controllers.NewUserController(usrSvr)
 
 	e.GET("/index", exampleController.Index)
 	e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
 	e.POST("/sendMessage", smsCtr.SendMessageByToken)
-	e.POST("/addUserScore", userCtl.AddUserScore)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {

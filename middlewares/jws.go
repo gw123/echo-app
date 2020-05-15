@@ -1,70 +1,31 @@
 package echoapp_middlewares
 
 import (
+	"github.com/gw123/echo-app/components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/labstack/gommon/random"
-	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
-type (
-	// RequestIDConfig defines the config for RequestID middleware.
-	ContextConfig struct {
-		// Skipper defines a function to skip middleware.
-		Skipper middleware.Skipper
-		// Generator defines a function to generate an ID.
-		// Optional. Default value random.String(32).
-		Generator func() string
-		// logger
-		Logger *logrus.Entry
-	}
-)
+const HeaderToken = "X-Token"
 
-var (
-	// DefaultRequestIDConfig is the default RequestID middleware config.
-	DefaultRequestIDConfig = ContextConfig{
-		Skipper:   middleware.DefaultSkipper,
-		Generator: generator,
-		Logger:    echoapp_util.NewDefaultEntry(),
-	}
-)
-
-// RequestID returns a X-Request-ID middleware.
-func RequestID() echo.MiddlewareFunc {
-	return RequestIDWithConfig(DefaultRequestIDConfig)
-}
-
-// RequestIDWithConfig returns a X-Request-ID middleware with config.
-func RequestIDWithConfig(config ContextConfig) echo.MiddlewareFunc {
-	// Defaults
-	if config.Skipper == nil {
-		config.Skipper = DefaultRequestIDConfig.Skipper
-	}
-	if config.Generator == nil {
-		config.Generator = generator
-	}
-
+func NewJwsMiddlewares(skipper middleware.Skipper, jws *components.JwsHelper) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if config.Skipper(c) {
+			if skipper(c) {
 				return next(c)
 			}
-
 			req := c.Request()
-			rid := req.Header.Get(echo.HeaderXRequestID)
-			if rid == "" {
-				rid = config.Generator()
-				req.Header.Set(echo.HeaderXRequestID, rid)
+			token := req.Header.Get(HeaderToken)
+			userId, payload, err := jws.ParseToken(token)
+			if err != nil {
+				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
+				return c.JSON(http.StatusUnauthorized, "未授权")
 			}
-
-			echoapp_util.AddRequestId(c, rid)
-			echoapp_util.ToContext(c, config.Logger)
+			echoapp_util.SetCtxUserId(c, userId)
+			echoapp_util.SetCtxJwsPayload(c, payload)
 			return next(c)
 		}
 	}
-}
-
-func generator() string {
-	return random.String(32)
 }

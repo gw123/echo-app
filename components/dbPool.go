@@ -1,4 +1,4 @@
-package services
+package components
 
 import (
 	echoapp "github.com/gw123/echo-app"
