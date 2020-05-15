@@ -36,9 +36,8 @@ const (
 	ctxLoggerKey    = "&loggerKey{}"
 )
 
-
 func SetCtxUserId(ctx echo.Context, userId int64) {
-	AddField(ctx, ctxUserIdKey, strconv.FormatInt(userId, 10))
+	AddField(ctx, "user_id", strconv.FormatInt(userId, 10))
 	ctx.Set(ctxUserIdKey, userId)
 }
 

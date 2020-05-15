@@ -5,6 +5,7 @@ import (
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"time"
 )
 
 type UserController struct {
@@ -72,7 +73,8 @@ func (sCtl *UserController) GetVerifyPic(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) GetUserInfo(ctx echo.Context) error {
-	echoapp_util.ExtractEntry(ctx).Info("getUserInfo")
+	//echoapp_util.ExtractEntry(ctx).Info("getUserInfo")
+	time.Sleep(time.Millisecond * 100)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.Err_NotFound, "未发现用户", err)

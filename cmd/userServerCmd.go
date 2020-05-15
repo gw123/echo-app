@@ -77,8 +77,9 @@ func startUserServer() {
 
 	jwsAuth := e.Group("/v1/user")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
-	jwsAuth.Use(jwsMiddleware, userMiddleware)
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)

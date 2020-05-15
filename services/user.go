@@ -19,8 +19,6 @@ const (
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
-
-
 )
 
 //下面方式可以用到 context.context 中防止字符在key冲突的问题,
@@ -100,10 +98,20 @@ func (u *UserService) Register(ctx echo.Context, param echoapp.RegisterParam) (*
 	panic("implement me")
 }
 
+func (u *UserService) GetCachedUserById(userId int64) (*echoapp.User, error) {
+	user := &echoapp.User{}
+	data, err := u.redis.Get(fmt.Sprintf("%s%d", RedisUserKey, userId)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(data), user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
-	//if err := u.redis.Get(fmt.Sprintf("%s%d", RedisUserKey, userId)).Result(); err != nil {
-	//	return nil, err
-	//}
 	user := &echoapp.User{}
 	if err := u.db.Where("id = ?", userId).First(user).Error; err != nil {
 		return nil, err
