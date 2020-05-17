@@ -8,17 +8,38 @@ import (
 	"net/http"
 )
 
-const HeaderToken = "X-Token"
+type JwsMiddlewaresOptions struct {
+	Skipper middleware.Skipper
+	Jws     *components.JwsHelper
+	//调试时候使用直接模拟一个用户id,正式环境要把这个设置为0
+	MockUserId int64
+}
 
-func NewJwsMiddlewares(skipper middleware.Skipper, jws *components.JwsHelper) echo.MiddlewareFunc {
+func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if skipper(c) {
+			if opt.Skipper(c) {
 				return next(c)
 			}
 			req := c.Request()
-			token := req.Header.Get(HeaderToken)
-			userId, payload, err := jws.ParseToken(token)
+
+			if opt.MockUserId > 0 {
+				echoapp_util.ExtractEntry(c).Infof("模拟用户:%d", opt.mockUserId)
+				echoapp_util.SetCtxUserId(c, opt.MockUserId)
+				echoapp_util.SetCtxJwsPayload(c, "just for test")
+				return next(c)
+			}
+
+			auth := req.Header.Get(echo.HeaderAuthorization)
+			authScheme := "Bearer"
+			l := len(authScheme)
+			if len(auth) > l+1 && auth[:l] == authScheme {
+				echoapp_util.ExtractEntry(c).Error("未设置token")
+				return c.JSON(http.StatusUnauthorized, "未授权")
+			}
+
+			token := auth[l+1:]
+			userId, payload, err := opt.Jws.ParseToken(token)
 			if err != nil {
 				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
 				return c.JSON(http.StatusUnauthorized, "未授权")

@@ -68,7 +68,12 @@ func startFileServer() {
 	usrSvr := app.MustUserService()
 	userCtl := controllers.NewUserController(usrSvr)
 	jwsAuth := e.Group("/v1/file")
-	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//MockUserId: 0,
+	}
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	//userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)

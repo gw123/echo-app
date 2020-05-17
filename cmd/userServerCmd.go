@@ -76,7 +76,12 @@ func startUserServer() {
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
 	jwsAuth := e.Group("/v1/user")
-	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//MockUserId: 0,
+	}
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
