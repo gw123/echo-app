@@ -18,6 +18,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
 	github.com/leodido/go-urn v1.1.0 // indirect
+	github.com/medivhzhan/weapp v1.5.1
 	github.com/nelsonken/cos-go-sdk-v5 v0.0.0-20180622024522-5247afdb7a80 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect

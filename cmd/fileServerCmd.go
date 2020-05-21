@@ -65,7 +65,7 @@ func startFileServer() {
 	//}))
 
 	//Actions
-	usrSvr := app.MustUserService()
+	usrSvr := app.MustGetUserService()
 	userCtl := controllers.NewUserController(usrSvr)
 	jwsAuth := e.Group("/v1/file")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{

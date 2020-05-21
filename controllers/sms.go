@@ -27,12 +27,12 @@ func NewSmsController() *SmsController {
 func (sCtr *SmsController) SendMessageByToken(ctx echo.Context) error {
 	params := SendMessageParams{}
 	if err := ctx.Bind(&params); err != nil {
-		return sCtr.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
+		return sCtr.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	echoapp_util.ExtractEntry(ctx).Infof("发送短信内容：%+v", params.SendMessageOptions)
 	err := sCtr.smsSvr.SendMessage(&params.SendMessageOptions)
 	if err != nil {
-		return sCtr.Fail(ctx, echoapp.Err_Argument, err.Error(), errors.Wrap(err, "短信发送失败,"))
+		return sCtr.Fail(ctx, echoapp.CodeArgument, err.Error(), errors.Wrap(err, "短信发送失败,"))
 	}
 	return sCtr.Success(ctx, nil)
 }

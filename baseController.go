@@ -1,20 +1,30 @@
 package echoapp
 
 import (
+	"errors"
 	"github.com/labstack/echo"
 	"net/http"
 )
 
 const (
-	Err_NotFound   = 400
-	Err_NoAuth     = 401
-	Err_DBError    = 402
-	Err_CacheError = 403
-	Err_Argument   = 404
-	Err_NotAllow   = 405
-	Err_EtcdError  = 406
-	Err_InnerError = 501
+	CodeNotFound   = 400
+	CodeNoAuth     = 401
+	CodeDBError    = 402
+	CodeCacheError = 403
+	CodeArgument   = 404
+	CodeNotAllow   = 405
+	CodeEtcdError  = 406
+	CodeInnerError = 501
 )
+
+var ErrNotFoundCache = errors.New("not found cache item")
+var ErrNotFoundDb = errors.New("not found db item")
+var ErrNotFoundEtcd = errors.New("not found etcd item")
+var ErrArgument = errors.New("argument error")
+var ErrNotLogin = errors.New("not login")
+var ErrNotAuth = errors.New("not auth")
+var ErrNotAllow = errors.New("not allow")
+
 
 type Response struct {
 	ErrorCode  int         `json:"code"`

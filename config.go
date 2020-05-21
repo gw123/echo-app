@@ -15,9 +15,10 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
+	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
+	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
 	Redis             *redis.Options
-	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
@@ -80,6 +81,9 @@ type ReportTicketOption struct {
 	AppKey     string `yaml:"app_key" mapstructure:"app_key"`
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
+	//
+	LoginName  string `yaml:"loginName" mapstructure:"loginName"`
+	Pwd        string `yaml:"pwd" mapstructure:"pwd"`
 }
 
 type DBOption struct {

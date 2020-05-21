@@ -24,7 +24,7 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			req := c.Request()
 
 			if opt.MockUserId > 0 {
-				echoapp_util.ExtractEntry(c).Infof("模拟用户:%d", opt.mockUserId)
+				echoapp_util.ExtractEntry(c).Infof("模拟用户:%d", opt.MockUserId)
 				echoapp_util.SetCtxUserId(c, opt.MockUserId)
 				echoapp_util.SetCtxJwsPayload(c, "just for test")
 				return next(c)

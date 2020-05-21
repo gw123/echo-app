@@ -66,7 +66,7 @@ func startUserServer() {
 	//}))
 
 	//Actions
-	usrSvr := app.MustUserService()
+	usrSvr := app.MustGetUserService()
 	userCtl := controllers.NewUserController(usrSvr)
 	normal := e.Group("/v1/user")
 	normal.POST("/login", userCtl.Login)
@@ -86,9 +86,10 @@ func startUserServer() {
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
-	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
-	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
-	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
+	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
+	jwsAuth.POST("/getUserInfo",     userCtl.GetUserInfo)
+	jwsAuth.POST("/getUserRoles",    userCtl.GetUserRoles)
+	jwsAuth.POST("/checkHasRoles",   userCtl.CheckHasRoles)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {

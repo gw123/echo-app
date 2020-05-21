@@ -27,7 +27,7 @@ func (pCtl *PrintController) PrintTicket(ctx echo.Context) error {
 
 	params := &Params{}
 	if err := ctx.Bind(params); err != nil {
-		return pCtl.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
+		return pCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	if params.PrinterName == "" {
@@ -35,7 +35,7 @@ func (pCtl *PrintController) PrintTicket(ctx echo.Context) error {
 	}
 
 	if err := pCtl.printSvr.PrintByPrinterName(params.ComId, params.PrinterName, []byte(params.Code)); err != nil {
-		return pCtl.Fail(ctx, echoapp.Err_InnerError, err.Error(), err)
+		return pCtl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
 	}
 	return pCtl.Success(ctx, nil)
 }

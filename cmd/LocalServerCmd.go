@@ -65,7 +65,7 @@ func startLocalHttp() {
 		StackSize: 1 << 10, // 1 KB
 	}))
 	//Actions
-	usrSvr := app.MustUserService()
+	usrSvr := app.MustGetUserService()
 	wsCtl := controllers.NewWsController(usrSvr)
 	authGroup := e.Group("/gapi", loggerMiddleware)
 	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)

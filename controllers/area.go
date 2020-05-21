@@ -19,7 +19,7 @@ func (c *AreaController) GetAreaMap(ctx echo.Context) error {
 	areaId := ctx.QueryParam("area_id")
 	areaMap, err := app.MustGetAreaService().GetAreaMap(areaId)
 	if err != nil {
-		return c.BaseController.Fail(ctx, echoapp.Err_Argument, "", err)
+		return c.BaseController.Fail(ctx, echoapp.CodeArgument, "", err)
 	}
 	return c.BaseController.Success(ctx, areaMap)
 }
@@ -28,7 +28,7 @@ func (c *AreaController) GetAreaArray(ctx echo.Context) error {
 	areaId := ctx.QueryParam("area_id")
 	areaArray, err := app.MustGetAreaService().GetAreaArray(areaId)
 	if err != nil {
-		return c.BaseController.Fail(ctx, echoapp.Err_Argument, "", err)
+		return c.BaseController.Fail(ctx, echoapp.CodeArgument, "", err)
 	}
 	return c.BaseController.Success(ctx, areaArray)
 }

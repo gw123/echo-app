@@ -6,4 +6,15 @@ const (
 	HostURL      = "host_url"
 	RequestRoot  = "static_root"
 	AssetVersion = "asset_version"
+
+	//缓存key
+	//redis 相关的key
+	RedisUserKey          = "User:%d"
+	RedisUserXCXOpenidKey = "UserXCXOpenid:%d"
+	RedisSmsLoginCodeKey  = "SmsLoginCode"
+	RedisCompanyKey       = "Company:%d"
+	RedisGoodsKey         = "Goods:%d"
+
+	RedisActivityKey = "Activity:%d"
+	RedisArticleKey  = "Article:%d"
 )
