@@ -10,7 +10,6 @@ import (
 
 var App *EchoApp
 
-
 type EchoApp struct {
 	areaSvc     echoapp.AreaService
 	smsSvc      echoapp.SmsService
@@ -102,17 +101,17 @@ func GetUserService() (echoapp.UserService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
-	/*
+
 	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
-*/
+
 	jws, err := GetJwsHelper()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetJws")
 	}
-	App.UserSvr = services.NewUserService(userDb, nil, jws)
+	App.UserSvr = services.NewUserService(userDb, redis, jws)
 	return App.UserSvr, nil
 }
 
