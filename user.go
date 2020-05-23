@@ -1,63 +1,59 @@
 package echoapp
 
 import (
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
 type RegisterParam struct {
+	ComId    int    `json:"com_id"`
 	Mobile   string `json:"mobile"`
 	Password string `json:"password"`
 	Code     string `json:"code"`
 }
 
 type LoginParam struct {
-	Mobile   string `json:"mobile"`
+	ComId int `json:"com_id"`
+	//auth type sms|password ;认证方式  短信验证码|账号密码
+	Method   string `json:"method"`
+	Username string `json:"username"`
+	SmsCode  string `json:"sms_code"`
 	Password string `json:"password"`
 }
 
-type RegisterUser struct {
-	Id     int    `json:"id"`
-	Name   string `json:"name"`
-	Phone  string `json:"mobile"`
-	Pwd    string `json:"password"`
-	Email  string `json:"email"`
-	Avatar string `json:"avatar"`
-	Role   string `json:"role"`
-	Status string `json:"status"`
-}
-
-func (r *RegisterUser) TableName() string {
-	return "users"
-}
-
 type User struct {
-	Id       int    `json:"id"`
+	Id       int64  `json:"id"`
+	ComId    int    `json:"com_id"`
 	Name     string `json:"name"`
 	Avatar   string `json:"avatar"`
 	Email    string `json:"email"`
-	Phone    string `json:"mobile"`
+	Mobile   string `json:"mobile"`
 	Score    int    `json:"score"`
-	Role     string `json:"role"`
-	ApiToken string `json:"api_token"`
+	Token    string `json:"-"`
+	JwsToken string `gorm:"-" json:"jws_token"`
 }
-
 type UserScoreParam struct {
-	UserId int `json:"user_id"`
-	Score  int `json:"score"`
+	UserId int64 `json:"user_id"`
+	Score  int   `json:"score"`
+}
+type Company struct {
+	Id   int64  `json:"id"`
+	Name string `json:"name"`
+	Desc string `json:"desc"`
 }
 
 type Role struct {
-	gorm.Model
-	ID        uint   `gorm:"AUTO_INCREMENT"`
-	Key       string `gorm:"size:255"`
-	Name      string `gorm:"size:255；unique"`
-	GuardName string `json:"guard_name;not null"`
+	Id    int64  `json:"id"`
+	Name  string `json:"name"`
+	Label string `json:"label"`
 }
 
+type UserRole struct {
+	RoleId    int    `json:"role_id"`
+	ModelType string `json:"model_type"`
+	ModelId   uint64 `json:"model_id"`
+}
 type Permission struct {
-	gorm.Model
-	ID        uint
+	Id        int64
 	Name      string
 	GuardName string `json:"guard_name"`
 }
@@ -66,24 +62,19 @@ type RoleandPermissionParam struct {
 	Permission string `json:"permission"`
 }
 type RoleHasPermission struct {
-	RoleID       uint `json:"role_id"`
-	PermissionID uint `json:"permission_id"`
+	RoleId       int64 `json:"role_id"`
+	PermissionId int64 `json:"permission_id"`
 }
-
 type UserService interface {
-	Save(ctx echo.Context, user *User) error
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
-
-	GetUserById(ctx echo.Context, userId int) (*User, error)
-
-	Create(c echo.Context, user *RegisterUser) error
-	Addroles(c echo.Context, param *Role) error
-	AddPermission(c echo.Context, param *Permission) error
-	RegisterUser(c echo.Context, param *RegisterUser) error
-
+	Register(ctx echo.Context, param *RegisterParam) (*User, error)
+	GetUserById(userId int64) (*User, error)
+	Save(user *User) error
 	GetUserByToken(token string) (*User, error)
 
+	Addroles(c echo.Context, param *Role) error
+	AddPermission(c echo.Context, param *Permission) error
 	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*RoleHasPermission, error)
 }

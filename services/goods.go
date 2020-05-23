@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -24,26 +23,29 @@ func NewGoodsService(db *gorm.DB) *GoodsService {
 
 func (rsv *GoodsService) SaveGoods(goods *echoapp.Goods) error {
 	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Goods{})
-	if !rsv.db.Table("goods").Where(goods).RecordNotFound() {
+	good := &echoapp.Goods{}
+	if rsv.db.Table("goods").Where("user_id=? AND name=?", goods.UserId, goods.Name).Find(good).RecordNotFound() {
 		return rsv.db.Create(goods).Error
 	}
-	return errors.New("RecordHasFound")
+	return nil
 }
 
 func (rsv *GoodsService) SaveTags(tags *echoapp.Tags) error {
 	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Tags{})
-	if !rsv.db.Table("tags").Where(tags).RecordNotFound() {
+	tag := &echoapp.Tags{}
+	if rsv.db.Table("tags").Where("name=?", tags.Name).Find(tag).RecordNotFound() {
 		return rsv.db.Create(tags).Error
 	}
-	return errors.New("RecordHasFound")
+	return nil
 }
+
 func (rsv *GoodsService) GetGoodsById(c echo.Context, id uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	res := rsv.db.Where("ID=?", id).First(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsById")
 	}
-	echoapp_util.ExtractEntry(c).Info("goodsID:%d", id)
+	//echoapp_util.ExtractEntry(c).Info("goodsID:%d", id)
 	return goods, nil
 }
 func (rsv *GoodsService) GetGoodsByTagId(c echo.Context, tagId uint, from, limit int) ([]*echoapp.Goods, error) {
@@ -53,7 +55,7 @@ func (rsv *GoodsService) GetGoodsByTagId(c echo.Context, tagId uint, from, limit
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByTagId")
 	}
-	echoapp_util.ExtractEntry(c).Info("TagID:%d", tagId)
+	//echoapp_util.ExtractEntry(c).Info("TagID:%d", tagId)
 	return goodslist, nil
 }
 func (rsv *GoodsService) GetUserPaymentGoods(c echo.Context, userId uint, from int, limit int) ([]*echoapp.Goods, error) {
@@ -62,7 +64,7 @@ func (rsv *GoodsService) GetUserPaymentGoods(c echo.Context, userId uint, from i
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetUserPaymentGoods")
 	}
-	echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
+	//echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
 	return goodslist, nil
 }
 func (rsv *GoodsService) ModifyGoods(goods *echoapp.Goods) error {
@@ -84,6 +86,14 @@ func (rsv *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	res := rsv.db.Where("name=?", name).Find(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
+	}
+	return goods, nil
+}
+func (rsv *GoodsService) GetTagsByName(name string) (*echoapp.Tags, error) {
+	goods := &echoapp.Tags{}
+	res := rsv.db.Where("name=?", name).Find(goods)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetTagsByName")
 	}
 	return goods, nil
 }

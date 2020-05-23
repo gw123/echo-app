@@ -10,11 +10,11 @@ type CheckTicketJob struct {
 	TongchengRequestBody
 }
 
-type TongchengRequestBody struct {
-	Tickets        int    `json:"tickets"`
-	OrderSerialId  string `json:"orderSerialId"`
-	PartnerOrderId string `json:"partnerOrderId"`
-	ConsumeDate    string `json:"consumeDate"`
+type TongchengRequest struct {
+	RequestHead        TongchengRequestHead `json:"requestHead"`
+	RequestBody        TongchengRequestBody `json:"_"`
+	RawRequestBody     string               `json:"-"`
+	EncryptRequestBody string               `json:"requestBody"`
 }
 
 type TongchengRequestHead struct {
@@ -25,9 +25,11 @@ type TongchengRequestHead struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-type TongchengRequest struct {
-	RequestHead    TongchengRequestHead `json:"requestHead"`
-	RawRequestBody string               `json:"requestBody"`
+type TongchengRequestBody struct {
+	Tickets        int    `json:"tickets"`
+	OrderSerialId  string `json:"orderSerialId"`
+	PartnerOrderId string `json:"partnerOrderId"`
+	ConsumeDate    string `json:"consumeDate"`
 }
 
 type TongchengConsumeNoticeRequest struct {

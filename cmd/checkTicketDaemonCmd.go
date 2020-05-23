@@ -50,18 +50,20 @@ func doCheckTicketWorker() {
 		job := &echoapp.CheckTicketJob{}
 		if err := json.Unmarshal(msg.Body, job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
+			msg.Ack(false)
 			continue
 		}
 		if err := tongchengSvr.CheckTicket(job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
+			msg.Ack(false)
 			continue
 		}
-		msg.Ack(true)
+		msg.Ack(false)
 	}
 }
 
 func startCheckTicketDaemon() {
-	echoapp_util.DefaultLogger().Infof("开始消息推送服务")
+	echoapp_util.DefaultLogger().Infof("开始消息推送服务验证")
 	go doCheckTicketWorker()
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)

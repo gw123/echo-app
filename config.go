@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"github.com/go-redis/redis/v7"
 	"github.com/spf13/viper"
 )
 
@@ -14,7 +15,7 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
-	Redis             *CacheOptions
+	Redis             *redis.Options
 	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
@@ -23,6 +24,7 @@ type ConfigOptions struct {
 	PPTImages         map[string]PPTImagesOption    `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
 
 	QiniuKeys QiniuKeyOption `yaml:"qiniu_key" mapstructure:"qiniu_key"`
+	Jws       JwsHelperOpt   `yaml:"jws" mapstructure:"jws"`
 }
 
 type Server struct {
@@ -32,16 +34,31 @@ type Server struct {
 	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
 }
 
+type JwsHelperOpt struct {
+	Audience string `json:"audience"`
+	Issuer   string `json:"issuer"`
+	//单位秒
+	Timeout int64 `json:"timeout"`
+	//接受者需要提供公钥(不需要提供公钥)
+	PublicKeyPath string `json:"public_key_path" yaml:"public_key_path"  mapstructure:"public_key_path"`
+	//签发者需要知道私钥
+	PrivateKeyPath string `json:"private_key_path" yaml:"private_key_path" mapstructure:"private_key_path"`
+	//配置后使用hashIds　混淆UserId
+	HashIdsSalt string `json:"hash_ids_salt" yaml:"hash_ids_salt" mapstructure:"hash_ids_salt"`
+}
+
 type Asset struct {
-	PublicRoot        string `yaml:"public_root" mapstructure:"public_root"`
-	AreaRoot          string `yaml:"area_root" mapstructure:"area_root"`
-	ViewRoot          string `yaml:"view_root" mapstructure:"view_root"`
-	Version           string `yaml:"version" mapstructure:"version"`
-	PublicHost        string `yaml:"public_host" mapstructure:"public_host"`
-	WatchRoot         string `yaml:"watch_root" mapstructure:"watch_root"`
-	TmpRoot           string `yaml:"tmp_root" mapstructure:"tmp_root"`
-	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
-	MyURL             string `yaml:"my_url" mapstructure:"my_url"`
+	PublicRoot   string `yaml:"public_root" mapstructure:"public_root"`
+	AreaRoot     string `yaml:"area_root" mapstructure:"area_root"`
+	ViewRoot     string `yaml:"view_root" mapstructure:"view_root"`
+	Version      string `yaml:"version" mapstructure:"version"`
+	PublicHost   string `yaml:"public_host" mapstructure:"public_host"`
+	ResourceRoot string `yaml:"resource_root" mapstructure:"resource_root"`
+	StorageRoot  string `yaml:"storage_root" mapstructure:"storage_root"`
+
+	UploadMaxFileSize int64 `yaml:"max_file_size" mapstructure:"max_file_size"`
+
+	MyURL string `yaml:"my_url" mapstructure:"my_url"`
 }
 
 type SmsOption struct {

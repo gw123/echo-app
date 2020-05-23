@@ -1,145 +1,24 @@
 package cmd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"path/filepath"
-	"regexp"
 
 	"github.com/fsnotify/fsnotify"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/pkg/errors"
-	"github.com/qiniu/api.v7/auth/qbox"
-	"github.com/qiniu/api.v7/storage"
 
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
 )
 
 //监控目录
-func copy(src, dst string) (string, error) {
-	sourceFileStat, err := os.Stat(src)
-	if err != nil {
-		return "", err
-	}
-	if !sourceFileStat.Mode().IsRegular() {
-		return "", fmt.Errorf("%s is not a regular file", src)
-	}
 
-	source, err := os.Open(src)
-	if err != nil {
-		return "", err
-	}
-	defer source.Close()
-
-	destination, err := os.Create(dst)
-	if err != nil {
-		return "", err
-	}
-	defer destination.Close()
-	if _, err = io.Copy(destination, source); err != nil {
-		return "", err
-	}
-	return "", nil
-}
-
-func doHttpRequest(url string) ([]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
-	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "DoRequest->Do")
-	}
-	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "DoRequest->ReadAll")
-	}
-	if res.StatusCode == http.StatusOK {
-		return data, errors.Wrapf(err, "StatusCode:%d", res.StatusCode)
-	}
-	return data, nil
-}
-
-func getPPTCoverUrl(pptUrl string) ([]string, error) {
-	clientMap := echoapp.ConfigOpts.PPTImages
-	for key, options := range clientMap {
-		echoapp_util.DefaultLogger().Infof("访问%s,com_id:%d", key, options.ComId)
-		//ppturl :=
-		url := options.BaseUrl + "onlinePreview" + "?url=" + pptUrl
-		data, err := doHttpRequest(url)
-		if err != nil {
-			return nil, errors.Wrap(err, "doHttpRequest")
-		}
-		strdata := string(data)
-
-		reg := regexp.MustCompile(`\<img .*?title=\"查看大图\" .*?data-src=\"(\S*)\" .*?\>`)
-		if reg == nil {
-			return nil, errors.Wrap(err, "regexp.MustCompile err")
-		}
-		res := reg.FindAllStringSubmatch(strdata, -1)
-		urls := make([]string, 0)
-		for _, text := range res {
-			url := text[1]
-			urls = append(urls, url)
-		}
-		return urls, nil
-	}
-	return nil, nil
-}
-
-type MyPutRet struct {
-	Key    string
-	Hash   string
-	Fsize  int
-	Bucket string
-	Name   string
-}
-
-func uploadFileToQiniu(localFile, key string) (*MyPutRet, error) {
-
-	bucket := "if-pbl"
-	//key := "github-x.png"
-	putPolicy := storage.PutPolicy{
-		Scope:      bucket,
-		ReturnBody: `{"key":"$(key)","hash":"$(etag)","fsize":$(fsize),"bucket":"$(bucket)","name":"$(x:name)"}`,
-	}
-	mac := qbox.NewMac(echoapp.ConfigOpts.QiniuKeys.AccessKey, echoapp.ConfigOpts.QiniuKeys.SecretKey)
-	upToken := putPolicy.UploadToken(mac)
-	cfg := storage.Config{}
-	// 空间对应的机房
-	cfg.Zone = &storage.ZoneHuanan
-	// 是否使用https域名
-	cfg.UseHTTPS = false
-	// 上传是否使用CDN上传加速
-	cfg.UseCdnDomains = false
-	// 构建表单上传的对象
-	formUploader := storage.NewFormUploader(&cfg)
-
-	ret := MyPutRet{}
-	// 可选配置
-	putExtra := storage.PutExtra{
-		Params: map[string]string{
-			"x:name": "xyt ppt",
-		},
-	}
-	err := formUploader.PutFile(context.Background(), &ret, upToken, key, localFile, &putExtra)
-	if err != nil {
-		fmt.Println(err)
-		return nil, errors.Wrap(err, "formUploader.PutFile")
-	}
-	return &ret, nil
-}
 func watchDir(dir string) {
 	watch, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -161,12 +40,12 @@ func watchDir(dir string) {
 			}
 			fmt.Println("监控 : ", path)
 		}
-
 		return nil
 	})
 
-	resourceSvc := app.MustGetResService()
+	resourceSvc := app.MustGetResourceService()
 	goodsSvc := app.MustGetGoodsService()
+
 	go func() {
 		for {
 			select {
@@ -174,31 +53,33 @@ func watchDir(dir string) {
 				{
 					if ev.Op&fsnotify.Create == fsnotify.Create {
 						fmt.Println("创建文件 : ", ev.Name)
-
 						//这里获取新创建文件的信息，如果是目录，则加入监控中
 						fi, err := os.Stat(ev.Name)
 						if err == nil && fi.IsDir() {
 							watch.Add(ev.Name)
 							fmt.Println("添加监控 : ", ev.Name)
 						} else {
-							Md5fileStr32, err := resourceSvc.Md5SumFile(ev.Name)
+							md5fileStr32, err := echoapp_util.Md5SumFile(ev.Name)
 							if err != nil {
-								fmt.Println(errors.Wrap(err, "Create resourceSvc.Md5SumFile"))
+								fmt.Println(errors.Wrap(err, "Md5SumFile"))
 								continue
 							}
-							Md5path := Md5fileStr32[:2] + Md5fileStr32 + path.Ext(ev.Name)
-							CopyDstfullPath := echoapp.ConfigOpts.Asset.TmpRoot + "/ppt/" + Md5path
-							if _, err := copy(ev.Name, CopyDstfullPath); err != nil {
-								fmt.Println("copy err")
+							md5path := md5fileStr32[:2] + md5fileStr32 + path.Ext(ev.Name)
+							if _, err := resourceSvc.GetResourceByMd5Path(nil, md5path); err == nil {
+								fmt.Println(errors.New(ev.Name + " :It already has the same content"))
 								continue
 							}
-
-							if _, err := uploadFileToQiniu(CopyDstfullPath, Md5path); err != nil {
+							fileType := echoapp_util.GetFileType(ev.Name)
+							// CopyDstfullPath := echoapp.ConfigOpts.Asset.StorageRoot + "/" + fileType + "/" + md5path
+							// if err := echoapp_util.Copy(CopyDstfullPath, ev.Name); err != nil {
+							// 	fmt.Println("copy err")
+							// 	continue
+							// }
+							if _, err := echoapp_util.UploadFileToQiniu(ev.Name, "/"+fileType+"/"+md5path); err != nil {
 								fmt.Println(errors.Wrap(err, "uploadFileToQiniu"))
 								continue
 							}
-
-							strArr, err := getPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + path.Base(ev.Name))
+							strArr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + "/" + fileType + "/" + path.Base(ev.Name))
 							if err != nil && len(strArr) < 2 {
 								fmt.Println(errors.Wrap(err, "Create  getPPTCoverUrl"))
 								continue
@@ -229,17 +110,23 @@ func watchDir(dir string) {
 								continue
 							}
 							err = goodsSvc.SaveTags(&echoapp.Tags{
-								GoodsId: res.ID,
-								Name:    path.Dir(ev.Name),
+								//GoodsId: res.ID,
+								Name: path.Dir(ev.Name),
 							})
 							if err != nil {
 								fmt.Println(errors.Wrap(err, "Create  goodsSvc.SaveTags"))
 								continue
 							}
-							err = resourceSvc.SaveResource(&echoapp.Resource{
 
+							res_tag, err := goodsSvc.GetTagsByName(path.Base(ev.Name))
+							if err != nil {
+								fmt.Println(errors.Wrap(err, "Create goodsSvc.GetTagsByName"))
+								continue
+							}
+							err = resourceSvc.SaveResource(&echoapp.Resource{
+								TagId:      res_tag.ID,
 								Name:       path.Base(ev.Name),
-								Path:       Md5path,
+								Path:       md5path,
 								Type:       path.Ext(ev.Name),
 								Covers:     strArr[0],
 								SmallCover: string(data),
@@ -255,9 +142,9 @@ func watchDir(dir string) {
 					}
 					if ev.Op&fsnotify.Write == fsnotify.Write {
 						fmt.Println("写入文件 : ", ev.Name)
-						Md5file, err := resourceSvc.Md5SumFile(ev.Name)
+						Md5file, err := echoapp_util.Md5SumFile(ev.Name)
 						if err != nil {
-							fmt.Println(errors.Wrap(err, "Write  resourceSvc.Md5SumFile"))
+							fmt.Println(errors.Wrap(err, "Write  Md5SumFile"))
 							continue
 						}
 						res, err := resourceSvc.GetResourceByName(path.Base(ev.Name))
@@ -323,8 +210,9 @@ func watchDir(dir string) {
 
 func startWatcher() {
 
-	echoapp_util.DefaultLogger().Infof("开始监控服务")
-	watchDir(echoapp.ConfigOpts.Asset.WatchRoot)
+	echoapp_util.DefaultLogger().Infof("开始监控")
+
+	go watchDir(echoapp.ConfigOpts.Asset.StorageRoot)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
@@ -334,7 +222,7 @@ func startWatcher() {
 
 var watcherCmd = &cobra.Command{
 	Use:   "watch",
-	Short: "监听",
+	Short: "监控",
 	Long:  "监听目录",
 	Run: func(cmd *cobra.Command, args []string) {
 		startWatcher()

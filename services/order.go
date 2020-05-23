@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -32,7 +31,7 @@ func (rsv *OrderService) GetOrderById(c echo.Context, id uint) (*echoapp.Order, 
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "OrderService->GetOrderById")
 	}
-	echoapp_util.ExtractEntry(c).Info("OrderID:%d", id)
+	//echoapp_util.ExtractEntry(c).Info("OrderID:%d", id)
 	return order, nil
 }
 
@@ -42,7 +41,7 @@ func (rsv *OrderService) GetUserPaymentOrder(c echo.Context, userId uint, from, 
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "OrderService->GetUserPaymentOrder")
 	}
-	echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
+	//echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
 	return orderlist, nil
 }
 func (rsv *OrderService) ModifyOrder(Order *echoapp.Order) error {

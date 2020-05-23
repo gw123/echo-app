@@ -1,85 +1,142 @@
 package services
 
 import (
-	"sync"
+	"encoding/json"
+	"fmt"
+	"time"
 
+	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
+const (
+	RedisUserKey         = "User:"
+	RedisSmsLoginCodeKey = "SmsLoginCode"
+	//登录方式
+	LoginMethodPassword = "password"
+	LoginMethodSms      = "sms"
+)
+
+//下面方式可以用到 context.context 中防止字符在key冲突的问题,
+//因为echo的context只能传入字符串，所以这里改成一个个特殊字符串
+//type loggerKey struct{}
+//type userKey struct{}
+//type userIdKey struct{}
+//type comKey struct{}
+//type userRolesKey struct{}
+//
+//var ctxLoggerKey = &loggerKey{}
+//var ctxUserKey = &userKey{}
+//var ctxComKey = &comKey{}
+//var ctxUserIddKey = &userIdKey{}
+//var ctxUserRolesKey = &userRolesKey{}
+
 type UserService struct {
-	db *gorm.DB
-	mu sync.Mutex
+	db    *gorm.DB
+	redis *redis.Client
+	jws   *components.JwsHelper
 }
 
-func NewUserService(db *gorm.DB) *UserService {
+func NewUserService(db *gorm.DB, redis *redis.Client, jws *components.JwsHelper) *UserService {
 	return &UserService{
-		db: db,
+		db:    db,
+		redis: redis,
+		jws:   jws,
 	}
 }
-func (uSvr UserService) GetUserByToken(token string) (*echoapp.User, error) {
+
+func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoapp.User, error) {
+	echoapp_util.ExtractEntry(ctx).Warnf("login params :%+v", param)
 	user := &echoapp.User{}
-	if err := uSvr.db.Where("api_token = ?", token).First(user).Error; err != nil {
-		return nil, err
+	if param.Method == LoginMethodSms {
+		code := u.redis.HGet(RedisSmsLoginCodeKey, param.Username).Val()
+		if code == "" {
+			return nil, errors.New("请求过期")
+		}
+		if code != param.SmsCode {
+			return nil, errors.New("code not match")
+		}
+	} else {
+		sign := echoapp_util.Md5(echoapp_util.Md5(param.Password))
+		if err := u.db.Debug().Where("com_id = ? and mobile =? and password = ?", param.ComId, param.Username, sign).First(user).Error; err != nil {
+			return nil, errors.Wrap(err, "db query")
+		}
+	}
+
+	data := make(map[string]interface{})
+	data["username"] = param.Username
+	data["com_id"] = param.ComId
+	data["avatar"] = user.Avatar
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "Marshal")
+	}
+
+	token, err := u.jws.CreateToken(user.Id, string(payload))
+	if err != nil {
+		return nil, errors.Wrap(err, "CreateToken")
+	}
+	user.JwsToken = token
+	if err := u.redis.Set(fmt.Sprintf("%s%d", RedisUserKey, user.Id), user, time.Hour*24*15).Err(); err != nil {
+		echoapp_util.ExtractEntry(ctx).Warnf("redis set user err :%s", err.Error())
 	}
 	return user, nil
 }
-func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
-	user.Score += amount
-	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)
-	return uSvr.Save(ctx, user)
-}
+func (t *UserService) Register(ctx echo.Context, param *echoapp.RegisterParam) (*echoapp.User, error) {
 
-func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
-	user.Score -= amount
-	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)
-	return uSvr.Save(ctx, user)
-}
-
-func (uSvr UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoapp.User, error) {
-	user := &echoapp.User{}
-	res := uSvr.db.Where("phone=? AND pwd=? ", param.Mobile, param.Password).Find(user)
-	if err := res.Error; err != nil && res.RecordNotFound() {
-		return nil, err
+	err := t.db.Table("users").Where("phone=?", param.Mobile)
+	if err.Error != nil && err.RecordNotFound() {
+		return nil, errors.Wrap(err.Error, "Record has Found")
 	}
 	echoapp_util.ExtractEntry(ctx).Infof("mobile:%s,pwd:%s", param.Mobile, param.Password)
-	return user, nil
-
+	return nil, t.Create(param)
 }
 
-func (uSvr UserService) GetUserById(ctx echo.Context, userId int) (*echoapp.User, error) {
-	user := &echoapp.User{}
-	if err := uSvr.db.Where("id = ?", userId).First(user).Error; err != nil {
-		return nil, err
-	}
-	echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userId)
-	return user, nil
-}
-
-func (uSvr UserService) Save(ctx echo.Context, user *echoapp.User) error {
-	return uSvr.db.Save(user).Error
-}
-
-func (uSvr UserService) Create(c echo.Context, user *echoapp.RegisterUser) error {
+func (uSvr UserService) Create(user *echoapp.RegisterParam) error {
 	if err := uSvr.db.Create(user).Error; err != nil && uSvr.db.NewRecord(user) {
 		return errors.Wrap(err, "user create fail")
 	}
 	return nil
 }
 
-func (t *UserService) RegisterUser(c echo.Context, param *echoapp.RegisterUser) error {
-
-	err := t.db.Table("users").Where("phone=?", param.Phone)
-	if err.Error != nil && err.RecordNotFound() {
-		return errors.Wrap(err.Error, "Record has Found")
-	}
-	echoapp_util.ExtractEntry(c).Infof("mobile:%s,pwd:%s", param.Phone, param.Pwd)
-	return t.Create(c, param)
+func (u *UserService) Save(user *echoapp.User) error {
+	return u.db.Save(user).Error
 }
 
+func (u *UserService) GetUserByToken(token string) (*echoapp.User, error) {
+	user := &echoapp.User{}
+	if err := u.db.Where("api_token = ?", token).First(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
+	//if err := u.redis.Get(fmt.Sprintf("%s%d", RedisUserKey, userId)).Result(); err != nil {
+	//	return nil, err
+	//}
+	user := &echoapp.User{}
+	if err := u.db.Where("id = ?", userId).First(user).Error; err != nil {
+		return nil, err
+	}
+	//echoapp_util.ExtractEntry(ctx).Infof("userid:%d", userId)
+	return user, nil
+}
+func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
+	user.Score += amount
+	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)
+	return uSvr.Save(user)
+}
+func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
+	user.Score -= amount
+	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)
+	return uSvr.Save(user)
+}
 func (t *UserService) Addroles(c echo.Context, param *echoapp.Role) error {
 
 	res := t.db.Table("roles").Where("name=?", param.Name)
@@ -95,6 +152,7 @@ func (t *UserService) Addroles(c echo.Context, param *echoapp.Role) error {
 	echoapp_util.ExtractEntry(c).Infof("create role name:%s", param.Name)
 	return nil
 }
+
 func (t *UserService) AddPermission(c echo.Context, param *echoapp.Permission) error {
 
 	res := t.db.Table("permissions").Where("name=?", param.Name)
@@ -127,8 +185,8 @@ func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPe
 		return nil, errors.New("Permission Record has Found")
 	}
 	rolehaspermission := &echoapp.RoleHasPermission{
-		RoleID:       role.ID,
-		PermissionID: permission.ID,
+		RoleId:       role.Id,
+		PermissionId: permission.Id,
 	}
 	err := t.db.Create(rolehaspermission)
 	if err.Error != nil && t.db.NewRecord(param) {

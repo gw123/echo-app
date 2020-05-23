@@ -2,6 +2,7 @@ package app
 
 import (
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -9,7 +10,7 @@ import (
 
 var App *EchoApp
 
-//私有变量 防止未初始化调用
+
 type EchoApp struct {
 	areaSvc     echoapp.AreaService
 	smsSvc      echoapp.SmsService
@@ -77,6 +78,22 @@ func MustGetDb(dbName string) *gorm.DB {
 	return db
 }
 
+func GetJwsHelper() (*components.JwsHelper, error) {
+	jws, err := components.NewJwsHelper(echoapp.ConfigOpts.Jws)
+	if err != nil {
+		return nil, errors.Wrap(err, "NewJwsHelper")
+	}
+	return jws, nil
+}
+
+func MustGetJwsHelper() *components.JwsHelper {
+	userSvr, err := GetJwsHelper()
+	if err != nil {
+		panic(errors.Wrap(err, "GetJwsHelper"))
+	}
+	return userSvr
+}
+
 func GetUserService() (echoapp.UserService, error) {
 	if App.UserSvr != nil {
 		return App.UserSvr, nil
@@ -85,7 +102,17 @@ func GetUserService() (echoapp.UserService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
-	App.UserSvr = services.NewUserService(userDb)
+	/*
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+*/
+	jws, err := GetJwsHelper()
+	if err != nil {
+		return nil, errors.Wrap(err, "GetJws")
+	}
+	App.UserSvr = services.NewUserService(userDb, nil, jws)
 	return App.UserSvr, nil
 }
 
@@ -107,7 +134,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	App.resourceSvc = services.NewResourceService(userDb)
 	return App.resourceSvc, nil
 }
-func MustGetResService() echoapp.ResourceService {
+func MustGetResourceService() echoapp.ResourceService {
 	resource, err := GetResourceService()
 	if err != nil {
 		panic(err)
@@ -118,7 +145,7 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.goodsSvc != nil {
 		return App.goodsSvc, nil
 	}
-	db, err := GetDb("laraveltest")
+	db, err := GetDb("user")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetGoodsService->GetDb")
 	}
@@ -136,7 +163,7 @@ func GetOrderService() (echoapp.OrderService, error) {
 	if App.orderSvc != nil {
 		return App.orderSvc, nil
 	}
-	db, err := GetDb("laraveltest")
+	db, err := GetDb("user")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetOrderService->GetDb")
 	}

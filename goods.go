@@ -3,17 +3,16 @@ package echoapp
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
 type Goods struct {
 	//gorm.Model
-	ID         uint `gorm:"primary_key"`
+	ID         int64 `gorm:"primary_key"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 	DeletedAt  *time.Time `sql:"index"`
-	UserId     uint       `json:"user_id"`
+	UserId     int64      `json:"user_id"`
 	ComId      int        `json:"com_id"`
 	TagStr     string     `josn:"tags"`
 	Tags       string     `josn:"-" gorm:"-"`
@@ -23,17 +22,17 @@ type Goods struct {
 	RealPrice  float32    `json:"real_price"`
 	GoodType   string     `json:"good_type"`
 	Status     string     `json:"status"`
-	SmallCover string     `gorm:"type:varchar(2048)" json:"small_cover"`
-	Covers     string     `json:"covers"`
+	SmallCover string     ` json:"small_cover"`
+	Covers     string     `gorm:"type:varchar(2048)" json:"covers"`
 	Pages      int        `json:"pages"`
 }
 
 type Tags struct {
-	gorm.Model
-	GoodsId uint `goods_id`
-	//TagId   uint   `tag_id`
-	Name  string `json:"name"`
-	ComId string `json:"com_id"`
+	ID        int64 `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Name      string `json:"name"`
+	ComId     string `json:"com_id"`
 }
 type GetGoodsOptions struct {
 	Id         uint   `json:"id"`
@@ -45,8 +44,8 @@ type GetGoodsOptions struct {
 	RealPrice  int    `json:"real_price"`
 	GoodType   string `json:"good_type"`
 	Status     string `json:"status"`
+	Cover      string `gorm:"type:varchar(2048)" json:"covers"`
 	SmallCover string `json:"small_cover"`
-	Cover      string `json:"cover"`
 }
 type GoodsService interface {
 	SaveTags(tags *Tags) error
@@ -64,7 +63,7 @@ type GoodsService interface {
 
 	DeleteGoods(goods *Goods) error
 	GetGoodsByName(name string) (*Goods, error)
-
+	GetTagsByName(name string) (*Tags, error)
 	//查看资源文件 ，每页有 limit 条数据
 	GetGoodsList(c echo.Context, from, limit int) ([]*GetGoodsOptions, error)
 }

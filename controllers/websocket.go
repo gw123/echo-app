@@ -33,7 +33,7 @@ func (c *WsController) CreateWsClient(ctx echo.Context) error {
 	echoapp_util.ExtractEntry(ctx).Infof("CreateWsClient: %s", token)
 	user, err := c.usrSvr.GetUserByToken(token)
 	if err != nil {
-		return c.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), err)
+		return c.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
 	}
 	echoapp_util.ExtractEntry(ctx).Infof("user_id:%d 登录成功", user.Id)
 	return c.wsSvr.AddWsClient(ctx, token)
@@ -43,7 +43,7 @@ func (c *WsController) SendCmd(ctx echo.Context) error {
 	token := ctx.QueryParam("token")
 	cmdParams := &echoapp.WsEventCmd{}
 	if err := ctx.Bind(cmdParams); err != nil {
-		return c.Fail(ctx, echoapp.Error_ArgumentError, "参数错误", err)
+		return c.Fail(ctx, echoapp.Err_Argument, "参数错误", err)
 	}
 
 	cmdParams.EventType = echoapp.WsEventTypeCmd

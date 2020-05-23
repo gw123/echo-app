@@ -72,6 +72,7 @@ func startLocalHttp() {
 	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)
 	authGroup.GET("/sendCmd", wsCtl.SendCmd)
 	e.Static("/", assetConfig.PublicRoot)
+	e.Static("/resource/", assetConfig.StorageRoot+"/ppt")
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

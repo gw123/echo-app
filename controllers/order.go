@@ -23,14 +23,14 @@ func NewOrderController(orderSvr echoapp.OrderService) *OrderController {
 func (orderCtrl *OrderController) PlaceOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.Error_ArgumentError, err.Error(), err)
+		return orderCtrl.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
 	}
 	err := orderCtrl.orderSvc.PlaceOrder(params)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return orderCtrl.Fail(ctx, echoapp.Error_NotFound, "用户不存在", err)
+			return orderCtrl.Fail(ctx, echoapp.Err_NotFound, "用户不存在", err)
 		} else {
-			return orderCtrl.Fail(ctx, echoapp.Error_DBError, "系统异常", err)
+			return orderCtrl.Fail(ctx, echoapp.Err_DBError, "系统异常", err)
 		}
 	}
 	return orderCtrl.Success(ctx, nil)
@@ -38,11 +38,11 @@ func (orderCtrl *OrderController) PlaceOrder(ctx echo.Context) error {
 func (orderCtrl *OrderController) GetOrdereById(c echo.Context) error {
 	param := &Param{}
 	if err := c.Bind(param); err != nil {
-		return orderCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "Bind"))
+		return orderCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "Bind"))
 	}
 	res, err := orderCtrl.orderSvc.GetOrderById(c, param.ID)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetResourceById"))
+		return orderCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "GetResourceById"))
 	}
 	return orderCtrl.Success(c, res)
 }
@@ -56,22 +56,22 @@ type Param struct {
 }
 
 func (orderCtrl *OrderController) GetUserPaymentOrder(c echo.Context) error {
-	params := &Params{}
+	params := &Param{}
 	if err := c.Bind(params); err != nil {
-		return orderCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "Bind"))
+		return orderCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "Bind"))
 	}
 	res, err := orderCtrl.orderSvc.GetUserPaymentOrder(c, params.UserID, params.From, params.Limit)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.Error_ArgumentError, "", errors.Wrap(err, "GetUserPaymentOrder"))
+		return orderCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "GetUserPaymentOrder"))
 	}
 	return orderCtrl.Success(c, res)
 }
 
 func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
-	params := &Params{}
+	params := &Param{}
 	filelist, err := orderCtrl.orderSvc.GetOrderList(c, params.From, params.Limit)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.Error_ArgumentError, "OrderCtrl->GetOrderList", err)
+		return orderCtrl.Fail(c, echoapp.Err_Argument, "OrderCtrl->GetOrderList", err)
 	}
 	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", params.From, params.Limit)
 	return orderCtrl.Success(c, filelist)

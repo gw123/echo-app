@@ -20,4 +20,25 @@
 ## 记录日志方法，通过下面方式记录可以把 request_id 记录到日志中方便同一个请求链路追踪, 并且还可以导出其他ctx中记录的信息
 echoapp_util.ExtractEntry(ctx).Info(renderParams)
 
+## jws中间件认证
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	jwsAuth.Use(jwsMiddleware)
+	
+## jws认证后可以使用 echoapp_util.GetCtxtUserId(ctx)获取用户id,想要获取用户完整信息需要配合user中间件,但是注意user中间件所在的服务需要有访问user数据库的权限,在一些微服务场景下我们往往只关心userId
 
+## user中间件获取用户信息, 在配置中间件的action中就可以使用echoapp_util.GetCtxtUser(ctx)获取用户信息  
+	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
+	authgoup.Use(userMiddleware)
+	
+## 获取用户信息 echoapp_util.GetCtxtUser(ctx)
+```
+   func (sCtl *UserController) GetUserInfo(ctx echo.Context) error {
+   	echoapp_util.ExtractEntry(ctx).Info("getUserInfo")
+   	user, err := echoapp_util.GetCtxtUser(ctx)
+   	if err != nil {
+   		return sCtl.Fail(ctx, echoapp.Err_NotFound, "未发现用户", err)
+   	}
+   	return sCtl.Success(ctx, user)
+   }
+
+```
