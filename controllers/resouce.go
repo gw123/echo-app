@@ -28,14 +28,14 @@ func NewResourceController(resourceSvr echoapp.ResourceService, goodsSvr echoapp
 func (rCtrl *ResourceController) SaveResource(ctx echo.Context) error {
 	params := &echoapp.Resource{}
 	if err := ctx.Bind(params); err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
+		return rCtrl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
 	err := rCtrl.resourceSvc.SaveResource(params)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return rCtrl.Fail(ctx, echoapp.Err_NotFound, "用户不存在", err)
+			return rCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrNotFoundDb.Error(), err)
 		} else {
-			return rCtrl.Fail(ctx, echoapp.Err_DBError, "系统异常", err)
+			return rCtrl.Fail(ctx, echoapp.CodeInnerError, echoapp.ErrNotFoundEtcd.Error(), err)
 		}
 	}
 	return rCtrl.Success(ctx, nil)
@@ -45,7 +45,7 @@ func (resourceCtrl *ResourceController) GetResourceById(c echo.Context) error {
 	id_int64, _ := strconv.ParseInt(id, 10, 64)
 	res, err := resourceCtrl.resourceSvc.GetResourceById(c, id_int64)
 	if err != nil {
-		return resourceCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "GetResourceById"))
+		return resourceCtrl.Fail(c, echoapp.CodeNotFound, "", errors.Wrap(err, "GetResourceById"))
 	}
 	return resourceCtrl.Success(c, res)
 }
@@ -67,7 +67,7 @@ func (resourceCtrl *ResourceController) GetResourcesByTagId(c echo.Context) erro
 	limitint, _ := strconv.Atoi(limit)
 	res, err := resourceCtrl.resourceSvc.GetResourcesByTagId(c, id_int64, fromint, limitint)
 	if err != nil {
-		return resourceCtrl.Fail(c, echoapp.Err_DBError, "resourceCtrl.resourceSvc", errors.Wrap(err, "GetResourceByTagId"))
+		return resourceCtrl.Fail(c, echoapp.CodeNotFound, "resourceCtrl.resourceSvc", errors.Wrap(err, "GetResourceByTagId"))
 	}
 	return resourceCtrl.Success(c, res)
 }
@@ -80,7 +80,7 @@ func (resourceCtrl *ResourceController) GetUserPaymentResources(c echo.Context) 
 	limitint, _ := strconv.Atoi(limit)
 	res, err := resourceCtrl.resourceSvc.GetUserPaymentResources(c, userId, fromint, limitint)
 	if err != nil {
-		return resourceCtrl.Fail(c, echoapp.Err_NotFound, "", errors.Wrap(err, "GetResourceByTagId"))
+		return resourceCtrl.Fail(c, echoapp.CodeNotFound, "", errors.Wrap(err, "GetResourceByTagId"))
 	}
 	return resourceCtrl.Success(c, res)
 }
@@ -93,7 +93,7 @@ func (rCtrl *ResourceController) GetSelfResources(c echo.Context) error {
 	limitint, _ := strconv.Atoi(limit)
 	res, err := rCtrl.resourceSvc.GetSelfResources(c, userId, fromint, limitint)
 	if err != nil {
-		return rCtrl.Fail(c, echoapp.Err_Argument, "rCtrl.resourceSvc.GetSelfResources", err)
+		return rCtrl.Fail(c, echoapp.CodeNotFound, "rCtrl.resourceSvc.GetSelfResources", err)
 	}
 	return rCtrl.Success(c, res)
 }
@@ -101,32 +101,31 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	//formval := ctx.FormValue("PPT")
 	fileOption, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.Asset.UploadMaxFileSize)
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_NotAllow, "resourceSvc->UploadFile", err)
+		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
 	}
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_CacheError, "echoapp_util.GetCtxtUserId", err)
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "echoapp_util.GetCtxtUserId", err)
 	}
 	md5fileStr32, err := echoapp_util.Md5SumFile(fileOption["uploadpath"])
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_Argument, "rCtrl->echoapp_util->Md5SumFile", err)
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "rCtrl->echoapp_util->Md5SumFile", err)
 	}
 	md5path := md5fileStr32[:2] + md5fileStr32 + path.Ext(fileOption["filename"])
 	if _, err := rCtrl.resourceSvc.GetResourceByMd5Path(ctx, md5path); err == nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "file exits", errors.New("file exits"))
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "file exits", errors.New("file exits"))
 	}
 	filetype := echoapp_util.GetFileType(fileOption["filename"])
 	if err := echoapp_util.Copy(echoapp.ConfigOpts.Asset.StorageRoot+"/"+filetype+"/"+md5path, fileOption["uploadpath"]); err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_EtcdError, " UploadResource echoapp_util.Copy", err)
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util.Copy", err)
 	}
 	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], "/"+filetype+"/"+md5path)
 	if err != nil {
-
-		return rCtrl.Fail(ctx, echoapp.Err_EtcdError, " UploadResource echoapp_util->UploadFileToQiniu", err)
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
 	}
 	urlstrarr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + "/" + filetype + "/" + fileOption["filename"])
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_Argument, "GetPPTCoverUrl", err)
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "GetPPTCoverUrl", err)
 	}
 	var data []byte
 	if len(urlstrarr) > 9 {
@@ -146,21 +145,21 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 		Pages:      len(urlstrarr),
 	}
 	if err := rCtrl.goodsSvc.SaveGoods(goods); err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "rCtrl->goodsSvc.SaveGoods", err)
+		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->goodsSvc.SaveGoods"))
 	}
 	res, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "rCtrl->goodsSvc->GetGoodsByName", err)
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "", errors.Wrap(err, "rCtrl->goodsSvc->GetGoodsByName"))
 	}
 	tag := &echoapp.Tags{
 		Name: path.Dir(fileOption["uploadpath"]),
 	}
 	if err := rCtrl.goodsSvc.SaveTags(tag); err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "rCtrl->resourceSvc->SaveTags", err)
+		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
 	}
 	res_tag, err := rCtrl.goodsSvc.GetTagsByName(path.Dir(fileOption["uploadpath"]))
 	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "rCtrl->goodsSvc->GetGoodsByName", err)
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "rCtrl->goodsSvc->GetGoodsByName", err)
 	}
 
 	resource := &echoapp.Resource{
@@ -176,7 +175,7 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 		Status:     "user_upload",
 	}
 	if err := rCtrl.resourceSvc.SaveResource(resource); err != nil {
-		return rCtrl.Fail(ctx, echoapp.Err_DBError, "rCtrl->resourceSvc->SaveResource", err)
+		return rCtrl.Fail(ctx, echoapp.CodeDBError, "rCtrl->resourceSvc->SaveResource", err)
 	}
 
 	result := map[string]interface{}{
@@ -193,16 +192,16 @@ func (rCtrl *ResourceController) DownloadResource(c echo.Context) error {
 	downloadPath := c.QueryParam("downloadPath")
 	resource, err := rCtrl.resourceSvc.GetResourceByName(name)
 	if err != nil {
-		return rCtrl.Fail(c, echoapp.Err_DBError, "resourceSvc.GetResourceByName", err)
+		return rCtrl.Fail(c, echoapp.CodeNotFound, "resourceSvc.GetResourceByName", errors.Wrap(err, "rCtrl ->resourceSvc->GetResourceByName"))
 	}
 	if resource.UserId != userId {
-		return rCtrl.Fail(c, echoapp.Err_NoAuth, "User Do Not Have Authority", err)
+		return rCtrl.Fail(c, echoapp.CodeNoAuth, echoapp.ErrNotAuth.Error(), nil)
 	}
 	filetype := echoapp_util.GetFileType(name)
 	path := echoapp.ConfigOpts.Asset.MyURL + "/" + filetype + "/" + name
 
 	if err = echoapp_util.DownloadFile(path, downloadPath); err != nil {
-		return rCtrl.Fail(c, echoapp.Err_Argument, "resourceSvc.DownloadFile", err)
+		return rCtrl.Fail(c, echoapp.CodeCacheError, "", errors.Wrap(err, "rCtrl->echoapp_util.DownloadFile"))
 	}
 	res := map[string]interface{}{
 		"FileNanme":    name,
@@ -218,7 +217,7 @@ func (rCtrl *ResourceController) GetResourceList(c echo.Context) error {
 	limitint, _ := strconv.Atoi(limit)
 	filelist, err := rCtrl.resourceSvc.GetResourceList(c, fromint, limitint)
 	if err != nil {
-		return rCtrl.Fail(c, echoapp.Err_Argument, "GetResourceList", err)
+		return rCtrl.Fail(c, echoapp.CodeNotFound, "", errors.Wrap(err, "ResourceController->GetResourceList"))
 	}
 	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", from, limit)
 	return rCtrl.Success(c, filelist)
@@ -227,7 +226,7 @@ func (rCtrl *ResourceController) GetResourceByName(c echo.Context) error {
 	path := c.QueryParam("name")
 	res, err := rCtrl.resourceSvc.GetResourceByName(path)
 	if err != nil {
-		return rCtrl.Fail(c, echoapp.Err_Argument, "", errors.Wrap(err, "ResourceController->GetResourceByName"))
+		return rCtrl.Fail(c, echoapp.CodeNotFound, "", errors.Wrap(err, "ResourceController->GetResourceByName"))
 	}
 	return rCtrl.Success(c, res)
 }

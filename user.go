@@ -1,8 +1,6 @@
 package echoapp
 
-import (
-	"github.com/labstack/echo"
-)
+import "github.com/labstack/echo"
 
 type RegisterParam struct {
 	ComId    int    `json:"com_id"`
@@ -21,24 +19,24 @@ type LoginParam struct {
 }
 
 type User struct {
-	Id       int64  `json:"id"`
-	ComId    int    `json:"com_id"`
-	Name     string `json:"name"`
-	Avatar   string `json:"avatar"`
-	Email    string `json:"email"`
-	Mobile   string `json:"mobile"`
-	Score    int    `json:"score"`
-	Token    string `json:"-"`
-	JwsToken string `gorm:"-" json:"jws_token"`
-}
-type UserScoreParam struct {
-	UserId int64 `json:"user_id"`
-	Score  int   `json:"score"`
-}
-type Company struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
-	Desc string `json:"desc"`
+	Id         int64   `json:"id"`
+	ComId      int     `json:"com_id"`
+	Name       string  `json:"name"`
+	Nickname   string  `json:"nickname"`
+	Avatar     string  `json:"avatar"`
+	Sex        string  `json:"sex"`
+	City       string  `json:"city"`
+	Email      string  `json:"email"`
+	Mobile     string  `json:"mobile"`
+	Score      int     `json:"score"`
+	Openid     string  `json:"xcx_openid"`
+	Unionid    string  `json:"unionid"`
+	IsStaff    bool    `json:"is_staff"`
+	IsVip      string  `json:"is_vip"`
+	VipLevel   string  `json:"vip_level"`
+	JwsToken   string  `gorm:"-" json:"jws_token"`
+	SessionKey string  `gorm:"-" json:"session_key"`
+	Roles      []*Role `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
 }
 
 type Role struct {
@@ -48,33 +46,30 @@ type Role struct {
 }
 
 type UserRole struct {
-	RoleId    int    `json:"role_id"`
-	ModelType string `json:"model_type"`
-	ModelId   uint64 `json:"model_id"`
+	RoleId int `json:"role_id"`
+	//ModelType string `json:"model_type"`
+	ModelId uint64 `json:"model_id"`
 }
-type Permission struct {
-	Id        int64
-	Name      string
-	GuardName string `json:"guard_name"`
+
+func (*UserRole) Table() string {
+	return "model_has_roles"
 }
-type RoleandPermissionParam struct {
-	Role       string `json:"role"`
-	Permission string `json:"permission"`
-}
-type RoleHasPermission struct {
-	RoleId       int64 `json:"role_id"`
-	PermissionId int64 `json:"permission_id"`
-}
+
 type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
 	Register(ctx echo.Context, param *RegisterParam) (*User, error)
 	GetUserById(userId int64) (*User, error)
+	GetUserList(comId, currentMaxId, limit int) ([]*User, error)
+	GetUserByOpenId(comId int, openId string) (*User, error)
 	Save(user *User) error
 	GetUserByToken(token string) (*User, error)
+	UpdateJwsToken(user *User) error
+	UpdateCachedUser(user *User) (err error)
+	GetCachedUserById(userId int64) (*User, error)
+	Jscode2session(comId int, code string) (*User, error)
+	AutoRegisterWxUser(user *User) (err error)
+	//Jscode2session(comId int, code string) (*User, error)
 
-	Addroles(c echo.Context, param *Role) error
-	AddPermission(c echo.Context, param *Permission) error
-	RoleHasPermission(c echo.Context, param *RoleandPermissionParam) (*RoleHasPermission, error)
 }

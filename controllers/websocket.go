@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"math/rand"
+	"net/http"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/services"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
-	"math/rand"
-	"net/http"
-	"time"
 )
 
 type WsController struct {
@@ -33,7 +34,7 @@ func (c *WsController) CreateWsClient(ctx echo.Context) error {
 	echoapp_util.ExtractEntry(ctx).Infof("CreateWsClient: %s", token)
 	user, err := c.usrSvr.GetUserByToken(token)
 	if err != nil {
-		return c.Fail(ctx, echoapp.Err_Argument, err.Error(), err)
+		return c.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	echoapp_util.ExtractEntry(ctx).Infof("user_id:%d 登录成功", user.Id)
 	return c.wsSvr.AddWsClient(ctx, token)
@@ -43,7 +44,7 @@ func (c *WsController) SendCmd(ctx echo.Context) error {
 	token := ctx.QueryParam("token")
 	cmdParams := &echoapp.WsEventCmd{}
 	if err := ctx.Bind(cmdParams); err != nil {
-		return c.Fail(ctx, echoapp.Err_Argument, "参数错误", err)
+		return c.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 
 	cmdParams.EventType = echoapp.WsEventTypeCmd

@@ -1,11 +1,12 @@
 package echoapp_util
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type ctxLogger struct {
@@ -36,9 +37,8 @@ const (
 	ctxLoggerKey    = "&loggerKey{}"
 )
 
-
 func SetCtxUserId(ctx echo.Context, userId int64) {
-	AddField(ctx, ctxUserIdKey, strconv.FormatInt(userId, 10))
+	AddField(ctx, "user_id", strconv.FormatInt(userId, 10))
 	ctx.Set(ctxUserIdKey, userId)
 }
 

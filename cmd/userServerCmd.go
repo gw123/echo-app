@@ -67,9 +67,9 @@ func startUserServer() {
 	//}))
 
 	//Actions
-	usrSvr := app.MustUserService()
+	usrSvr := app.MustGetUserService()
 	userCtl := controllers.NewUserController(usrSvr)
-	normal := e.Group("/v1/user") //使用自定义的中间件创建一个新的路由器组
+	normal := e.Group("/v1/user")
 	normal.POST("/login", userCtl.Login)
 	normal.POST("/register", userCtl.Register)
 	normal.POST("/logout", userCtl.Logout)
@@ -78,15 +78,16 @@ func startUserServer() {
 
 	jwsAuth := e.Group("/v1/user")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		MockUserId: 67,
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//MockUserId: 0,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
-	jwsAuth.Use(jwsMiddleware, userMiddleware)
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
+	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)

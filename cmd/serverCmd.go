@@ -22,7 +22,6 @@ import (
 	"time"
 
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -69,14 +68,14 @@ func startHttp() {
 	//Actions
 	//	usrSvr := app.MustUserService()
 	//	resourceSvr := app.MustGetResourceService()
-	orderSvr := app.MustGetOrderService()
+	//orderSvr := app.MustGetOrderService()
 	//exampleController := controllers.ExampleController{}
 	// qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
 	//	userCtl := controllers.NewUserController(usrSvr)
 	//	resourceCtl := controllers.NewResourceController(resourceSvr)
-	orderCtl := controllers.NewOrderController(orderSvr)
+	//orderCtl := controllers.NewOrderController(orderSvr)
 	// e.GET("/index", exampleController.Index)
 	// e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
@@ -101,10 +100,10 @@ func startHttp() {
 	// e.GET("/getResourcebyName", resourceCtl.GetResourceByName)
 	// e.GET("/downloadFile", resourceCtl.DownloadResource)
 
-	e.POST("/placeOrder", orderCtl.PlaceOrder)
-	e.POST("/getOrderbyId", orderCtl.GetOrdereById)
-	e.POST("/getUserPaymentOrder", orderCtl.GetUserPaymentOrder)
-	e.POST("/getOrderList", orderCtl.GetOrderList)
+	// e.POST("/placeOrder", orderCtl.PlaceOrder)
+	// e.POST("/getOrderbyId", orderCtl.GetOrdereById)
+	// e.POST("/getUserPaymentOrder", orderCtl.GetUserPaymentOrder)
+	// e.POST("/getOrderList", orderCtl.GetOrderList)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

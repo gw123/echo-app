@@ -47,6 +47,24 @@ type ReportDataResponse struct {
 	Msg  string      `json:"msg"`
 }
 
+type ReportDataResponseV2 struct {
+	Type string `json:"type"`
+	Msg  string `json:"msg"`
+}
+
+type ChannelHourReportV2 struct {
+	InNum      int    `json:"inNum" gorm:"column:in_num" `
+	OutNum     int    `json:"outNum" gorm:"column:out_num"`
+	ChannelId  string `json:"channelId" gorm:"column:channel_id"`
+	RecordTime string `json:"recordTime"`
+}
+
+type ReportHourV2 struct {
+	LoginName string                 `json:"loginName"`
+	Pwd       string                 `json:"pwd"`
+	Data      []*ChannelHourReportV2 `json:"data"`
+}
+
 func doReportHttpRequest(url, app_key string, data []byte) ([]byte, error) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
@@ -176,6 +194,58 @@ func reportHourTicket() error {
 	return nil
 }
 
+func reportHourTicketV2() error {
+	clientMap := echoapp.ConfigOpts.ReportTicketMap
+	for key, options := range clientMap {
+		echoapp_util.DefaultLogger().Infof("推送%s流量,com_id:%d", key, options.ComId)
+
+		db, err := app.GetDb("shop")
+		if err != nil {
+			return errors.Wrap(err, "GetDb")
+		}
+
+		now := time.Now()
+		hourAgo := now.Add(-time.Hour)
+		toTime := now.Format("2006-01-02 15:04:05")
+		fromTime := hourAgo.Format("2006-01-02 15:04:05")
+		var channelHourReports []*ChannelHourReportV2
+		if err := db.Debug().Table("tickets").
+			Select("staff_id as channel_id ,count(*) as in_num,count(*) as out_num").
+			Where("com_id = ?", options.ComId).
+			Where("used_at > ? and used_at < ?", fromTime, toTime).
+			Group("staff_id").Scan(&channelHourReports).Error; err != nil {
+			return errors.Wrap(err, "Query")
+		}
+		for _, channel := range channelHourReports {
+			channel.RecordTime = toTime
+		}
+		reportDataRequest := &ReportHourV2{
+			LoginName: options.LoginName,
+			Pwd:       options.Pwd,
+			Data:      channelHourReports,
+		}
+		data, err := json.Marshal(reportDataRequest)
+		echoapp_util.DefaultLogger().Infof("请求数据: %s", string(data))
+		if err != nil {
+			return errors.Wrap(err, "json.Marshal")
+		}
+
+		//入园
+		url := options.BaseUrl + "/scenic/report"
+		responseData, err := doReportHttpRequest(url, options.AppKey, data)
+		if err != nil {
+			return errors.Wrap(err, "doReportHttpRequestV2")
+		}
+
+		reportDataResponse := &[]ReportDataResponseV2{}
+		if err = json.Unmarshal(responseData, reportDataResponse); err != nil {
+			return errors.Wrap(err, "doReportHttp response V2:"+string(responseData))
+		}
+		echoapp_util.DefaultLogger().Infof("返回结果:%s", string(responseData))
+	}
+	return nil
+}
+
 var reportWay string
 
 /**
@@ -196,10 +266,10 @@ var reportTicketCmd = &cobra.Command{
 				echoapp_util.DefaultLogger().Infof("推送成功")
 			}
 		case "hour":
-			if err := reportHourTicket(); err != nil {
+			if err := reportHourTicketV2(); err != nil {
 				echoapp_util.DefaultLogger().Error(err)
 			} else {
-				echoapp_util.DefaultLogger().Infof("推送成功")
+				echoapp_util.DefaultLogger().Infof("推送完成")
 			}
 		}
 

@@ -2,16 +2,15 @@ package components
 
 import (
 	"crypto/rsa"
-	"github.com/dgrijalva/jwt-go"
-	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/util"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"strconv"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	echoapp "github.com/gw123/echo-app"
+	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/pkg/errors"
 )
-
-
 
 type JwsHelper struct {
 	opt        echoapp.JwsHelperOpt

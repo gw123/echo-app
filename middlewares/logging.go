@@ -83,7 +83,7 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 					Error(err.Error())
 			} else {
 				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
-					Info("LoggingMiddleware request over.")
+					Info("log middleware")
 			}
 
 			return nil

@@ -1,9 +1,5 @@
 package echoapp
 
-import (
-	"github.com/streadway/amqp"
-)
-
 //
 type BaseMqMsg struct {
 	MsgType   string `json:"msg_type"`
@@ -16,6 +12,13 @@ type BaseMqMsg struct {
 	//Payload   string
 }
 
-type RabbitMqPool interface {
-	MQ(name string) (*amqp.Connection, error)
+type MsgQueue interface {
+	PushUpdateCahceJob(job UpdateCacheJob) error
+	PushSmsJob(job SendMessageJob) error
+}
+
+type MqPool interface {
+	AddMq(name string, mq MsgQueue)
+	RemoveMq(name string)
+	MQ(name string) (MsgQueue, error)
 }

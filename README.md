@@ -21,6 +21,18 @@
 echoapp_util.ExtractEntry(ctx).Info(renderParams)
 
 ## jws中间件认证
+    配置文件:
+    ```
+    jws:
+      audience: "user"
+      issuer: "xytschool"
+      timeout: 360000
+      public_key_path: "./resources/keys/jws_public_key.pem"
+      private_key_path: "./resources/keys/jws_private_key.pem"
+      hash_ids_salt: "123456"
+    ```
+    注意私钥只有在生成jws签名的模块或者服务需要加载
+    只做签名认证的服务或者只需加载公钥就可以,并且私钥的路径需要配置为空.  
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
 	jwsAuth.Use(jwsMiddleware)
 	

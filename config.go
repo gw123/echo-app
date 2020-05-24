@@ -15,16 +15,16 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
+	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
+	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
 	Redis             *redis.Options
-	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
+	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
 	PPTImages         map[string]PPTImagesOption    `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
-
-	QiniuKeys QiniuKeyOption `yaml:"qiniu_key" mapstructure:"qiniu_key"`
-	Jws       JwsHelperOpt   `yaml:"jws" mapstructure:"jws"`
+	QiniuKeys         QiniuKeyOption                `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
 type Server struct {
@@ -48,17 +48,15 @@ type JwsHelperOpt struct {
 }
 
 type Asset struct {
-	PublicRoot   string `yaml:"public_root" mapstructure:"public_root"`
-	AreaRoot     string `yaml:"area_root" mapstructure:"area_root"`
-	ViewRoot     string `yaml:"view_root" mapstructure:"view_root"`
-	Version      string `yaml:"version" mapstructure:"version"`
-	PublicHost   string `yaml:"public_host" mapstructure:"public_host"`
-	ResourceRoot string `yaml:"resource_root" mapstructure:"resource_root"`
-	StorageRoot  string `yaml:"storage_root" mapstructure:"storage_root"`
-
-	UploadMaxFileSize int64 `yaml:"max_file_size" mapstructure:"max_file_size"`
-
-	MyURL string `yaml:"my_url" mapstructure:"my_url"`
+	PublicRoot        string `yaml:"public_root" mapstructure:"public_root"`
+	ResourceRoot      string `yaml:"resource_root" mapstructure:"resource_root"`
+	StorageRoot       string `yaml:"storage_root" mapstructure:"storage_root"`
+	AreaRoot          string `yaml:"area_root" mapstructure:"area_root"`
+	ViewRoot          string `yaml:"view_root" mapstructure:"view_root"`
+	Version           string `yaml:"version" mapstructure:"version"`
+	PublicHost        string `yaml:"public_host" mapstructure:"public_host"`
+	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
+	MyURL             string `yaml:"my_url" mapstructure:"my_url"`
 }
 
 type SmsOption struct {
@@ -87,23 +85,26 @@ type ReportTicketOption struct {
 	AppKey     string `yaml:"app_key" mapstructure:"app_key"`
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
+	//
+	LoginName string `yaml:"loginName" mapstructure:"loginName"`
+	Pwd       string `yaml:"pwd" mapstructure:"pwd"`
 }
 
-type PPTImagesOption struct {
-	ComId int `yaml:"com_id" mapstructure:"com_id"`
-
-	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
-}
 type DBOption struct {
 	Driver    string `yaml:"dirver" mapstructure:"driver"`
 	DSN       string `yaml:"dsn" mapstructure:"dsn"`
-	KeepAlive int    `yaml:"keep_alive" mapstructure:"keep_alive"`
+	KeepAlive int    `yaml:"keey_alive" mapstructure:"keey_alive"`
 	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
 	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
 }
 type QiniuKeyOption struct {
 	AccessKey string `yaml:"access_key" mapstructure:"access_key"`
 	SecretKey string `yaml:"secret_key" mapstructure:"secret_key"`
+}
+type PPTImagesOption struct {
+	ComId int `yaml:"com_id" mapstructure:"com_id"`
+
+	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
 }
 
 func InitConfig(cfgFile string) {

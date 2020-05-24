@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
@@ -18,6 +19,9 @@ type EchoApp struct {
 	resourceSvc echoapp.ResourceService
 	goodsSvc    echoapp.GoodsService
 	orderSvc    echoapp.OrderService
+
+	redisPool  echoapp.RedisPool
+	CompanySvr echoapp.CompanyService
 }
 
 func init() {
@@ -61,6 +65,9 @@ func MustGetSmsService() echoapp.SmsService {
 }
 
 func GetDb(dbname string) (*gorm.DB, error) {
+	if dbname == "" {
+		dbname = "default"
+	}
 	if App.dbPool != nil {
 		return App.dbPool.Db(dbname)
 	}
@@ -73,6 +80,26 @@ func MustGetDb(dbName string) *gorm.DB {
 	db, err := GetDb(dbName)
 	if err != nil {
 		panic(errors.Wrap(err, "MustGetDb->GetDb"))
+	}
+	return db
+}
+
+func GetRedis(dbname string) (*redis.Client, error) {
+	if dbname == "" {
+		dbname = "default"
+	}
+	if App.redisPool != nil {
+		return App.redisPool.Redis(dbname)
+	}
+	redisPool := components.NewRedisPool(echoapp.ConfigOpts.RedisMap)
+	App.redisPool = redisPool
+	return redisPool.Redis(dbname)
+}
+
+func MustGetRedis(dbName string) *redis.Client {
+	db, err := GetRedis(dbName)
+	if err != nil {
+		panic(errors.Wrap(err, "MustGetRedis->GetRedis"))
 	}
 	return db
 }
@@ -115,7 +142,7 @@ func GetUserService() (echoapp.UserService, error) {
 	return App.UserSvr, nil
 }
 
-func MustUserService() echoapp.UserService {
+func MustGetUserService() echoapp.UserService {
 	userSvr, err := GetUserService()
 	if err != nil {
 		panic(errors.Wrap(err, "MustuserSer-> GetUserSvr"))
@@ -175,4 +202,27 @@ func MustGetOrderService() echoapp.OrderService {
 		panic(err)
 	}
 	return goods
+}
+func GetCompanyService() (echoapp.CompanyService, error) {
+	if App.CompanySvr != nil {
+		return App.CompanySvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	App.CompanySvr = services.NewCompanyService(shopDb, redis)
+	return App.CompanySvr, nil
+}
+
+func MustGetCompanyService() echoapp.CompanyService {
+	company, err := GetCompanyService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return company
 }

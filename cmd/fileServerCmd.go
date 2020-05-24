@@ -67,7 +67,7 @@ func startFileServer() {
 
 	//Actions
 
-	usrSvr := app.MustUserService()
+	usrSvr := app.MustGetUserService()
 	goodSvr := app.MustGetGoodsService()
 	resourceSvc := app.MustGetResourceService()
 	userCtl := controllers.NewUserController(usrSvr)
