@@ -28,6 +28,8 @@ type ConfigOptions struct {
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
+	PPTImages         map[string]PPTImagesOption    `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
+	QiniuKeys         QiniuKeyOption                `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
 type Server struct {
@@ -58,6 +60,8 @@ type Asset struct {
 	ViewRoot     string `yaml:"view_root" mapstructure:"view_root"`
 	Version      string `yaml:"version" mapstructure:"version"`
 	PublicHost   string `yaml:"public_host" mapstructure:"public_host"`
+	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
+	MyURL             string `yaml:"my_url" mapstructure:"my_url"`
 }
 
 type SmsOption struct {
@@ -98,7 +102,15 @@ type DBOption struct {
 	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
 	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
 }
+type QiniuKeyOption struct {
+	AccessKey string `yaml:"access_key" mapstructure:"access_key"`
+	SecretKey string `yaml:"secret_key" mapstructure:"secret_key"`
+}
+type PPTImagesOption struct {
+	ComId int `yaml:"com_id" mapstructure:"com_id"`
 
+	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
+}
 func InitConfig(cfgFile string) {
 	if cfgFile == "" {
 		cfgFile = DefaultConfigFile

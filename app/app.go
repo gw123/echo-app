@@ -11,8 +11,19 @@ import (
 
 var App *EchoApp
 
-//私有变量 防止未初始化调用
 type EchoApp struct {
+<<<<<<< HEAD
+	areaSvc     echoapp.AreaService
+	smsSvc      echoapp.SmsService
+	UserSvr     echoapp.UserService
+	dbPool      echoapp.DbPool
+	resourceSvc echoapp.ResourceService
+	goodsSvc    echoapp.GoodsService
+	orderSvc    echoapp.OrderService
+
+	redisPool  echoapp.RedisPool
+	CompanySvr echoapp.CompanyService
+=======
 	areaSvc         echoapp.AreaService
 	smsSvc          echoapp.SmsService
 	UserSvr         echoapp.UserService
@@ -21,6 +32,7 @@ type EchoApp struct {
 	CompanySvr      echoapp.CompanyService
 	GoodsSvr        echoapp.GoodsService
 	ResourceService echoapp.ResourceService
+>>>>>>> develop
 }
 
 func init() {
@@ -125,12 +137,14 @@ func GetUserService() (echoapp.UserService, error) {
 	}
 	userDb, err := GetDb("user")
 	if err != nil {
-		return nil, errors.Wrap(err, "GetDb")
+		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
+
 	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
+
 	jws, err := GetJwsHelper()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetJws")
@@ -142,10 +156,66 @@ func GetUserService() (echoapp.UserService, error) {
 func MustGetUserService() echoapp.UserService {
 	userSvr, err := GetUserService()
 	if err != nil {
-		panic(errors.Wrap(err, "GetUserSvr"))
+		panic(errors.Wrap(err, "MustuserSer-> GetUserSvr"))
 	}
 	return userSvr
 }
+<<<<<<< HEAD
+func GetResourceService() (echoapp.ResourceService, error) {
+	if App.resourceSvc != nil {
+		return App.resourceSvc, nil
+	}
+	userDb, err := GetDb("user")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetResourceService->GetDb")
+	}
+	App.resourceSvc = services.NewResourceService(userDb)
+	return App.resourceSvc, nil
+}
+func MustGetResourceService() echoapp.ResourceService {
+	resource, err := GetResourceService()
+	if err != nil {
+		panic(err)
+	}
+	return resource
+}
+func GetGoodsService() (echoapp.GoodsService, error) {
+	if App.goodsSvc != nil {
+		return App.goodsSvc, nil
+	}
+	db, err := GetDb("user")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetGoodsService->GetDb")
+	}
+	App.goodsSvc = services.NewGoodsService(db)
+	return App.goodsSvc, nil
+}
+func MustGetGoodsService() echoapp.GoodsService {
+	goods, err := GetGoodsService()
+	if err != nil {
+		panic(err)
+	}
+	return goods
+}
+func GetOrderService() (echoapp.OrderService, error) {
+	if App.orderSvc != nil {
+		return App.orderSvc, nil
+	}
+	db, err := GetDb("user")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetOrderService->GetDb")
+	}
+	App.orderSvc = services.NewOrderService(db)
+	return App.orderSvc, nil
+}
+func MustGetOrderService() echoapp.OrderService {
+	goods, err := GetOrderService()
+	if err != nil {
+		panic(err)
+	}
+	return goods
+}
+=======
 
 func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
@@ -172,6 +242,7 @@ func MustGetGoodsService() echoapp.GoodsService {
 	return goodsSvr
 }
 
+>>>>>>> develop
 func GetCompanyService() (echoapp.CompanyService, error) {
 	if App.CompanySvr != nil {
 		return App.CompanySvr, nil

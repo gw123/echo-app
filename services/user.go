@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
@@ -11,7 +13,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/medivhzhan/weapp"
 	"github.com/pkg/errors"
-	"time"
 )
 
 const (
@@ -81,14 +82,6 @@ func (u *UserService) GetUserByOpenId(comId int, openId string) (*echoapp.User, 
 	return user, nil
 }
 
-func (u *UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
-	panic("implement me")
-}
-
-func (u *UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
-	panic("implement me")
-}
-
 func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoapp.User, error) {
 	echoapp_util.ExtractEntry(ctx).Warnf("login params :%+v", param)
 	user := &echoapp.User{}
@@ -139,10 +132,6 @@ func (u *UserService) GetUserList(comId, currentMaxId, limit int) ([]*echoapp.Us
 		return nil, errors.Wrap(err, "db err")
 	}
 	return userList, nil
-}
-
-func (u *UserService) Register(ctx echo.Context, param echoapp.RegisterParam) (*echoapp.User, error) {
-	panic("implement me")
 }
 
 func (u *UserService) GetCachedUserById(userId int64) (*echoapp.User, error) {
@@ -246,3 +235,90 @@ func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, err
 
 	return user, nil
 }
+func (t *UserService) Register(ctx echo.Context, param *echoapp.RegisterParam) (*echoapp.User, error) {
+
+	err := t.db.Table("users").Where("phone=?", param.Mobile)
+	if err.Error != nil && err.RecordNotFound() {
+		return nil, errors.Wrap(err.Error, "Record has Found")
+	}
+	echoapp_util.ExtractEntry(ctx).Infof("mobile:%s,pwd:%s", param.Mobile, param.Password)
+	return nil, t.Create(param)
+}
+
+func (uSvr UserService) Create(user *echoapp.RegisterParam) error {
+	if err := uSvr.db.Create(user).Error; err != nil && uSvr.db.NewRecord(user) {
+		return errors.Wrap(err, "user create fail")
+	}
+	return nil
+}
+
+func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
+	user.Score += amount
+	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)
+	return uSvr.Save(user)
+}
+func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
+	user.Score -= amount
+	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)
+	return uSvr.Save(user)
+}
+
+// func (t *UserService) Addroles(c echo.Context, param *echoapp.Role) error {
+
+// 	res := t.db.Table("roles").Where("name=?", param.Name)
+// 	if res.Error != nil && res.RecordNotFound() {
+// 		return errors.Wrap(res.Error, "Record has Found")
+// 	}
+// 	err := t.db.Create(param)
+// 	if err.Error != nil && t.db.NewRecord(param) {
+// 		return errors.Wrap(err.Error, "role create failed")
+// 	} else if t.db.NewRecord(param) {
+// 		return errors.New("not NewRecord")
+// 	}
+// 	echoapp_util.ExtractEntry(c).Infof("create role name:%s", param.Name)
+// 	return nil
+// }
+
+// func (t *UserService) AddPermission(c echo.Context, param *echoapp.Permission) error {
+
+// 	res := t.db.Table("permissions").Where("name=?", param.Name)
+// 	if res.Error != nil && res.RecordNotFound() {
+// 		return errors.Wrap(res.Error, "Record has Found")
+// 	}
+// 	err := t.db.Create(param)
+// 	if err.Error != nil && t.db.NewRecord(param) {
+// 		return errors.Wrap(err.Error, "permiseeion create failed")
+// 	} else if t.db.NewRecord(param) {
+// 		return errors.New("not NewRecord")
+// 	}
+// 	echoapp_util.ExtractEntry(c).Infof("create permission name:%s", param.Name)
+// 	return nil
+// }
+
+// func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPermissionParam) (*echoapp.RoleHasPermission, error) {
+// 	role := &echoapp.Role{}
+// 	permission := &echoapp.Permission{}
+// 	res := t.db.Where("name=?", param.Role).Find(role)
+// 	if res.Error != nil && res.RecordNotFound() {
+// 		return nil, errors.Wrap(res.Error, "Role record has Found")
+// 	} else if res.RecordNotFound() {
+// 		return nil, errors.New("Role Record has Found")
+// 	}
+// 	res = t.db.Where("name=?", param.Permission)
+// 	if res.Error != nil && res.RecordNotFound() {
+// 		return nil, errors.Wrap(res.Error, "Permission record has Found")
+// 	} else if res.RecordNotFound() {
+// 		return nil, errors.New("Permission Record has Found")
+// 	}
+// 	rolehaspermission := &echoapp.RoleHasPermission{
+// 		RoleId:       role.Id,
+// 		PermissionId: permission.Id,
+// 	}
+// 	err := t.db.Create(rolehaspermission)
+// 	if err.Error != nil && t.db.NewRecord(param) {
+// 		return nil, errors.Wrap(err.Error, "rolehasper create failed")
+// 	} else if t.db.NewRecord(param) {
+// 		return nil, errors.New("not NewRecord")
+// 	}
+// 	return rolehaspermission, nil
+// }

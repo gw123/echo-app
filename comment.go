@@ -23,8 +23,29 @@ type Comment struct {
 	TargetId  int32     `json:"target_id" form:"target_id" gorm:"index:type_targetId"`
 	UserId    int32     `json:"user_id" form:"user_id" gorm:"index:userId"`
 	ParentId  int32     `json:"parent_id" form:"parent_id" gorm:"index:parentId"`
+	Image     string    `json:"image"`
+	Reply     string    `json:"reply"`
 }
 
 func (u Comment) TableName() string {
 	return "comments"
+}
+
+type ScoreOption struct {
+	Service     string
+	logistics   string
+	Description string
+}
+type ImageOption struct {
+	ID     int
+	status string
+}
+
+type CommentService interface {
+	SaveComment(comment *Comment) error
+	GetCommentById(id int) (*Comment, error)
+	GetCommentByTargetId(targetId int32, from, limit int) (*Comment, error)
+	GetCommentList(targetId int32) ([]*Comment, error)
+	UpdateComment(comment *Comment) error
+	DeleteComment(comment *Comment) error
 }

@@ -1,11 +1,12 @@
 package echoapp_middlewares
 
 import (
+	"net/http"
+
 	"github.com/gw123/echo-app/components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"net/http"
 )
 
 type JwsMiddlewaresOptions struct {

@@ -2,13 +2,14 @@ package services
 
 import (
 	"encoding/json"
+	"io"
+	"sync"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
-	"io"
-	"sync"
 )
 
 type WsService struct {
@@ -117,7 +118,7 @@ func (ws *WsClientModel) Run() error {
 	return nil
 }
 
-func (ws *WsClientModel) DealMsg(eventName string, body []byte, ) error {
+func (ws *WsClientModel) DealMsg(eventName string, body []byte) error {
 	switch eventName {
 	case echoapp.WsEventTypeCmdResult:
 		result := &echoapp.WsEventCmdResult{}
@@ -125,10 +126,9 @@ func (ws *WsClientModel) DealMsg(eventName string, body []byte, ) error {
 		if err != nil {
 			return errors.Wrap(err, "DealMsg json.Unmarshal")
 		}
-		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType: %s; Status: %d, result: %s",
-			eventName, result.Status, result.Result)
+		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType: %s; Status: %d, result: %s", eventName, result.Status, result.Result)
 	case echoapp.WsEventTypeLog:
-		//echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))
+	//echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))
 	case echoapp.WsEventTypePing:
 		echoapp_util.ExtractEntry(ws.ctx).Infof("EventType:%s;  Payload:%s", eventName, string(body))
 	default:

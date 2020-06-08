@@ -1,11 +1,12 @@
 package echoapp_middlewares
 
 import (
+	"net/http"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"net/http"
 )
 
 func NewUserMiddlewares(skipper middleware.Skipper, usrSvr echoapp.UserService) echo.MiddlewareFunc {

@@ -16,13 +16,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"os"
+	"os/signal"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
-	"os"
-	"os/signal"
 )
 
 func doSMSWorker() {

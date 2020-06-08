@@ -16,6 +16,11 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -24,10 +29,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startFileServer() {
@@ -65,26 +66,41 @@ func startFileServer() {
 	//}))
 
 	//Actions
+
 	usrSvr := app.MustGetUserService()
+	goodSvr := app.MustGetGoodsService()
+	resourceSvc := app.MustGetResourceService()
 	userCtl := controllers.NewUserController(usrSvr)
+	resourceCtl := controllers.NewResourceController(resourceSvc, goodSvr)
+
 	jwsAuth := e.Group("/v1/file")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper: middleware.DefaultSkipper,
-		Jws:     app.MustGetJwsHelper(),
-		//MockUserId: 0,
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		MockUserId: 56,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
+	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
 	//userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 
+	//jwsAuth.POST("/saveReource", resourceCtl.SaveResource)
+	jwsAuth.GET("/getResourceById", resourceCtl.GetResourceById)
+	jwsAuth.GET("/getResourcesByTagId", resourceCtl.GetResourcesByTagId)
+	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
+	jwsAuth.POST("/uploadResource", resourceCtl.UploadResource)
+	jwsAuth.GET("/getResourceList", resourceCtl.GetResourceList)
+	jwsAuth.GET("/getResourceByName", resourceCtl.GetResourceByName)
+	jwsAuth.GET("/downloadFile", resourceCtl.DownloadResource)
+	jwsAuth.GET("/getSelfResources", resourceCtl.GetSelfResources)
+	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
 	}()
-
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit

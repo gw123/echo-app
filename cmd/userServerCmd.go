@@ -16,6 +16,11 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -24,10 +29,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startUserServer() {
@@ -86,7 +87,11 @@ func startUserServer() {
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
+<<<<<<< HEAD
+	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
+=======
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+>>>>>>> develop
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
 

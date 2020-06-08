@@ -2,13 +2,14 @@ package controllers
 
 import (
 	"fmt"
+	"math/rand"
+	"net/http"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/services"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
-	"math/rand"
-	"net/http"
-	"time"
 )
 
 type WsController struct {
