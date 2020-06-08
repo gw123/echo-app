@@ -27,7 +27,6 @@ func NewResourceService(db *gorm.DB) *ResourceService {
 	}
 	return help
 }
-
 func (rsv *ResourceService) SaveResource(resource *echoapp.Resource) error {
 	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Resource{})
 	return rsv.db.Create(resource).Error
@@ -67,16 +66,6 @@ func (rsv *ResourceService) GetSelfResources(c echo.Context, userId int64, from 
 	}
 	return reslist, nil
 }
-
-// func (rsv *ResourceService) Md5SumFile(filename string) (string, error) {
-// 	data, err := ioutil.ReadFile(filename)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	rawMd5 := md5.Sum(data)
-// 	sign := fmt.Sprintf("%x", rawMd5)
-// 	return sign, nil
-// }
 
 func (rsv *ResourceService) GetResourceByName(name string) (*echoapp.Resource, error) {
 	resource := &echoapp.Resource{}

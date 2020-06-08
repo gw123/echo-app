@@ -119,7 +119,7 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	if err := echoapp_util.Copy(echoapp.ConfigOpts.Asset.StorageRoot+"/"+filetype+"/"+md5path, fileOption["uploadpath"]); err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util.Copy", err)
 	}
-	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], "/"+filetype+"/"+md5path)
+	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], filetype+"/"+md5path)
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
 	}
@@ -179,10 +179,10 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	}
 
 	result := map[string]interface{}{
-		"goods":    goods,
-		"resource": resource,
-		"tag":      tag,
-		"qiniures": putret,
+		"goods":     goods,
+		"resource":  resource,
+		"tag":       tag,
+		"qiniu_res": putret,
 	}
 	return rCtrl.Success(ctx, result)
 }

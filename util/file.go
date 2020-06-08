@@ -56,7 +56,7 @@ func GetPPTCoverUrl(pptUrl string) ([]string, error) {
 			return nil, errors.Wrap(err, "regexp.MustCompile err")
 		}
 		res := reg.FindAllStringSubmatch(string(data), -1)
-		fmt.Println(len(res[0]))
+		//fmt.Println(len(res[0]))
 		if len(res) > 0 && len(res[0]) > 0 {
 			urls := make([]string, 0)
 			for _, text := range res {
@@ -161,7 +161,6 @@ func UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) 
 		return nil, err
 	}
 	defer src.Close()
-
 	filetype := GetFileType(file.Filename)
 	fullPath := uploadpath + "/" + filetype + "/" + file.Filename
 	dst, err := os.Create(fullPath)
@@ -174,14 +173,10 @@ func UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) 
 		return nil, err
 	}
 	if size > maxfilesize {
-		return nil, errors.Wrapf(err, "File size over limit")
+		return nil, errors.New("File size over limit")
 	}
-	// userId, err := GetCtxtUserId(c)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "echoapp_util.GetCtxtUserId")
-	// }
 	res := map[string]string{
-		//"userId":     strconv.FormatInt(userId, 10),
+
 		"fileName":   file.Filename,
 		"uploadPath": fullPath,
 	}

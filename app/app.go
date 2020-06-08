@@ -18,8 +18,8 @@ type EchoApp struct {
 	dbPool      echoapp.DbPool
 	resourceSvc echoapp.ResourceService
 	goodsSvc    echoapp.GoodsService
-	orderSvc    echoapp.OrderService
-
+	//	orderSvc    echoapp.OrderService
+	CommentSvr echoapp.CommentService
 	redisPool  echoapp.RedisPool
 	CompanySvr echoapp.CompanyService
 }
@@ -185,6 +185,8 @@ func MustGetGoodsService() echoapp.GoodsService {
 	}
 	return goods
 }
+
+/*
 func GetOrderService() (echoapp.OrderService, error) {
 	if App.orderSvc != nil {
 		return App.orderSvc, nil
@@ -203,6 +205,7 @@ func MustGetOrderService() echoapp.OrderService {
 	}
 	return goods
 }
+*/
 func GetCompanyService() (echoapp.CompanyService, error) {
 	if App.CompanySvr != nil {
 		return App.CompanySvr, nil
@@ -225,4 +228,20 @@ func MustGetCompanyService() echoapp.CompanyService {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}
 	return company
+}
+func GetCommentService() (echoapp.CommentService, error) {
+	if App.CommentSvr != nil {
+		return App.CommentSvr, nil
+	}
+	userDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetCommentSerevice->GetDb")
+	}
+
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	App.CommentSvr = services.NewCommentService(userDb, redis)
+	return App.CommentSvr, nil
 }

@@ -15,10 +15,10 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
-	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
-	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
-	Redis             *redis.Options
+	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
+	RedisMap          map[string]*redis.Options     `yaml:"cache" mapstructure:"cache"`
+	Redis             *redis.Options                `yaml:"redis" mapstructure:"redis"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`

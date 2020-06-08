@@ -11,8 +11,9 @@ require (
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-playground/validator v9.29.1+incompatible // indirect
-	github.com/go-redis/redis v6.15.2+incompatible
+	github.com/go-redis/redis v6.15.2+incompatible // indirect
 	github.com/go-redis/redis/v7 v7.2.0
+	github.com/go-redis/redis/v8 v8.0.0-beta.2
 	github.com/golang/mock v1.3.1 // indirect
 	github.com/gw123/glog v1.0.1 // indirect
 	github.com/jinzhu/gorm v1.9.10
@@ -36,8 +37,6 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect
 	github.com/uniplaces/carbon v0.1.6 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect
-
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/tools v0.0.0-20200515010526-7d3b6ebf133d // indirect
