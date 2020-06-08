@@ -71,3 +71,11 @@ func (c CompanyService) UpdateCachedCompany(company *echoapp.Company) (err error
 	}
 	return err
 }
+
+func (c *CompanyService) GetQuickNav(comId int) ([]*echoapp.Nav, error) {
+	var navs []*echoapp.Nav
+	if err := c.db.Where("com_id = ?", comId).Find(&navs).Error; err != nil {
+		return nil, errors.Wrap(err, "query nav")
+	}
+	return navs, nil
+}

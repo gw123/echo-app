@@ -62,12 +62,12 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			echoapp_util.ToContext(c, config.Logger)
 
 			fields := logrus.Fields{
-				"Host":      req.Host,
-				"Remote":    c.RealIP(),
-				"Method":    req.Method,
-				"URI":       req.RequestURI,
-				"Referer":   req.Referer(),
-				"UserAgent": req.UserAgent(),
+				"Host":   req.Host,
+				"Remote": c.RealIP(),
+				"Method": req.Method,
+				"URI":    req.RequestURI,
+				//"Referer": req.Referer(),
+				//"UserAgent": req.UserAgent(),
 			}
 			logger := echoapp_util.ExtractEntry(c).
 				WithField("App", config.Name).
@@ -80,7 +80,7 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			resp := c.Response()
 			if err != nil {
 				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
-					Error(err.Error())
+					WithError(err).Error("log middleware")
 			} else {
 				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
 					Info("log middleware")

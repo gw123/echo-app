@@ -15,6 +15,11 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
+	UserServer        *Server                   `yaml:"user_server" mapstructure:"user_server"`
+	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
+	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
+	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
+	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
 	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
 	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
@@ -28,10 +33,10 @@ type ConfigOptions struct {
 }
 
 type Server struct {
-	Addr      string   `yaml:"addr" mapstructure:"addr"`
-	Origins   []string `yaml:"origins" mapstructure:"origins"`
-	AppMode   string   `yaml:"app_mode" mapstructure:"app_mode"`
-	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
+	Addr    string   `yaml:"addr" mapstructure:"addr"`
+	Mode    string   `yaml:"mode" mapstructure:"mode"`
+	Origins []string `yaml:"origins" mapstructure:"origins"`
+	AppMode string   `yaml:"app_mode" mapstructure:"app_mode"`
 }
 
 type JwsHelperOpt struct {
@@ -48,13 +53,13 @@ type JwsHelperOpt struct {
 }
 
 type Asset struct {
-	PublicRoot        string `yaml:"public_root" mapstructure:"public_root"`
-	ResourceRoot      string `yaml:"resource_root" mapstructure:"resource_root"`
-	StorageRoot       string `yaml:"storage_root" mapstructure:"storage_root"`
-	AreaRoot          string `yaml:"area_root" mapstructure:"area_root"`
-	ViewRoot          string `yaml:"view_root" mapstructure:"view_root"`
-	Version           string `yaml:"version" mapstructure:"version"`
-	PublicHost        string `yaml:"public_host" mapstructure:"public_host"`
+	PublicRoot   string `yaml:"public_root" mapstructure:"public_root"`
+	ResourceRoot string `yaml:"resource_root" mapstructure:"resource_root"`
+	StorageRoot  string `yaml:"storage_root" mapstructure:"storage_root"`
+	AreaRoot     string `yaml:"area_root" mapstructure:"area_root"`
+	ViewRoot     string `yaml:"view_root" mapstructure:"view_root"`
+	Version      string `yaml:"version" mapstructure:"version"`
+	PublicHost   string `yaml:"public_host" mapstructure:"public_host"`
 	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
 	MyURL             string `yaml:"my_url" mapstructure:"my_url"`
 }
@@ -106,7 +111,6 @@ type PPTImagesOption struct {
 
 	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
 }
-
 func InitConfig(cfgFile string) {
 	if cfgFile == "" {
 		cfgFile = DefaultConfigFile

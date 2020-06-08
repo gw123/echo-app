@@ -5,6 +5,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -52,8 +53,8 @@ func NewLimitMiddlewares(skipper middleware.Skipper, limitPreSecond int, maxWork
 				echoapp_util.ExtractEntry(c).Warn("触发服务端工作协程上限")
 				return c.JSON(http.StatusTooManyRequests, "触发服务端限流")
 			}
-
-			echoapp_util.ExtractEntry(c).Infof("currentWokerNum: %d", len(currentWorkerNum))
+			echoapp_util.AddField(c, "work_num", strconv.Itoa(len(currentWorkerNum)))
+			//echoapp_util.ExtractEntry(c).Infof("currentWokerNum: %d", len(currentWorkerNum))
 			if skipper(c) {
 				return next(c)
 			}
