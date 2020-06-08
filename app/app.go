@@ -13,12 +13,14 @@ var App *EchoApp
 
 //私有变量 防止未初始化调用
 type EchoApp struct {
-	areaSvc    echoapp.AreaService
-	smsSvc     echoapp.SmsService
-	UserSvr    echoapp.UserService
-	dbPool     echoapp.DbPool
-	redisPool  echoapp.RedisPool
-	CompanySvr echoapp.CompanyService
+	areaSvc         echoapp.AreaService
+	smsSvc          echoapp.SmsService
+	UserSvr         echoapp.UserService
+	dbPool          echoapp.DbPool
+	redisPool       echoapp.RedisPool
+	CompanySvr      echoapp.CompanyService
+	GoodsSvr        echoapp.GoodsService
+	ResourceService echoapp.ResourceService
 }
 
 func init() {
@@ -145,6 +147,31 @@ func MustGetUserService() echoapp.UserService {
 	return userSvr
 }
 
+func GetGoodsService() (echoapp.GoodsService, error) {
+	if App.GoodsSvr != nil {
+		return App.GoodsSvr, nil
+	}
+	goodsDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	App.GoodsSvr = services.NewGoodsService(goodsDb, redis)
+	return App.GoodsSvr, nil
+}
+
+func MustGetGoodsService() echoapp.GoodsService {
+	goodsSvr, err := GetGoodsService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return goodsSvr
+}
+
 func GetCompanyService() (echoapp.CompanyService, error) {
 	if App.CompanySvr != nil {
 		return App.CompanySvr, nil
@@ -167,4 +194,28 @@ func MustGetCompanyService() echoapp.CompanyService {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}
 	return company
+}
+
+func GetResourceService() (echoapp.ResourceService, error) {
+	if App.ResourceService != nil {
+		return App.ResourceService, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
+	return App.ResourceService, nil
+}
+
+func MustGetResourceService() echoapp.ResourceService {
+	resource, err := GetResourceService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return resource
 }

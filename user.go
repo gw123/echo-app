@@ -29,13 +29,13 @@ type User struct {
 	Email      string  `json:"email"`
 	Mobile     string  `json:"mobile"`
 	Score      int     `json:"score"`
-	Openid     string  `json:"xcx_openid"`
-	Unionid    string  `json:"unionid"`
+	Openid     string  `grom:"xcx_openid" json:"-"`
+	Unionid    string  `gorm:"unionid" json:"-"`
 	IsStaff    bool    `json:"is_staff"`
 	IsVip      string  `json:"is_vip"`
 	VipLevel   string  `json:"vip_level"`
 	JwsToken   string  `gorm:"-" json:"jws_token"`
-	SessionKey string  `gorm:"-" json:"session_key"`
+	SessionKey string  `gorm:"session_key" json:"-"`
 	Roles      []*Role `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
 }
 
@@ -51,7 +51,7 @@ type UserRole struct {
 	ModelId uint64 `json:"model_id"`
 }
 
-func (*UserRole) Table() string {
+func (*UserRole) TableName() string {
 	return "model_has_roles"
 }
 

@@ -15,6 +15,11 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
+	UserServer        *Server                   `yaml:"user_server" mapstructure:"user_server"`
+	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
+	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
+	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
+	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
 	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
 	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
@@ -26,10 +31,10 @@ type ConfigOptions struct {
 }
 
 type Server struct {
-	Addr      string   `yaml:"addr" mapstructure:"addr"`
-	Origins   []string `yaml:"origins" mapstructure:"origins"`
-	AppMode   string   `yaml:"app_mode" mapstructure:"app_mode"`
-	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
+	Addr    string   `yaml:"addr" mapstructure:"addr"`
+	Mode    string   `yaml:"mode" mapstructure:"mode"`
+	Origins []string `yaml:"origins" mapstructure:"origins"`
+	AppMode string   `yaml:"app_mode" mapstructure:"app_mode"`
 }
 
 type JwsHelperOpt struct {
@@ -82,8 +87,8 @@ type ReportTicketOption struct {
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 	//
-	LoginName  string `yaml:"loginName" mapstructure:"loginName"`
-	Pwd        string `yaml:"pwd" mapstructure:"pwd"`
+	LoginName string `yaml:"loginName" mapstructure:"loginName"`
+	Pwd       string `yaml:"pwd" mapstructure:"pwd"`
 }
 
 type DBOption struct {

@@ -25,11 +25,10 @@ var ErrNotLogin = errors.New("not login")
 var ErrNotAuth = errors.New("not auth")
 var ErrNotAllow = errors.New("not allow")
 
-
 type Response struct {
 	ErrorCode  int         `json:"code"`
 	Msg        string      `json:"msg"`
-	InnerError string      `json:"inner_error"`
+	InnerError string      `json:"-"`
 	Data       interface{} `json:"data"`
 }
 
@@ -38,7 +37,7 @@ type BaseController struct {
 
 func (b *BaseController) Success(ctx echo.Context, data interface{}) error {
 	response := Response{
-		ErrorCode: 0,
+		ErrorCode: 200,
 		Msg:       "success",
 		Data:      data,
 	}
@@ -51,5 +50,6 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 		Msg:       msg,
 	}
 	ctx.JSON(http.StatusOK, response)
+
 	return innerErr
 }

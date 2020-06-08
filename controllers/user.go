@@ -6,7 +6,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"strconv"
-	"time"
 )
 
 type UserController struct {
@@ -46,6 +45,12 @@ func (sCtl *UserController) Login(ctx echo.Context) error {
 	if err := ctx.Bind(param); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "登录失败", err)
 	}
+	comId, err := strconv.Atoi(ctx.QueryParam("com_id"))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数校验失败", err)
+	}
+
+	param.ComId = comId
 	user, err := sCtl.userSvr.Login(ctx, param)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败", err)
@@ -75,7 +80,6 @@ func (sCtl *UserController) GetVerifyPic(ctx echo.Context) error {
 
 func (sCtl *UserController) GetUserInfo(ctx echo.Context) error {
 	//echoapp_util.ExtractEntry(ctx).Info("getUserInfo")
-	time.Sleep(time.Millisecond * 100)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现用户", err)

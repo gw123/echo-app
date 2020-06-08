@@ -13,6 +13,7 @@ type JwsMiddlewaresOptions struct {
 	Jws     *components.JwsHelper
 	//调试时候使用直接模拟一个用户id,正式环境要把这个设置为0
 	MockUserId int64
+	IgnoreAuth bool
 }
 
 func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
@@ -33,16 +34,24 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			auth := req.Header.Get(echo.HeaderAuthorization)
 			authScheme := "Bearer"
 			l := len(authScheme)
-			if len(auth) > l+1 && auth[:l] == authScheme {
-				echoapp_util.ExtractEntry(c).Error("未设置token")
-				return c.JSON(http.StatusUnauthorized, "未授权")
+			if !(len(auth) > l+1 && auth[:l] == authScheme) {
+				if opt.IgnoreAuth {
+					return next(c)
+				} else {
+					echoapp_util.ExtractEntry(c).Error("未设置token")
+					return c.JSON(http.StatusUnauthorized, "未授权")
+				}
 			}
 
 			token := auth[l+1:]
 			userId, payload, err := opt.Jws.ParseToken(token)
 			if err != nil {
-				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
-				return c.JSON(http.StatusUnauthorized, "未授权")
+				if opt.IgnoreAuth {
+					return next(c)
+				} else {
+					echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
+					return c.JSON(http.StatusUnauthorized, "未授权")
+				}
 			}
 			echoapp_util.SetCtxUserId(c, userId)
 			echoapp_util.SetCtxJwsPayload(c, payload)

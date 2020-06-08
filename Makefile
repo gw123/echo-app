@@ -18,6 +18,15 @@ build:
 docker: build
 	@docker build -t $(DEFAULT_TAG) .
 
+runUserServer:
+	go run entry/main.go user
+
+runGoodsServer:
+	go run entry/main.go goods
+
+runOrderServer:
+	go run entry/main.go user
+
 .PHONY: all
 all:
 	build

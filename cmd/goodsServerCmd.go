@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-func startUserServer() {
+func startGoodsServer() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
@@ -45,7 +45,7 @@ func startUserServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.UserServer.Origins
+	origins := echoapp.ConfigOpts.GoodsServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -66,32 +66,45 @@ func startUserServer() {
 	//}))
 
 	//Actions
-	usrSvr := app.MustGetUserService()
-	userCtl := controllers.NewUserController(usrSvr)
-	normal := e.Group("/v1/user-api")
-	normal.POST("/login", userCtl.Login)
-	normal.POST("/register", userCtl.Register)
-	normal.POST("/logout", userCtl.Logout)
-	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
-	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
-
-	jwsAuth := e.Group("/v1/user-api")
-	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper: middleware.DefaultSkipper,
-		Jws:     app.MustGetJwsHelper(),
-	}
-	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
+	companySvr := app.MustGetCompanyService()
+	goodsSvr := app.MustGetGoodsService()
+	resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
-	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
-	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
-	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
-	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
-	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
-	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
-	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
+	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+	}
+	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
+	resourceCtl := controllers.NewResourceController(resourceSvr)
+	//
+	callback := e.Group("/v1/goods-api")
+	callback.POST("/uploadCallback", resourceCtl.UploadCallback)
+	//
+	normal := e.Group("/v1/goods-api")
+	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
+
+	goodsCtl := controllers.NewGoodsController(goodsSvr)
+	companyCtl := controllers.NewCompanyController(companySvr)
+
+	normal.GET("/getIndexBanner", goodsCtl.GetIndexBanners)
+	normal.GET("/getQuickNav", companyCtl.GetQuickNav)
+	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
+	normal.GET("/getRecommendGoods", goodsCtl.GetRecommendGoods)
+	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
+	normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
+
+	//jwsAuth := e.Group("/v1/goods-api")
+	//jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+	//	Skipper: middleware.DefaultSkipper,
+	//	Jws:     app.MustGetJwsHelper(),
+	//}
+	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
+	//jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -109,15 +122,15 @@ func startUserServer() {
 }
 
 // serverCmd represents the server command
-var userServerCmd = &cobra.Command{
-	Use:   "user",
-	Short: "用户服务",
-	Long:  `用户服务`,
+var goodsServerCmd = &cobra.Command{
+	Use:   "goods",
+	Short: "商品服务",
+	Long:  `商品服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startUserServer()
+		startGoodsServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(userServerCmd)
+	rootCmd.AddCommand(goodsServerCmd)
 }

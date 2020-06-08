@@ -29,12 +29,31 @@ var (
 
 const (
 	//ctxkeys
-	ctxUserKey      = "&userKey{}"
-	ctxUserIdKey    = "&userIdKey{}"
-	ctxComKey       = "&comKey{}"
-	ctxUserRolesKey = "&userRolesKey{}"
-	ctxLoggerKey    = "&loggerKey{}"
+	ctxUserKey       = "&userKey{}"
+	ctxUserIdKey     = "&userIdKey{}"
+	ctxComKey        = "&comKey{}"
+	ctxUserRolesKey  = "&userRolesKey{}"
+	ctxLoggerKey     = "&loggerKey{}"
+	ctxJwtPayloadKey = "&jwtPayloadKey{}"
 )
+
+func GetCtxComId(c echo.Context) int {
+	comId, _ := strconv.Atoi(c.Param("com_id"))
+	if comId == 0 {
+		comId, _ = strconv.Atoi(c.QueryParam("com_id"))
+	}
+	return comId
+}
+
+// 分页时候使用 lastId 最后一个id ，limit分页大小
+func GetCtxListParams(c echo.Context) (lastId int, limit int) {
+	lastId, _ = strconv.Atoi(c.QueryParam("lastId"))
+	limit, _ = strconv.Atoi(c.QueryParam("limit"))
+	if limit < 2 || limit > 100 {
+		limit = 10
+	}
+	return lastId, limit
+}
 
 func SetCtxUserId(ctx echo.Context, userId int64) {
 	AddField(ctx, "user_id", strconv.FormatInt(userId, 10))
@@ -63,6 +82,7 @@ func GetCtxtUser(ctx echo.Context) (*echoapp.User, error) {
 
 func SetCtxCompany(ctx echo.Context, company *echoapp.Company) {
 	ctx.Set(ctxComKey, company)
+	AddField(ctx, "com_id", strconv.Itoa(company.Id))
 }
 
 func GetCtxtCompany(ctx echo.Context) (*echoapp.Company, error) {
@@ -86,11 +106,11 @@ func GetCtxtUserRoles(ctx echo.Context) ([]echoapp.Role, error) {
 }
 
 func SetCtxJwsPayload(ctx echo.Context, payload string) {
-	ctx.Set(ctxComKey, payload)
+	ctx.Set(ctxJwtPayloadKey, payload)
 }
 
 func GetCtxtJwsPayload(ctx echo.Context) (string, error) {
-	payload, ok := ctx.Get(ctxComKey).(string)
+	payload, ok := ctx.Get(ctxJwtPayloadKey).(string)
 	if !ok {
 		return "", errors.New("get ctxPayload flied")
 	}

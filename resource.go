@@ -5,6 +5,13 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+type ResourceServerOption struct {
+	BucketName  string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
+	CallbackUrl string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`
+	AccessKey   string `json:"access_key" yaml:"access_key" mapstructure:"access_key"`
+	SecretKey   string `json:"secret_key" yaml:"secret_key" mapstructure:"secret_key"`
+}
+
 type Category struct {
 	gorm.Model
 	Title string `json:"title"`
@@ -79,13 +86,22 @@ type Testpaper struct {
 	Content string `json:"content"`
 }
 
+type File struct {
+	gorm.Model
+	Rid     int    `json:"rid"`
+	Content string `json:"content"`
+}
+
 type ResourceService interface {
 	SaveResource(resource Resource) error
-	GetResourceById(id uint) (*Resource, error)
+	GetResourceById(id int) (*Resource, error)
+	GetFileById(id int) (*File, error)
+	GetUploadToken(comId int) (string, error)
+
 	//通过tagId查找资源
-	GetResourcesByTagID(tagID uint, from, limit int) ([]*Resource, error)
+	GetResourcesByTagID(tagID int, lastId, limit int) ([]*Resource, error)
 	//用户上传的资源
-	GetSelfResources(userId uint, from, limit int) ([]*Resource, error)
+	GetSelfResources(userId int, lastId, limit int) ([]*Resource, error)
 	//用户购买的资源
-	GetUserPaymentResources(userId uint, from, limit int) ([]*Resource, error)
+	GetUserPaymentResources(userId int, from, limit int) ([]*Resource, error)
 }
