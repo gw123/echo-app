@@ -68,7 +68,7 @@ func startGoodsServer() {
 	//Actions
 	companySvr := app.MustGetCompanyService()
 	goodsSvr := app.MustGetGoodsService()
-	resourceSvr := app.MustGetResourceService()
+	//resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
@@ -78,10 +78,10 @@ func startGoodsServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	resourceCtl := controllers.NewResourceController(resourceSvr)
+	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
 	//
-	callback := e.Group("/v1/goods-api")
-	callback.POST("/uploadCallback", resourceCtl.UploadCallback)
+	//callback := e.Group("/v1/goods-api")
+	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
 	normal := e.Group("/v1/goods-api")
 	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
@@ -94,7 +94,7 @@ func startGoodsServer() {
 	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
 	normal.GET("/getRecommendGoods", goodsCtl.GetRecommendGoods)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
-	normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
+	//normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
 
 	//jwsAuth := e.Group("/v1/goods-api")
 	//jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{

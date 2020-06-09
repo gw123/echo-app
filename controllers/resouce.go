@@ -134,42 +134,45 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 		data, _ = json.Marshal(urlstrarr)
 	}
 	goods := &echoapp.Goods{
-		UserId:     userId,
-		Name:       fileOption["filename"],
-		Price:      0.30,
-		GoodType:   filetype,
-		RealPrice:  0.50,
-		Covers:     string(data),
-		SmallCover: urlstrarr[0],
-		TagStr:     path.Dir(fileOption["uploadpath"]),
-		Pages:      len(urlstrarr),
+		GoodsBrief: echoapp.GoodsBrief{
+			UserID:     uint(userId),
+			Name:       fileOption["filename"],
+			Price:      0.30,
+			GoodsType:  filetype,
+			RealPrice:  0.50,
+			Covers:     string(data),
+			SmallCover: urlstrarr[0],
+		},
 	}
-	if err := rCtrl.goodsSvc.SaveGoods(goods); err != nil {
+	if err := rCtrl.goodsSvc.Save(goods); err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->goodsSvc.SaveGoods"))
 	}
-	res, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
+	oldGoods, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "", errors.Wrap(err, "rCtrl->goodsSvc->GetGoodsByName"))
 	}
-	tag := &echoapp.Tags{
-		Name: path.Dir(fileOption["uploadpath"]),
-	}
-	if err := rCtrl.goodsSvc.SaveTags(tag); err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
-	}
-	res_tag, err := rCtrl.goodsSvc.GetTagsByName(path.Dir(fileOption["uploadpath"]))
+
+	res_tag, err := rCtrl.goodsSvc.GetTagByName(path.Dir(fileOption["uploadpath"]))
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			tag := &echoapp.GoodsTag{
+				Name: path.Dir(fileOption["uploadpath"]),
+			}
+			if err := rCtrl.goodsSvc.SaveTag(tag); err != nil {
+				return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
+			}
+		}
 		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "rCtrl->goodsSvc->GetGoodsByName", err)
 	}
 
 	resource := &echoapp.Resource{
-		GoodsId:    res.ID,
+		GoodsId:    int64(oldGoods.ID),
 		UserId:     userId,
 		Type:       filetype,
 		Name:       fileOption["filename"],
 		Covers:     string(data),
 		SmallCover: urlstrarr[0],
-		TagId:      res_tag.ID,
+		TagId:      int64(res_tag.ID),
 		Pages:      len(urlstrarr),
 		Path:       md5path,
 		Status:     "user_upload",
@@ -181,7 +184,6 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	result := map[string]interface{}{
 		"goods":    goods,
 		"resource": resource,
-		"tag":      tag,
 		"qiniures": putret,
 	}
 	return rCtrl.Success(ctx, result)

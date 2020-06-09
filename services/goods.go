@@ -25,6 +25,18 @@ type GoodsService struct {
 	jws   *components.JwsHelper
 }
 
+func (u *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
+	panic("implement me")
+}
+
+func (u *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
+	panic("implement me")
+}
+
+func (u *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
+	panic("implement me")
+}
+
 func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
 	return &GoodsService{
 		db:    db,
