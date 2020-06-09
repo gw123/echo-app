@@ -219,8 +219,7 @@ func MustGetOrderService() echoapp.OrderService {
 }
 <<<<<<< HEAD
 */
-=======
-=======
+
 
 func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
@@ -282,7 +281,7 @@ func GetCommentService() (echoapp.CommentService, error) {
 		return nil, errors.Wrap(err, "GetCommentSerevice->GetDb")
 	}
 
-=======
+
 
 func GetResourceService() (echoapp.ResourceService, error) {
 	if App.ResourceService != nil {
@@ -292,15 +291,15 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
->>>>>>> 701e4984be842ab89ac8029c25c677e768d98bbd
+
 	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
-<<<<<<< HEAD
+
 	App.CommentSvr = services.NewCommentService(userDb, redis)
 	return App.CommentSvr, nil
-=======
+
 	App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
 	return App.ResourceService, nil
 }

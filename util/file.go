@@ -111,7 +111,7 @@ func UploadFileToQiniu(localFile, key string) (*MyPutRet, error) {
 		Scope:      bucket,
 		ReturnBody: `{"key":"$(key)","hash":"$(etag)","fsize":$(fsize),"bucket":"$(bucket)","name":"$(x:name)"}`,
 	}
-	mac := qbox.NewMac(echoapp.ConfigOpts.QiniuKeys.AccessKey, echoapp.ConfigOpts.QiniuKeys.SecretKey)
+	mac := qbox.NewMac(echoapp.ConfigOpts.ResourceOptions.AccessKey, echoapp.ConfigOpts.ResourceOptions.SecretKey)
 	upToken := putPolicy.UploadToken(mac)
 	cfg := storage.Config{}
 	// 空间对应的机房
