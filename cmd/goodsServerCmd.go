@@ -1,21 +1,12 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -24,10 +15,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startGoodsServer() {
@@ -68,7 +55,7 @@ func startGoodsServer() {
 	//Actions
 	companySvr := app.MustGetCompanyService()
 	goodsSvr := app.MustGetGoodsService()
-	resourceSvr := app.MustGetResourceService()
+	//resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
@@ -78,10 +65,10 @@ func startGoodsServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	resourceCtl := controllers.NewResourceController(resourceSvr)
+	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
 	//
-	callback := e.Group("/v1/goods-api")
-	callback.POST("/uploadCallback", resourceCtl.UploadCallback)
+	//callback := e.Group("/v1/goods-api")
+	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
 	normal := e.Group("/v1/goods-api")
 	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
@@ -94,7 +81,7 @@ func startGoodsServer() {
 	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
 	normal.GET("/getRecommendGoods", goodsCtl.GetRecommendGoods)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
-	normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
+	//normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
 
 	//jwsAuth := e.Group("/v1/goods-api")
 	//jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{

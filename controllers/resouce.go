@@ -50,13 +50,6 @@ func (resourceCtrl *ResourceController) GetResourceById(c echo.Context) error {
 	return resourceCtrl.Success(c, res)
 }
 
-// type Params struct {
-// 	Id    uint `json:"id"`
-// 	From  int  `json:"from"`
-// 	Limit int  `json:"limit"`
-// 	TagId uint `json:"tag_id"`
-// }
-
 func (resourceCtrl *ResourceController) GetResourcesByTagId(c echo.Context) error {
 
 	id := c.QueryParam("tagId")
@@ -99,7 +92,7 @@ func (rCtrl *ResourceController) GetSelfResources(c echo.Context) error {
 }
 func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	//formval := ctx.FormValue("PPT")
-	fileOption, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.Asset.UploadMaxFileSize)
+	fileOption, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
 	}
@@ -119,11 +112,11 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	if err := echoapp_util.Copy(echoapp.ConfigOpts.Asset.StorageRoot+"/"+filetype+"/"+md5path, fileOption["uploadpath"]); err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util.Copy", err)
 	}
-	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], filetype+"/"+md5path)
+	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], "/"+filetype+"/"+md5path)
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
 	}
-	urlstrarr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + "/" + filetype + "/" + fileOption["filename"])
+	urlstrarr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + filetype + "/" + fileOption["filename"])
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "GetPPTCoverUrl", err)
 	}
@@ -134,42 +127,45 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 		data, _ = json.Marshal(urlstrarr)
 	}
 	goods := &echoapp.Goods{
-		UserId:     userId,
-		Name:       fileOption["filename"],
-		Price:      0.30,
-		GoodType:   filetype,
-		RealPrice:  0.50,
-		Covers:     string(data),
-		SmallCover: urlstrarr[0],
-		TagStr:     path.Dir(fileOption["uploadpath"]),
-		Pages:      len(urlstrarr),
+		GoodsBrief: echoapp.GoodsBrief{
+			UserID:     uint(userId),
+			Name:       fileOption["filename"],
+			Price:      0.30,
+			GoodsType:  filetype,
+			RealPrice:  0.50,
+			Covers:     string(data),
+			SmallCover: urlstrarr[0],
+		},
 	}
-	if err := rCtrl.goodsSvc.SaveGoods(goods); err != nil {
+	if err := rCtrl.goodsSvc.Save(goods); err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->goodsSvc.SaveGoods"))
 	}
-	res, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
+	oldGoods, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "", errors.Wrap(err, "rCtrl->goodsSvc->GetGoodsByName"))
 	}
-	tag := &echoapp.Tags{
-		Name: path.Dir(fileOption["uploadpath"]),
-	}
-	if err := rCtrl.goodsSvc.SaveTags(tag); err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
-	}
-	res_tag, err := rCtrl.goodsSvc.GetTagsByName(path.Dir(fileOption["uploadpath"]))
+
+	res_tag, err := rCtrl.goodsSvc.GetTagByName(path.Dir(fileOption["uploadpath"]))
 	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			tag := &echoapp.GoodsTag{
+				Name: path.Dir(fileOption["uploadpath"]),
+			}
+			if err := rCtrl.goodsSvc.SaveTag(tag); err != nil {
+				return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
+			}
+		}
 		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "rCtrl->goodsSvc->GetGoodsByName", err)
 	}
 
 	resource := &echoapp.Resource{
-		GoodsId:    res.ID,
+		GoodsId:    int64(oldGoods.ID),
 		UserId:     userId,
 		Type:       filetype,
 		Name:       fileOption["filename"],
 		Covers:     string(data),
 		SmallCover: urlstrarr[0],
-		TagId:      res_tag.ID,
+		TagId:      int64(res_tag.ID),
 		Pages:      len(urlstrarr),
 		Path:       md5path,
 		Status:     "user_upload",
@@ -179,10 +175,9 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 	}
 
 	result := map[string]interface{}{
-		"goods":     goods,
-		"resource":  resource,
-		"tag":       tag,
-		"qiniu_res": putret,
+		"goods":    goods,
+		"resource": resource,
+		"qiniures": putret,
 	}
 	return rCtrl.Success(ctx, result)
 }
@@ -198,7 +193,7 @@ func (rCtrl *ResourceController) DownloadResource(c echo.Context) error {
 		return rCtrl.Fail(c, echoapp.CodeNoAuth, echoapp.ErrNotAuth.Error(), nil)
 	}
 	filetype := echoapp_util.GetFileType(name)
-	path := echoapp.ConfigOpts.Asset.MyURL + "/" + filetype + "/" + name
+	path := echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + filetype + "/" + name
 
 	if err = echoapp_util.DownloadFile(path, downloadPath); err != nil {
 		return rCtrl.Fail(c, echoapp.CodeCacheError, "", errors.Wrap(err, "rCtrl->echoapp_util.DownloadFile"))

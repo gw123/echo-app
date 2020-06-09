@@ -12,11 +12,12 @@ import (
 	"path"
 	"regexp"
 	"time"
-	"github.com/qiniu/api.v7/v7/auth/qbox"
-	"github.com/qiniu/api.v7/v7/storage"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
+	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/qiniu/api.v7/v7/storage"
 )
 
 func DoHttpRequest(url string, method string) ([]byte, error) {
@@ -40,30 +41,25 @@ func DoHttpRequest(url string, method string) ([]byte, error) {
 }
 
 func GetPPTCoverUrl(pptUrl string) ([]string, error) {
-	clientMap := echoapp.ConfigOpts.PPTImages
-	for _, options := range clientMap {
-		//echoapp_util.DefaultLogger().Infof("访问%s,com_id:%d", key, options.ComId)
-		url := options.BaseUrl + "onlinePreview" + "?url=" + pptUrl
-		// url err ?
-		data, err := DoHttpRequest(url, "GET")
-		if err != nil {
-			return nil, errors.Wrap(err, "doHttpRequest")
-		}
+	options := echoapp.ConfigOpts.ResourceOptions.XytUrl
+	url := options + "onlinePreview" + "?url=" + pptUrl
+	data, err := DoHttpRequest(url, "GET")
+	if err != nil {
+		return nil, errors.Wrap(err, "doHttpRequest")
+	}
+	reg := regexp.MustCompile(`\<img .*?title=\"查看大图\" .*?data-src=\"(\S*)\" .*?\>`)
+	if reg == nil {
+		return nil, errors.Wrap(err, "regexp.MustCompile err")
+	}
+	res := reg.FindAllStringSubmatch(string(data), -1)
 
-		reg := regexp.MustCompile(`\<img .*?title=\"查看大图\" .*?data-src=\"(\S*)\" .*?\>`)
-		if reg == nil {
-			return nil, errors.Wrap(err, "regexp.MustCompile err")
+	if len(res) > 0 && len(res[0]) > 0 {
+		urls := make([]string, 0)
+		for _, text := range res {
+			url := text[1]
+			urls = append(urls, url)
 		}
-		res := reg.FindAllStringSubmatch(string(data), -1)
-		//fmt.Println(len(res[0]))
-		if len(res) > 0 && len(res[0]) > 0 {
-			urls := make([]string, 0)
-			for _, text := range res {
-				url := text[1]
-				urls = append(urls, url)
-			}
-			return urls, nil
-		}
+		return urls, nil
 	}
 	return nil, nil
 }
@@ -160,6 +156,7 @@ func UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) 
 		return nil, err
 	}
 	defer src.Close()
+
 	filetype := GetFileType(file.Filename)
 	fullPath := uploadpath + "/" + filetype + "/" + file.Filename
 	dst, err := os.Create(fullPath)
@@ -172,10 +169,14 @@ func UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) 
 		return nil, err
 	}
 	if size > maxfilesize {
-		return nil, errors.New("File size over limit")
+		return nil, errors.Wrapf(err, "File size over limit")
 	}
+	// userId, err := GetCtxtUserId(c)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "echoapp_util.GetCtxtUserId")
+	// }
 	res := map[string]string{
-
+		//"userId":     strconv.FormatInt(userId, 10),
 		"fileName":   file.Filename,
 		"uploadPath": fullPath,
 	}

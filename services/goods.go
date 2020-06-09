@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v7"
+	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
 	"github.com/jinzhu/gorm"
-	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
@@ -24,6 +24,24 @@ type GoodsService struct {
 	db    *gorm.DB
 	redis *redis.Client
 	jws   *components.JwsHelper
+}
+
+func (u *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
+	goods := &echoapp.Goods{}
+	res := u.db.Where("name=?", name).Find(goods)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
+	}
+	return goods, nil
+}
+
+func (u *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
+	u.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.GoodsTag{})
+	tmptag := &echoapp.GoodsTag{}
+	if u.db.Table("tags").Where("name=?", tag.Name).Find(tmptag).RecordNotFound() {
+		return u.db.Create(tag).Error
+	}
+	return nil
 }
 
 func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
@@ -125,6 +143,46 @@ func (u *GoodsService) UpdateCachedGoods(goods *echoapp.Goods) (err error) {
 	return err
 }
 
+//基础方法自动更新cache
+func (u *GoodsService) Save(goods *echoapp.Goods) error {
+	if err := u.db.Save(goods).Error; err != nil {
+		return errors.Wrap(err, "db save goods")
+	}
+	return u.UpdateCachedGoods(goods)
+}
+
+func (rsv *GoodsService) GetGoodsByTagId(tagId uint, from, limit int) ([]*echoapp.Goods, error) {
+	var goodslist []*echoapp.Goods
+
+	res := rsv.db.Offset(from*limit).Limit(limit).Where("tag_id=?", tagId).Find(goodslist)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByTagId")
+	}
+
+	return goodslist, nil
+}
+
+func (rsv *GoodsService) GetUserPaymentGoods(userId uint, from int, limit int) ([]*echoapp.Goods, error) {
+	var goodslist []*echoapp.Goods
+	res := rsv.db.Where("user_id=?", userId).Offset(from * limit).Limit(limit).Find(goodslist)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetUserPaymentGoods")
+	}
+	return goodslist, nil
+}
+
+func (rsv *GoodsService) DeleteGoods(goods *echoapp.Goods) error {
+	return rsv.db.Delete(goods).Error
+}
+
+func (rsv *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
+	goods := &echoapp.GoodsTag{}
+	res := rsv.db.Where("name=?", name).Find(goods)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetTagsByName")
+	}
+	return goods, nil
+}
 func (u *GoodsService) GetGoodsById(goodsId int) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	if err := u.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
@@ -133,83 +191,3 @@ func (u *GoodsService) GetGoodsById(goodsId int) (*echoapp.Goods, error) {
 
 	return goods, nil
 }
-
-//基础方法自动更新cache
-func (u *GoodsService) Save(goods *echoapp.Goods) error {
-	if err := u.db.Save(goods).Error; err != nil {
-		return errors.Wrap(err, "db save goods")
-	}
-	return u.UpdateCachedGoods(goods)
-}
-<<<<<<< HEAD
-
-//
-func (rsv *GoodsService) SaveGoods(goods *echoapp.Goods) error {
-	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Goods{})
-	good := &echoapp.Goods{}
-	if rsv.db.Table("goods").Where("user_id=? AND name=?", goods.UserId, goods.Name).Find(good).RecordNotFound() {
-		return rsv.db.Create(goods).Error
-	}
-	return nil
-}
-
-func (rsv *GoodsService) SaveTags(tags *echoapp.Tags) error {
-	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Tags{})
-	tag := &echoapp.Tags{}
-	if rsv.db.Table("tags").Where("name=?", tags.Name).Find(tag).RecordNotFound() {
-		return rsv.db.Create(tags).Error
-	}
-	return nil
-}
-
-func (rsv *GoodsService) GetGoodsById(c echo.Context, id uint) (*echoapp.Goods, error) {
-	goods := &echoapp.Goods{}
-	res := rsv.db.Where("ID=?", id).First(goods)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsById")
-	}
-	//echoapp_util.ExtractEntry(c).Info("goodsID:%d", id)
-	return goods, nil
-}
-func (rsv *GoodsService) GetGoodsByTagId(c echo.Context, tagId uint, from, limit int) ([]*echoapp.Goods, error) {
-	var goodslist []*echoapp.Goods
-
-	res := rsv.db.Offset(from*limit).Limit(limit).Where("tag_id=?", tagId).Find(goodslist)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByTagId")
-	}
-	//echoapp_util.ExtractEntry(c).Info("TagID:%d", tagId)
-	return goodslist, nil
-}
-func (rsv *GoodsService) GetUserPaymentGoods(c echo.Context, userId uint, from int, limit int) ([]*echoapp.Goods, error) {
-	var goodslist []*echoapp.Goods
-	res := rsv.db.Where("user_id=?", userId).Offset(from * limit).Limit(limit).Find(goodslist)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "GoodsService->GetUserPaymentGoods")
-	}
-	//echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
-	return goodslist, nil
-}
-
-func (rsv *GoodsService) DeleteGoods(goods *echoapp.Goods) error {
-	return rsv.db.Delete(goods).Error
-}
-
-func (rsv *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
-	goods := &echoapp.Goods{}
-	res := rsv.db.Where("name=?", name).Find(goods)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
-	}
-	return goods, nil
-}
-func (rsv *GoodsService) GetTagsByName(name string) (*echoapp.Tags, error) {
-	goods := &echoapp.Tags{}
-	res := rsv.db.Where("name=?", name).Find(goods)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "GoodsService->GetTagsByName")
-	}
-	return goods, nil
-}
-=======
->>>>>>> fd3fb0265f905cc46b0e88221e01d2f2ff510374

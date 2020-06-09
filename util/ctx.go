@@ -36,7 +36,6 @@ const (
 	ctxUserRolesKey  = "&userRolesKey{}"
 	ctxLoggerKey     = "&loggerKey{}"
 	ctxJwtPayloadKey = "&jwtPayloadKey{}"
-	ctxGoodsIdKey    = "&goodsIdKey{}"
 )
 
 func GetCtxComId(c echo.Context) int {
@@ -69,18 +68,7 @@ func GetCtxtUserId(ctx echo.Context) (int64, error) {
 	}
 	return userId, nil
 }
-func SetCtxGoodsId(ctx echo.Context, goodsId int64) {
-	AddField(ctx, "goods_id", strconv.FormatInt(goodsId, 10))
-	ctx.Set(ctxGoodsIdKey, goodsId)
-}
 
-func GetCtxtGoodsId(ctx echo.Context) (int64, error) {
-	goodsId, ok := ctx.Get(ctxGoodsIdKey).(int64)
-	if !ok {
-		return 0, errors.New("get ctxGoodsId flied")
-	}
-	return goodsId, nil
-}
 func SetCtxUser(ctx echo.Context, user *echoapp.User) {
 	ctx.Set(ctxUserKey, user)
 }

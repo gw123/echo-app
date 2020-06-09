@@ -44,21 +44,6 @@ func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 	return cmtCtrl.Success(ctx, comment)
 }
 
-// func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
-// 	commentparam := &CommentOption{}
-// 	if err:=ctx.Bind(commentparam);err!=nil{
-// 		return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrNotFoundDb.Error(), err)
-// 	}
-// fileOption, err := echoapp_util.UploadFile(ctx, "image", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.Asset.UploadMaxFileSize)
-// if err != nil {
-// 	return cmtCtrl.Fail(ctx, echoapp.CodeNotAllow, "cmtCtrl->UploadFile", err)
-// }
-// filetype := echoapp_util.GetFileType(fileOption["filename"])
-// putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], filetype+"/"+fileOption["filename"])
-// if err != nil {
-// 	return cmtCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
-// }
-// }
 func (cmtCtrl *CommentController) GetCommentList(ctx echo.Context) error {
 	goodsId := ctx.QueryParam("goodsId")
 	goodsIdint, _ := strconv.ParseInt(goodsId, 10, 64)
