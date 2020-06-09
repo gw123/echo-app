@@ -6,6 +6,7 @@ import (
 
 type GoodsBrief struct {
 	ID          uint      `gorm:"primary_key" json:"id"`
+	UserID      uint      `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	ComId       int       `json:"com_id"`
