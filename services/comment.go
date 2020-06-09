@@ -1,4 +1,4 @@
-package service
+package services
 
 type Comment struct {
 	UserId   int64  `json:"user_id"`

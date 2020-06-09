@@ -87,11 +87,7 @@ func startUserServer() {
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
-<<<<<<< HEAD
-	jwsAuth.POST("/getUserInfo", userCtl.GetUserInfo)
-=======
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
->>>>>>> develop
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
 
