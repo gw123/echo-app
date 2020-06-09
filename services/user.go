@@ -93,7 +93,10 @@ func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoa
 		}
 	} else {
 		sign := echoapp_util.Md5(echoapp_util.Md5(param.Password))
-		if err := u.db.Debug().Where("com_id = ? and mobile =? and password = ?", param.ComId, param.Username, sign).First(user).Error; err != nil {
+		if err := u.db.Debug().
+			Select("id").
+			Where("com_id = ? and mobile =? and password = ?", param.ComId, param.Username, sign).
+			First(user).Error; err != nil {
 			return nil, errors.Wrap(err, "db query")
 		}
 	}
@@ -108,14 +111,15 @@ func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoa
 	}
 
 	token, err := u.jws.CreateToken(user.Id, string(payload))
+	newUser, err := u.GetUserById(user.Id)
 	if err != nil {
 		return nil, errors.Wrap(err, "CreateToken")
 	}
-	user.JwsToken = token
-	if err := u.UpdateCachedUser(user); err != nil {
+	newUser.JwsToken = token
+	if err := u.UpdateCachedUser(newUser); err != nil {
 		echoapp_util.ExtractEntry(ctx).Warnf("redis set user err :%s", err.Error())
 	}
-	return user, nil
+	return newUser, nil
 }
 
 func (u *UserService) GetUserList(comId, currentMaxId, limit int) ([]*echoapp.User, error) {

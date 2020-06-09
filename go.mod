@@ -26,8 +26,12 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
 	github.com/prometheus/common v0.4.0
+<<<<<<< HEAD
 	github.com/qiniu/api.v7 v7.2.5+incompatible
 	github.com/qiniu/x v7.0.8+incompatible // indirect
+=======
+	github.com/qiniu/api.v7/v7 v7.4.1
+>>>>>>> develop
 	github.com/sirupsen/logrus v1.4.2
 	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/speps/go-hashids v2.0.0+incompatible
@@ -37,10 +41,14 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.126+incompatible // indirect
 	github.com/uniplaces/carbon v0.1.6 // indirect
 	github.com/valyala/fasttemplate v1.1.0 // indirect
+<<<<<<< HEAD
 
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/tools v0.0.0-20200515010526-7d3b6ebf133d // indirect
 
+=======
+	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
+>>>>>>> develop
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	qiniupkg.com/x v7.0.8+incompatible // indirect
 )

@@ -15,23 +15,28 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
-	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
-	RedisMap          map[string]*redis.Options     `yaml:"cache" mapstructure:"cache"`
-	Redis             *redis.Options                `yaml:"redis" mapstructure:"redis"`
+	UserServer        *Server                   `yaml:"user_server" mapstructure:"user_server"`
+	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
+	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
+	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
+	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
+	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
+	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
+	Redis             *redis.Options
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
 	PPTImages         map[string]PPTImagesOption    `yaml:"get_ppt_images" mapstructure:"get_ppt_images"`
-	QiniuKeys         QiniuKeyOption                `yaml:"qiniu_key" mapstructure:"qiniu_key"`
+	//QiniuKeys         QiniuKeyOption                `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
 type Server struct {
-	Addr      string   `yaml:"addr" mapstructure:"addr"`
-	Origins   []string `yaml:"origins" mapstructure:"origins"`
-	AppMode   string   `yaml:"app_mode" mapstructure:"app_mode"`
-	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
+	Addr    string   `yaml:"addr" mapstructure:"addr"`
+	Mode    string   `yaml:"mode" mapstructure:"mode"`
+	Origins []string `yaml:"origins" mapstructure:"origins"`
+	AppMode string   `yaml:"app_mode" mapstructure:"app_mode"`
 }
 
 type JwsHelperOpt struct {
@@ -102,8 +107,7 @@ type QiniuKeyOption struct {
 	SecretKey string `yaml:"secret_key" mapstructure:"secret_key"`
 }
 type PPTImagesOption struct {
-	ComId int `yaml:"com_id" mapstructure:"com_id"`
-
+	ComId   int    `yaml:"com_id" mapstructure:"com_id"`
 	BaseUrl string `yaml:"base_url" mapstructure:"base_url"`
 }
 
