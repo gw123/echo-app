@@ -12,12 +12,11 @@ import (
 	"path"
 	"regexp"
 	"time"
-
+	"github.com/qiniu/api.v7/v7/auth/qbox"
+	"github.com/qiniu/api.v7/v7/storage"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"github.com/qiniu/api.v7/auth/qbox"
-	"github.com/qiniu/api.v7/storage"
 )
 
 func DoHttpRequest(url string, method string) ([]byte, error) {

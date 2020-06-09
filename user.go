@@ -59,15 +59,15 @@ type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
 	Login(ctx echo.Context, param *LoginParam) (*User, error)
-	Register(ctx echo.Context, param RegisterParam) (*User, error)
+	Register(ctx echo.Context, param *RegisterParam) (*User, error)
 	GetUserById(userId int64) (*User, error)
+	GetCachedUserById(userId int64) (*User, error)
 	GetUserList(comId, currentMaxId, limit int) ([]*User, error)
 	GetUserByOpenId(comId int, openId string) (*User, error)
 	Save(user *User) error
 	GetUserByToken(token string) (*User, error)
 	UpdateJwsToken(user *User) error
 	UpdateCachedUser(user *User) (err error)
-	GetCachedUserById(userId int64) (*User, error)
 	Jscode2session(comId int, code string) (*User, error)
 	AutoRegisterWxUser(user *User) (err error)
 	//Jscode2session(comId int, code string) (*User, error)

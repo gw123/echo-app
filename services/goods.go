@@ -141,6 +141,7 @@ func (u *GoodsService) Save(goods *echoapp.Goods) error {
 	}
 	return u.UpdateCachedGoods(goods)
 }
+<<<<<<< HEAD
 
 //
 func (rsv *GoodsService) SaveGoods(goods *echoapp.Goods) error {
@@ -210,3 +211,5 @@ func (rsv *GoodsService) GetTagsByName(name string) (*echoapp.Tags, error) {
 	}
 	return goods, nil
 }
+=======
+>>>>>>> fd3fb0265f905cc46b0e88221e01d2f2ff510374

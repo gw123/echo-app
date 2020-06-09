@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+<<<<<<< HEAD
 type ResourceServerOption struct {
 	BucketName  string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
 	CallbackUrl string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`
@@ -63,6 +64,8 @@ type Chapter struct {
 	Resources []Resource `json:"resources"`
 }
 
+=======
+>>>>>>> fd3fb0265f905cc46b0e88221e01d2f2ff510374
 type Resource struct {
 	gorm.Model
 	UserId     int64      `json:"user_id"`
@@ -96,6 +99,7 @@ type File struct {
 }
 
 type ResourceService interface {
+<<<<<<< HEAD
 	SaveResource(resource Resource) error
 	GetResourceById(id int) (*Resource, error)
 	GetFileById(id int) (*File, error)
@@ -107,4 +111,34 @@ type ResourceService interface {
 	GetSelfResources(userId int, lastId, limit int) ([]*Resource, error)
 	//用户购买的资源
 	GetUserPaymentResources(userId int, from, limit int) ([]*Resource, error)
+=======
+	//保存上传的资源到数据库
+	SaveResource(resource *Resource) error
+	//删除资源
+	DeleteResource(resource *Resource) error
+	//更改资源
+	ModifyResource(resource *Resource) error
+
+	//通过资源ID查找资源
+	GetResourceById(c echo.Context, id int64) (*Resource, error)
+	//通过tagId查找资源
+	GetResourcesByTagId(c echo.Context, tagId int64, from int, limit int) ([]*Resource, error)
+	//用户上传的资源
+	GetSelfResources(c echo.Context, userId int64, from int, limit int) ([]*Resource, error)
+	//用户购买的资源
+	GetUserPaymentResources(c echo.Context, userId int64, from int, limit int) ([]*Resource, error)
+	//通过文件name（加后缀）查找资源
+	GetResourceByName(path string) (*Resource, error)
+	//通过文件name MD5（加后缀）查找资源
+	GetResourceByMd5Path(c echo.Context, file string) (*Resource, error)
+	//查看资源文件 ，每页有 limit 条数据
+	GetResourceList(c echo.Context, from, limit int) ([]*GetResourceOptions, error)
+
+	//本地上传文件到服务端
+	UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (map[string]string, error)
+	//资源下载
+	DownloadFile(durl, localpath string) (string, error)
+	//Md5文件内容
+	//Md5SumFile(file string) (string, error)
+>>>>>>> fd3fb0265f905cc46b0e88221e01d2f2ff510374
 }

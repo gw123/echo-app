@@ -32,6 +32,10 @@ type ConfigOptions struct {
 	//QiniuKeys         QiniuKeyOption                `yaml:"qiniu_key" mapstructure:"qiniu_key"`
 }
 
+type ResourceServerOption struct {
+	
+}
+
 type Server struct {
 	Addr    string   `yaml:"addr" mapstructure:"addr"`
 	Mode    string   `yaml:"mode" mapstructure:"mode"`
