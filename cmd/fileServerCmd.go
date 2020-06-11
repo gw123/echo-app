@@ -45,11 +45,12 @@ func startFileServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.Server.Origins
+	origins := echoapp.ConfigOpts.FileServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
-			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAcceptEncoding,
+				"Accept-Language", "Referer", "Connection", "Client_UUID",
 				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token"},
 		}))
 	}
@@ -66,37 +67,49 @@ func startFileServer() {
 	//}))
 
 	//Actions
-
-	usrSvr := app.MustGetUserService()
 	goodSvr := app.MustGetGoodsService()
 	resourceSvc := app.MustGetResourceService()
-	userCtl := controllers.NewUserController(usrSvr)
 	resourceCtl := controllers.NewResourceController(resourceSvc, goodSvr)
+	e.GET("/v1/file/ping", func(c echo.Context) error {
+		if app.App.IsHealth {
+			c.HTML(http.StatusOK, "pong")
+		} else {
+			c.HTML(http.StatusInternalServerError, "not health")
+		}
+		return nil
+	})
+
+	tryJwsAuthGroup := e.Group("/v1/file")
+
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+	}
+	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
+	tryJwsAuthGroup.Use(tryJwsMiddleware)
+	tryJwsAuthGroup.POST("/uploadImage", resourceCtl.UploadImage)
 
 	jwsAuth := e.Group("/v1/file")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		MockUserId: 56,
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(middleware.DefaultSkipper, app.MustGetJwsHelper())
-	//userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware)
-	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
-
 	//jwsAuth.POST("/saveReource", resourceCtl.SaveResource)
 	jwsAuth.GET("/getResourceById", resourceCtl.GetResourceById)
 	jwsAuth.GET("/getResourcesByTagId", resourceCtl.GetResourcesByTagId)
 	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	jwsAuth.POST("/uploadResource", resourceCtl.UploadResource)
+
 	jwsAuth.GET("/getResourceList", resourceCtl.GetResourceList)
 	jwsAuth.GET("/getResourceByName", resourceCtl.GetResourceByName)
 	jwsAuth.GET("/downloadFile", resourceCtl.DownloadResource)
 	jwsAuth.GET("/getSelfResources", resourceCtl.GetSelfResources)
 	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.FileServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}

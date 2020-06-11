@@ -1,5 +1,7 @@
 *.exe
 *.log
+*.ppt
+*.docx
 
 vendor/
 files/

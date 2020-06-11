@@ -79,7 +79,7 @@ func watchDir(dir string) {
 								fmt.Println(errors.Wrap(err, "uploadFileToQiniu"))
 								continue
 							}
-							strArr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.Asset.MyURL + "/" + fileType + "/" + path.Base(ev.Name))
+							strArr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + fileType + "/" + path.Base(ev.Name))
 							if err != nil && len(strArr) < 2 {
 								fmt.Println(errors.Wrap(err, "Create  getPPTCoverUrl"))
 								continue
@@ -90,15 +90,17 @@ func watchDir(dir string) {
 								fmt.Println(errors.Wrap(err, "Create json.Marsha"))
 								continue
 							}
-							err = goodsSvc.SaveGoods(&echoapp.Goods{
-								Name:       path.Base(ev.Name),
-								Price:      0.2,
-								GoodType:   path.Ext(ev.Name),
-								RealPrice:  0.5,
-								Covers:     strArr[0],
-								SmallCover: string(data),
-								Tags:       path.Dir(ev.Name),
-								Pages:      len(strArr),
+							err = goodsSvc.Save(&echoapp.Goods{
+								GoodsBrief: echoapp.GoodsBrief{
+									Name:  path.Base(ev.Name),
+									Price: 0.2,
+									//GoodType:   path.Ext(ev.Name),
+									RealPrice:  0.5,
+									Covers:     strArr[0],
+									SmallCover: string(data),
+									Tags:       path.Dir(ev.Name),
+									//Pages:      len(strArr),
+								},
 							})
 							if err != nil {
 								fmt.Println(errors.Wrap(err, "Create  goodsSvc.SaveGoods"))
@@ -109,7 +111,7 @@ func watchDir(dir string) {
 								fmt.Println(errors.Wrap(err, "Create  goodsSvc.GetGoodsByName"))
 								continue
 							}
-							err = goodsSvc.SaveTags(&echoapp.Tags{
+							err = goodsSvc.SaveTag(&echoapp.GoodsTag{
 								//GoodsId: res.ID,
 								Name: path.Dir(ev.Name),
 							})
@@ -118,19 +120,19 @@ func watchDir(dir string) {
 								continue
 							}
 
-							res_tag, err := goodsSvc.GetTagsByName(path.Base(ev.Name))
+							res_tag, err := goodsSvc.GetTagByName(path.Base(ev.Name))
 							if err != nil {
 								fmt.Println(errors.Wrap(err, "Create goodsSvc.GetTagsByName"))
 								continue
 							}
 							err = resourceSvc.SaveResource(&echoapp.Resource{
-								TagId:      res_tag.ID,
+								TagId:      int64(res_tag.ID),
 								Name:       path.Base(ev.Name),
 								Path:       md5path,
 								Type:       path.Ext(ev.Name),
 								Covers:     strArr[0],
 								SmallCover: string(data),
-								GoodsId:    res.ID,
+								GoodsId:    int64(res.ID),
 								Pages:      len(strArr),
 							})
 							if err != nil {

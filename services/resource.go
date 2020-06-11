@@ -1,7 +1,9 @@
 package services
 
 import (
+	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,6 +28,10 @@ func NewResourceService(db *gorm.DB) *ResourceService {
 		db: db,
 	}
 	return help
+}
+
+func (rsv *ResourceService) SaveFile(file *echoapp.File) error {
+	return rsv.db.Save(file).Error
 }
 
 func (rsv *ResourceService) SaveResource(resource *echoapp.Resource) error {
@@ -68,16 +74,6 @@ func (rsv *ResourceService) GetSelfResources(c echo.Context, userId int64, from 
 	return reslist, nil
 }
 
-// func (rsv *ResourceService) Md5SumFile(filename string) (string, error) {
-// 	data, err := ioutil.ReadFile(filename)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	rawMd5 := md5.Sum(data)
-// 	sign := fmt.Sprintf("%x", rawMd5)
-// 	return sign, nil
-// }
-
 func (rsv *ResourceService) GetResourceByName(name string) (*echoapp.Resource, error) {
 	resource := &echoapp.Resource{}
 	res := rsv.db.Where("name=?", name).Find(resource)
@@ -111,8 +107,49 @@ func (rsv *ResourceService) GetResourceByMd5Path(c echo.Context, path string) (*
 	}
 	return resource, nil
 }
-func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (map[string]string, error) {
-	//r.Body = http.MaxBytesReader(w, r.Body, MaxFileSize)
+
+func tryMakeDir(fullDir string) error {
+	stat, err := os.Stat(fullDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.MkdirAll(fullDir, 0760)
+			if err != nil {
+				return err
+			}
+		}
+		return err
+	}
+	if !stat.IsDir() {
+		return errors.New("this path is exist but not a dir")
+	}
+	return nil
+}
+
+func moveToTmpFile(uploadRootPath string, input io.Reader) (string, int64, error) {
+	tmpFileName := fmt.Sprintf("temp_%d", rand.Int63())
+	date := time.Now().Format("2006-01-02")
+	fullDir := uploadRootPath + "/tmp/" + date + "/"
+	err := tryMakeDir(fullDir)
+	if err != nil {
+		return "", 0, err
+	}
+	fullPath := fullDir + tmpFileName
+	dst, err := os.Create(fullPath)
+	if err != nil {
+		return "", 0, err
+	}
+	defer dst.Close()
+
+	length, err := io.Copy(dst, input)
+	if err != nil {
+		return "", 0, err
+	}
+	return fullPath, length, nil
+}
+
+func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadRootPath string, maxfilesize int64) (*echoapp.File, error) {
+	userId, _ := echoapp_util.GetCtxtUserId(c)
+
 	file, err := c.FormFile(formname)
 	if err != nil {
 		return nil, err
@@ -121,28 +158,57 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadpath stri
 	if err != nil {
 		return nil, err
 	}
-	defer src.Close()
 	filetype := echoapp_util.GetFileType(file.Filename)
-	fullPath := uploadpath + "/" + filetype + "/" + file.Filename
-	dst, err := os.Create(fullPath)
+	defer src.Close()
+	fullPath, size, err := moveToTmpFile(uploadRootPath, src)
 	if err != nil {
 		return nil, err
 	}
-	defer dst.Close()
+	src.Close()
 
-	size, err := io.Copy(dst, src)
-	if err != nil {
-		return nil, err
-	}
 	if size > maxfilesize {
 		return nil, errors.New("File size over limit")
 	}
-	res := map[string]string{
-		"filename":   file.Filename,
-		"uploadpath": fullPath,
+	md5fileStr32, err := echoapp_util.Md5SumFile(fullPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Md5SumFile")
 	}
-	return res, nil
+	md5dir := uploadRootPath + "/" + md5fileStr32[:2]
+	err = tryMakeDir(md5dir)
+	if err != nil {
+		return nil, errors.Wrap(err, "tryMakeDir")
+	}
+
+	md5path := md5fileStr32[:2] + "/" + md5fileStr32 + "." + filetype
+	err = echoapp_util.Copy(uploadRootPath+"/"+md5path, fullPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Copy")
+	}
+
+	putret, err := echoapp_util.UploadFileToQiniu(uploadRootPath+"/"+md5path, md5path)
+	if err != nil {
+		return nil, errors.Wrap(err, " UploadResource echoapp_util->UploadFileToQiniu")
+	}
+
+	f := &echoapp.File{
+		Bucket:   putret.Bucket,
+		Name:     file.Filename,
+		Path:     md5path,
+		Url:      echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + md5path,
+		Md5:      md5fileStr32,
+		Size:     size,
+		Type:     filetype,
+		UserId:   uint(userId),
+		ClientId: echoapp_util.GetCtxClientUUID(c),
+		IP:       c.RealIP(),
+	}
+
+	if err := rsv.SaveFile(f); err != nil {
+		return nil, errors.Wrap(err, "SaveFile")
+	}
+	return f, nil
 }
+
 func (rsv *ResourceService) DownloadFile(durl, localpath string) (string, error) {
 	uri, err := url.ParseRequestURI(durl)
 	if err != nil {
