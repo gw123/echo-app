@@ -12,6 +12,7 @@ import (
 var App *EchoApp
 
 type EchoApp struct {
+	IsHealth        bool
 	areaSvc         echoapp.AreaService
 	smsSvc          echoapp.SmsService
 	UserSvr         echoapp.UserService
@@ -24,7 +25,9 @@ type EchoApp struct {
 }
 
 func init() {
-	App = &EchoApp{}
+	App = &EchoApp{
+		IsHealth: true,
+	}
 }
 
 func GetAreaService() (echoapp.AreaService, error) {

@@ -70,8 +70,17 @@ func startFileServer() {
 	goodSvr := app.MustGetGoodsService()
 	resourceSvc := app.MustGetResourceService()
 	resourceCtl := controllers.NewResourceController(resourceSvc, goodSvr)
+	e.GET("/v1/file/ping", func(c echo.Context) error {
+		if app.App.IsHealth {
+			c.HTML(http.StatusOK, "pong")
+		} else {
+			c.HTML(http.StatusInternalServerError, "not health")
+		}
+		return nil
+	})
 
 	tryJwsAuthGroup := e.Group("/v1/file")
+
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
