@@ -99,8 +99,7 @@ type MyPutRet struct {
 }
 
 func UploadFileToQiniu(localFile, key string) (*MyPutRet, error) {
-
-	bucket := "testxytfile"
+	bucket := echoapp.ConfigOpts.ResourceOptions.BucketName
 	//key := "github-x.png"
 	putPolicy := storage.PutPolicy{
 		Scope:      bucket,
@@ -110,7 +109,8 @@ func UploadFileToQiniu(localFile, key string) (*MyPutRet, error) {
 	upToken := putPolicy.UploadToken(mac)
 	cfg := storage.Config{}
 	// 空间对应的机房
-	cfg.Zone = &storage.ZoneHuanan
+	//cfg.Zone = &storage.ZoneHuanan
+	cfg.Zone = &storage.ZoneHuadong
 	// 是否使用https域名
 	cfg.UseHTTPS = false
 	// 上传是否使用CDN上传加速

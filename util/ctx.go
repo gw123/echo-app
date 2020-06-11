@@ -46,6 +46,11 @@ func GetCtxComId(c echo.Context) int {
 	return comId
 }
 
+func GetCtxClientUUID(c echo.Context) string {
+	clientUuid := c.Request().Header.Get("Client_UUID")
+	return clientUuid
+}
+
 // 分页时候使用 lastId 最后一个id ，limit分页大小
 func GetCtxListParams(c echo.Context) (lastId int, limit int) {
 	lastId, _ = strconv.Atoi(c.QueryParam("lastId"))

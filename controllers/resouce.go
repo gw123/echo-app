@@ -90,97 +90,7 @@ func (rCtrl *ResourceController) GetSelfResources(c echo.Context) error {
 	}
 	return rCtrl.Success(c, res)
 }
-func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
-	//formval := ctx.FormValue("PPT")
-	fileOption, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
-	}
-	userId, err := echoapp_util.GetCtxtUserId(ctx)
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "echoapp_util.GetCtxtUserId", err)
-	}
-	md5fileStr32, err := echoapp_util.Md5SumFile(fileOption["uploadpath"])
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "rCtrl->echoapp_util->Md5SumFile", err)
-	}
-	md5path := md5fileStr32[:2] + md5fileStr32 + path.Ext(fileOption["filename"])
-	if _, err := rCtrl.resourceSvc.GetResourceByMd5Path(ctx, md5path); err == nil {
-		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "file exits", errors.New("file exits"))
-	}
-	filetype := echoapp_util.GetFileType(fileOption["filename"])
-	if err := echoapp_util.Copy(echoapp.ConfigOpts.Asset.StorageRoot+"/"+filetype+"/"+md5path, fileOption["uploadpath"]); err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util.Copy", err)
-	}
-	putret, err := echoapp_util.UploadFileToQiniu(fileOption["uploadpath"], "/"+filetype+"/"+md5path)
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
-	}
-	urlstrarr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + filetype + "/" + fileOption["filename"])
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "GetPPTCoverUrl", err)
-	}
-	var data []byte
-	if len(urlstrarr) > 9 {
-		data, _ = json.Marshal(urlstrarr[:9])
-	} else {
-		data, _ = json.Marshal(urlstrarr)
-	}
-	goods := &echoapp.Goods{
-		GoodsBrief: echoapp.GoodsBrief{
-			UserID:     uint(userId),
-			Name:       fileOption["filename"],
-			Price:      0.30,
-			GoodsType:  filetype,
-			RealPrice:  0.50,
-			Covers:     string(data),
-			SmallCover: urlstrarr[0],
-		},
-	}
-	if err := rCtrl.goodsSvc.Save(goods); err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->goodsSvc.SaveGoods"))
-	}
-	oldGoods, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(fileOption["filename"]))
-	if err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "", errors.Wrap(err, "rCtrl->goodsSvc->GetGoodsByName"))
-	}
 
-	res_tag, err := rCtrl.goodsSvc.GetTagByName(path.Dir(fileOption["uploadpath"]))
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			tag := &echoapp.GoodsTag{
-				Name: path.Dir(fileOption["uploadpath"]),
-			}
-			if err := rCtrl.goodsSvc.SaveTag(tag); err != nil {
-				return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
-			}
-		}
-		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "rCtrl->goodsSvc->GetGoodsByName", err)
-	}
-
-	resource := &echoapp.Resource{
-		GoodsId:    int64(oldGoods.ID),
-		UserId:     userId,
-		Type:       filetype,
-		Name:       fileOption["filename"],
-		Covers:     string(data),
-		SmallCover: urlstrarr[0],
-		TagId:      int64(res_tag.ID),
-		Pages:      len(urlstrarr),
-		Path:       md5path,
-		Status:     "user_upload",
-	}
-	if err := rCtrl.resourceSvc.SaveResource(resource); err != nil {
-		return rCtrl.Fail(ctx, echoapp.CodeDBError, "rCtrl->resourceSvc->SaveResource", err)
-	}
-
-	result := map[string]interface{}{
-		"goods":    goods,
-		"resource": resource,
-		"qiniures": putret,
-	}
-	return rCtrl.Success(ctx, result)
-}
 func (rCtrl *ResourceController) DownloadResource(c echo.Context) error {
 	userId, err := echoapp_util.GetCtxtUserId(c)
 	name := c.QueryParam("name")
@@ -217,6 +127,7 @@ func (rCtrl *ResourceController) GetResourceList(c echo.Context) error {
 	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", from, limit)
 	return rCtrl.Success(c, filelist)
 }
+
 func (rCtrl *ResourceController) GetResourceByName(c echo.Context) error {
 	path := c.QueryParam("name")
 	res, err := rCtrl.resourceSvc.GetResourceByName(path)
@@ -224,4 +135,99 @@ func (rCtrl *ResourceController) GetResourceByName(c echo.Context) error {
 		return rCtrl.Fail(c, echoapp.CodeNotFound, "", errors.Wrap(err, "ResourceController->GetResourceByName"))
 	}
 	return rCtrl.Success(c, res)
+}
+
+func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
+	newFile, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.ResourceRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
+	}
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "echoapp_util.GetCtxtUserId", err)
+	}
+
+	md5path := newFile.Md5[:2] + "/" + newFile.Md5 + path.Ext(newFile.Name)
+	if _, err := rCtrl.resourceSvc.GetResourceByMd5Path(ctx, md5path); err == nil {
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "file exits", errors.New("file exits"))
+	}
+	if err := echoapp_util.Copy(echoapp.ConfigOpts.Asset.StorageRoot+"/"+newFile.Type+"/"+md5path, newFile.Path); err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util.Copy", err)
+	}
+	putret, err := echoapp_util.UploadFileToQiniu(newFile.Path, "/"+newFile.Type+"/"+md5path)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, " UploadResource echoapp_util->UploadFileToQiniu", err)
+	}
+	urlstrarr, err := echoapp_util.GetPPTCoverUrl(echoapp.ConfigOpts.ResourceOptions.BaseURL + "/" + newFile.Type + "/" + newFile.Name)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeCacheError, "GetPPTCoverUrl", err)
+	}
+	var data []byte
+	if len(urlstrarr) > 9 {
+		data, _ = json.Marshal(urlstrarr[:9])
+	} else {
+		data, _ = json.Marshal(urlstrarr)
+	}
+	goods := &echoapp.Goods{
+		GoodsBrief: echoapp.GoodsBrief{
+			UserID:     uint(userId),
+			Name:       newFile.Name,
+			RealPrice:  0,
+			Price:      0,
+			GoodsType:  newFile.Type,
+			Covers:     string(data),
+			SmallCover: urlstrarr[0],
+		},
+	}
+	if err := rCtrl.goodsSvc.Save(goods); err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->goodsSvc.SaveGoods"))
+	}
+	oldGoods, err := rCtrl.goodsSvc.GetGoodsByName(path.Base(newFile.Name))
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "", errors.Wrap(err, "rCtrl->goodsSvc->GetGoodsByName"))
+	}
+
+	res_tag, err := rCtrl.goodsSvc.GetTagByName(path.Dir(newFile.Path))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			tag := &echoapp.GoodsTag{
+				Name: path.Dir(newFile.Path),
+			}
+			if err := rCtrl.goodsSvc.SaveTag(tag); err != nil {
+				return rCtrl.Fail(ctx, echoapp.CodeDBError, "", errors.Wrap(err, "rCtrl->resourceSvc->SaveTags"))
+			}
+		}
+		return rCtrl.Fail(ctx, echoapp.CodeNotFound, "rCtrl->goodsSvc->GetGoodsByName", err)
+	}
+
+	resource := &echoapp.Resource{
+		GoodsId:    int64(oldGoods.ID),
+		UserId:     userId,
+		Type:       newFile.Type,
+		Name:       newFile.Name,
+		Covers:     string(data),
+		SmallCover: urlstrarr[0],
+		TagId:      int64(res_tag.ID),
+		Pages:      len(urlstrarr),
+		Path:       md5path,
+		Status:     "user_upload",
+	}
+	if err := rCtrl.resourceSvc.SaveResource(resource); err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeDBError, "rCtrl->resourceSvc->SaveResource", err)
+	}
+
+	result := map[string]interface{}{
+		"goods":    goods,
+		"resource": resource,
+		"qiniures": putret,
+	}
+	return rCtrl.Success(ctx, result)
+}
+
+func (rCtrl *ResourceController) UploadImage(ctx echo.Context) error {
+	newFile, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.StorageRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
+	if err != nil {
+		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
+	}
+	return rCtrl.Success(ctx, newFile)
 }

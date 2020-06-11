@@ -3,6 +3,7 @@ package echoapp
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"time"
 )
 
 type Resource struct {
@@ -32,9 +33,19 @@ type GetResourceOptions struct {
 }
 
 type File struct {
-	gorm.Model
-	Rid     int    `json:"rid"`
-	Content string `json:"content"`
+	ID        uint64 `gorm:"primary_key"`
+	CreatedAt time.Time
+	UserId    uint   `json:"user_id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Md5       string `json:"md5"`
+	Size      int64  `json:"size"`
+	Rid       int    `json:"rid"`
+	Url       string `json:"url"`
+	Type      string `json:"type"`
+	Bucket    string `json:"bucket"`
+	ClientId  string `json:"client_id"`
+	IP        string `json:"ip"`
 }
 
 type ResourceService interface {
@@ -61,7 +72,9 @@ type ResourceService interface {
 	GetResourceList(c echo.Context, from, limit int) ([]*GetResourceOptions, error)
 
 	//本地上传文件到服务端
-	UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (map[string]string, error)
+	UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (*File, error)
+	//保存文件
+	SaveFile(file *File) error
 	//资源下载
 	DownloadFile(durl, localpath string) (string, error)
 	//Md5文件内容

@@ -202,7 +202,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	if App.ResourceService != nil {
 		return App.ResourceService, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := GetDb("resource")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
