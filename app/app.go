@@ -156,7 +156,7 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
 		return App.GoodsSvr, nil
 	}
-	goodsDb, err := GetDb("goods")
+	goodsDb, err := GetDb("shop")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -205,7 +205,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	if App.ResourceService != nil {
 		return App.ResourceService, nil
 	}
-	shopDb, err := GetDb("resource")
+	shopDb, err := GetDb("laraveltest")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -213,7 +213,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	// if err != nil {
 	// 	return nil, errors.Wrap(err, "GetRedis")
 	// }
-	//App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
+	// App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
 	App.ResourceService = services.NewResourceService(shopDb)
 	return App.ResourceService, nil
 }
