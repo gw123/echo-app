@@ -32,7 +32,7 @@ func startCommentServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.Server.Origins
+	origins := echoapp.ConfigOpts.CommentServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -70,17 +70,17 @@ func startCommentServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
-	normal := e.Group("/v1/comments-api")
+	normal := e.Group("/v1/comment")
 	normal.Use(limitMiddleware, tryJwsMiddleware)
 
 	//goodsCtl := controllers.NewGoodsController(goodsSvr)
 	commentCtl := controllers.NewCommentController(commentSvr)
 
-	normal.POST("/saveComment", commentCtl.SaveComment)
+	normal.POST("/submitComment", commentCtl.SaveComment)
 	normal.GET("/getCommentList", commentCtl.GetCommentList)
 	normal.GET("/thumbUpComment", commentCtl.ThumbUpComment)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}

@@ -23,7 +23,7 @@ func (cmtSvc *CommentService) SaveComment(comment *echoapp.Comment) error {
 	return cmtSvc.db.Save(comment).Error
 }
 func (cmtSvc *CommentService) CreateComment(comment *echoapp.Comment) error {
-	cmtSvc.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Comment{})
+	//cmtSvc.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Comment{})
 	return cmtSvc.db.Create(comment).Error
 }
 func (cmtSvc *CommentService) GetCommentList(goodsId int64, comId, limit int) ([]*echoapp.Comment, error) {

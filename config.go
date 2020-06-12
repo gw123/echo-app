@@ -40,6 +40,7 @@ type ResourceServerOption struct {
 	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
 	BaseURL           string `yaml:"base_url" mapstructure:"base_url"`
 }
+
 type Server struct {
 	Addr    string   `yaml:"addr" mapstructure:"addr"`
 	Mode    string   `yaml:"mode" mapstructure:"mode"`
@@ -117,6 +118,7 @@ func InitConfig(cfgFile string) {
 	Viper = viper.New()
 	viper.SetConfigFile(cfgFile)
 	viper.AutomaticEnv() // read in environment variables that match
+
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)

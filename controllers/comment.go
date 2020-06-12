@@ -5,7 +5,6 @@ import (
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
@@ -35,11 +34,7 @@ func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 	userId, _ := echoapp_util.GetCtxtUserId(ctx)
 	comment.UserId = userId
 	if err := cmtCtrl.commentSvc.CreateComment(comment); err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrNotFoundDb.Error(), err)
-		} else {
-			return cmtCtrl.Fail(ctx, echoapp.CodeInnerError, echoapp.ErrNotFoundEtcd.Error(), err)
-		}
+		return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrDb.Error(), err)
 	}
 	return cmtCtrl.Success(ctx, comment)
 }

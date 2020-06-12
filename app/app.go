@@ -229,7 +229,7 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
 	}
-	commentDb, err := GetDb("laraveltest")
+	commentDb, err := GetDb("goods")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}

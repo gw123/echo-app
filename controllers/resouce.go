@@ -229,5 +229,5 @@ func (rCtrl *ResourceController) UploadImage(ctx echo.Context) error {
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
 	}
-	return rCtrl.Success(ctx, newFile)
+	return rCtrl.Success(ctx, map[string]string{"path": newFile.Url})
 }

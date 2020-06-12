@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -22,10 +23,26 @@ type Comment struct {
 	Staff     int        `json:"staff" gorm:"not null"`
 	Express   int        `json:"express" `
 	Ups       int        `json:"ups" grom:"not null"`
-	Covers    string     `json:"covers" gorm:"size:1024"`
-	//Covers    []string   `json:"covers" gorm:"size:1024"`
-	Content string `json:"content" form:"content" gorm:"size:256"`
-	Source  string `json:"source"`
+	Covers    []string   `json:"covers" gorm:"-"`
+	CoversStr string     `gorm:"column:covers;size:1024" json:"-"`
+	Content   string     `json:"content" form:"content" gorm:"size:256"`
+	Source    string     `json:"source"`
+}
+
+func (c *Comment) BeforeCreate() (err error) {
+	str, err := json.Marshal(c.Covers)
+	if err != nil {
+		return err
+	}
+	c.CoversStr = string(str)
+	return
+}
+
+func (c *Comment) AfterFind() error {
+	if err := json.Unmarshal([]byte(c.CoversStr), &c.Covers); err != nil {
+		return err
+	}
+	return nil
 }
 
 type EvaluationOption struct {
