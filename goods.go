@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+const (
+	GoodsTypeGoods   = "goods"
+	GoodsTypeTicket  = "ticket"
+	GoodsTypeRoom    = "room"
+	GoodsTypeCombine = "combine"
+)
+
 type GoodsBrief struct {
 	ID          uint      `gorm:"primary_key" json:"id"`
 	UserID      uint      `json:"user_id"`
@@ -22,12 +29,13 @@ type GoodsBrief struct {
 	SmallCover  string    `json:"small_cover"`
 	Covers      string    `json:"covers"`
 	Desc        string    `json:"desc"`
-	GoodsType  string     `json:"goods_type"`
+	GoodsType   string    `json:"goods_type" gorm:"goods_type" `
 }
 
 func (*GoodsBrief) TableName() string {
 	return "goods"
 }
+
 
 type Goods struct {
 	GoodsBrief
@@ -38,9 +46,9 @@ type Goods struct {
 
 type GoodsTag struct {
 	ID        uint       `gorm:"primary_key" json:"id"`
-	ComId 	  uint       `json:"com_id"`
-	Name string          `json:"name"`
-	Icon string          `json:"icon"`
+	ComId     uint       `json:"com_id"`
+	Name      string     `json:"name"`
+	Icon      string     `json:"icon"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `sql:"index"`

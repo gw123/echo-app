@@ -17,8 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startCommentServer() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
+func startOrderServer() {
+	echoapp_util.DefaultLogger().Info("开启order服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -28,18 +28,14 @@ func startCommentServer() {
 	if echoapp.ConfigOpts.Asset.PublicRoot != "" {
 		e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	}
-
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
-
-	origins := echoapp.ConfigOpts.CommentServer.Origins
-	if len(origins) > 0 {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins: origins,
-			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
-		}))
-	}
+	origins := echoapp.ConfigOpts.OrderServer.Origins
+	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: origins,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+	})
 
 	loggerMiddleware := echoapp_middlewares.NewLoggingMiddleware(echoapp_middlewares.LoggingMiddlewareConfig{
 		Skipper: func(ctx echo.Context) bool {
@@ -53,34 +49,33 @@ func startCommentServer() {
 	//}))
 
 	//Actions
-	commentSvr := app.MustGetCommentService()
-	//goodsSvr := app.MustGetGoodsService()
-	//resourceSvr := app.MustGetResourceService()
+	orderSvr := app.MustGetOrderService()
+	companySvr := app.MustGetCompanyService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
-	//companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper,goodsSvr)
+	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
-	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
+	//tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+	//	Skipper:    middleware.DefaultSkipper,
+	//	Jws:        app.MustGetJwsHelper(),
+	//	IgnoreAuth: true,
+	//}
+	//tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
+
+	normal := e.Group("/v1/order")
+	normal.Use(corsMiddleware, limitMiddleware, companyMiddleware)
+	orderCtl := controllers.NewOrderController(orderSvr)
+	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
+
+	jwsAuth := e.Group("/v1/order")
+	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
 	}
-	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
-	//
-	//callback := e.Group("/v1/goods-api")
-	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
-	//
-	normal := e.Group("/v1/comment")
-	normal.Use(limitMiddleware, tryJwsMiddleware)
-
-	commentCtl := controllers.NewCommentController(commentSvr)
-	normal.POST("/submitComment", commentCtl.SaveComment)
-	normal.GET("/getCommentList", commentCtl.GetCommentList)
-	normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
-	normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
-	normal.GET("/upComment", commentCtl.ThumbUpComment)
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
+	jwsAuth.Use(corsMiddleware, jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -98,15 +93,15 @@ func startCommentServer() {
 }
 
 // serverCmd represents the server command
-var commentServerCmd = &cobra.Command{
-	Use:   "comment",
-	Short: "评论服务",
-	Long:  `评论服务`,
+var orderServerCmd = &cobra.Command{
+	Use:   "order",
+	Short: "商品服务",
+	Long:  `商品服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startCommentServer()
+		startOrderServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(commentServerCmd)
+	rootCmd.AddCommand(orderServerCmd)
 }
