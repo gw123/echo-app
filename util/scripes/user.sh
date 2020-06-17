@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
+APP=user
 term() {
     echo "Caught SIGTERM signal!"
     kill -TERM "$child" 2>/dev/null
 }
+
+if [ "$1" == "update-config" ]; then
+  etcdctl ${AUTH} ${ENDPOINTS} get /prod/${APP}/config.yaml > ./config.new.yaml
+fi
 
 trap _term SIGTERM
 
