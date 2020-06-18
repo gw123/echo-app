@@ -26,4 +26,9 @@ echoapp
 upload
 resources/public/m/
 resources/public/pc/
+resources/storage/keys/
+resources/storage/upload/
+resources/storage
+resources/echoapp-frontend
+resources/echoapp-frontend/node_modules
 .vscode

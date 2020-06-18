@@ -24,8 +24,9 @@ type Comment struct {
 	Ups       int        `json:"ups" grom:"not null"`
 	Covers    string     `json:"covers" gorm:"size:1024"`
 	//Covers    []string   `json:"covers" gorm:"size:1024"`
-	Content string `json:"content" form:"content" gorm:"size:256"`
-	Source  string `json:"source"`
+	Content                string  `json:"content" form:"content" gorm:"size:256"`
+	Source                 string  `json:"source"`
+	UserComprehensiveScore float64 `gorm:"column:score" json:"score" `
 }
 
 type ImageOption struct {

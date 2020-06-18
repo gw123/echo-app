@@ -29,8 +29,13 @@ type ConfigOptions struct {
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
+	RecommendOptions  *RecommendOptions             `yaml:"recommend_options" mapstructure:"recommend_options"`
 }
-
+type RecommendOptions struct {
+	AttributesWight []float64 `json:"attributes_wight" yaml:"attributes_wight" mapstructure:"attributes_wight"`
+	ParamA          float64   `json:"param_a" yaml:"param_a" mapstructure:"param_a"`
+	ParamB          float64   `json:"param_b" yaml:"param_b" mapstructure:"param_b"`
+}
 type ResourceServerOption struct {
 	BucketName        string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
 	CallbackUrl       string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`

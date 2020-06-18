@@ -5,7 +5,6 @@ import (
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
@@ -20,12 +19,12 @@ func NewCommentController(commentSvc echoapp.CommentService) *CommentController 
 	}
 }
 
-type CommentOption struct {
-	Content   string `json:"content"`
-	PId       int    `json:"pid"`
-	CommentId int    `json:"comment_id"`
-	UserId    int    `json:"user_id"`
-}
+// type CommentOption struct {
+// 	Content   string `json:"content"`
+// 	PId       int    `json:"pid"`
+// 	CommentId int    `json:"comment_id"`
+// 	UserId    int    `json:"user_id"`
+// }
 
 func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 	comment := &echoapp.Comment{}
@@ -34,12 +33,17 @@ func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 	}
 	userId, _ := echoapp_util.GetCtxtUserId(ctx)
 	comment.UserId = userId
+
+	health := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Health))
+	good := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Good))
+	staff := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Staff))
+	//express := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Express))
+
+	comment.UserComprehensiveScore, _ = echoapp_util.WFGHM(1.0,
+		2.0, []float64{health, good, staff}, []float64{0.3, 0.5, 0.2})
+
 	if err := cmtCtrl.commentSvc.CreateComment(comment); err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrNotFoundDb.Error(), err)
-		} else {
-			return cmtCtrl.Fail(ctx, echoapp.CodeInnerError, echoapp.ErrNotFoundEtcd.Error(), err)
-		}
+		return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrNotFoundDb.Error(), err)
 	}
 	return cmtCtrl.Success(ctx, comment)
 }
