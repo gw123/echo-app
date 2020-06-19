@@ -20,6 +20,7 @@ const (
 
 var ErrNotFoundCache = errors.New("not found cache item")
 var ErrNotFoundDb = errors.New("not found db item")
+var ErrDb = errors.New("db exec err")
 var ErrNotFoundEtcd = errors.New("not found etcd item")
 var ErrArgument = errors.New("argument error")
 var ErrNotLogin = errors.New("not login")

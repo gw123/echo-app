@@ -20,6 +20,7 @@ type ConfigOptions struct {
 	OrderServer       *Server                       `yaml:"order_server" mapstructure:"order_server"`
 	CommentServer     *Server                       `yaml:"comment_server" mapstructure:"comment_server"`
 	FileServer        *Server                       `yaml:"file_server" mapstructure:"file_server"`
+	SiteServer        *Server                       `yaml:"site_server" mapstructure:"site_server"`
 	ResourceOptions   *ResourceServerOption         `yaml:"resource" mapstructure:"resource"`
 	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`

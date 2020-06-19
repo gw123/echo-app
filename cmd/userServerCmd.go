@@ -53,22 +53,32 @@ func startUserServer() {
 	//}))
 
 	//Actions
+
+	companySvr := app.MustGetCompanyService()
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
+	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	usrSvr := app.MustGetUserService()
 	userCtl := controllers.NewUserController(usrSvr)
-	normal := e.Group("/v1/user-api")
+	normal := e.Group("/v1/user")
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+	}
+	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
+	//登录
 	normal.POST("/login", userCtl.Login)
 	normal.POST("/register", userCtl.Register)
 	normal.POST("/logout", userCtl.Logout)
 	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
-	jwsAuth := e.Group("/v1/user-api")
+	jwsAuth := e.Group("/v1/user")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)

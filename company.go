@@ -16,6 +16,8 @@ type Company struct {
 	WxPaymentAppId string `json:"wx_payment_app_id"`
 	WxPaymentMchId string `json:"wx_payment_mch_id"`
 	WxPaymentKey   string `json:"wx_payment_key"`
+	XcxCover       string `json:"xcx_cover"`
+	WechatCover    string `json:"wechat_cover"`
 }
 
 type Nav struct {

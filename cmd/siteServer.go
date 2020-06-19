@@ -17,22 +17,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startCommentServer() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
-	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
+func startSiteServer() {
+	echoapp_util.DefaultLogger().Info("开启站点服务")
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
-
-	if echoapp.ConfigOpts.Asset.PublicRoot != "" {
-		e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
-	}
-
+	//前端入口
+	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot+"/m")
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.CommentServer.Origins
+	origins := echoapp.ConfigOpts.SiteServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -53,34 +49,26 @@ func startCommentServer() {
 	//}))
 
 	//Actions
-	commentSvr := app.MustGetCommentService()
-	//goodsSvr := app.MustGetGoodsService()
-	//resourceSvr := app.MustGetResourceService()
-	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
-	//companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper,goodsSvr)
 
+	companySvr := app.MustGetCompanyService()
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
+	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
+	comSvr := app.MustGetCompanyService()
+	actSvr := app.MustGetActivityService()
+	siteCtl := controllers.NewSiteController(comSvr, actSvr)
+	normal := e.Group("/v1/site")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	}
-	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
-	//
-	//callback := e.Group("/v1/goods-api")
-	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
-	//
-	normal := e.Group("/v1/comment")
-	normal.Use(limitMiddleware, tryJwsMiddleware)
+	normal.Use(companyMiddleware, limitMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
+	//站点通知
+	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
+	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)
 
-	commentCtl := controllers.NewCommentController(commentSvr)
-	normal.POST("/submitComment", commentCtl.SaveComment)
-	normal.GET("/getCommentList", commentCtl.GetCommentList)
-	normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
-	normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
-	normal.GET("/upComment", commentCtl.ThumbUpComment)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.SiteServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -98,15 +86,15 @@ func startCommentServer() {
 }
 
 // serverCmd represents the server command
-var commentServerCmd = &cobra.Command{
-	Use:   "comment",
-	Short: "评论服务",
-	Long:  `评论服务`,
+var siteServerCmd = &cobra.Command{
+	Use:   "site",
+	Short: "站点服务",
+	Long:  `站点服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startCommentServer()
+		startSiteServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(commentServerCmd)
+	rootCmd.AddCommand(siteServerCmd)
 }

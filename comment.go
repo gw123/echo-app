@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -21,16 +22,30 @@ type Comment struct {
 	Good      int        `json:"good" gorm:"not null"`
 	Staff     int        `json:"staff" gorm:"not null"`
 	Express   int        `json:"express" `
-	Ups       int        `json:"ups" grom:"not null"`
-	Covers    string     `json:"covers" gorm:"size:1024"`
-	//Covers    []string   `json:"covers" gorm:"size:1024"`
-	Content string `json:"content" form:"content" gorm:"size:256"`
-	Source  string `json:"source"`
+	UpNum     int        `json:"up_num" gorm:"not null"`
+	ReplyNum  int        `json:"reply_num" gorm:"not null"`
+	CoversStr string     `json:"-" gorm:"column:covers;size:1024"`
+	Covers    []string   `json:"covers" gorm:"-"`
+	Content   string     `json:"content" form:"content" gorm:"size:256"`
+	Source    string     `json:"source"`
+	Avatar    string     `json:"avatar"`
+	NickName  string     `json:"nickname"`
+	ReplyList []*Comment `json:"reply_list" gorm:"-"`
 }
 
-type ImageOption struct {
-	ID     int
-	status string
+func (c *Comment) BeforeCreate() (err error) {
+	str, err := json.Marshal(c.Covers)
+	if err != nil {
+		return err
+	}
+	c.CoversStr = string(str)
+	return
+}
+func (c *Comment) AfterFind() error {
+	if err := json.Unmarshal([]byte(c.CoversStr), &c.Covers); err != nil {
+		return err
+	}
+	return nil
 }
 
 type CommentService interface {
@@ -41,4 +56,9 @@ type CommentService interface {
 	DeleteComment(comment *Comment) error
 	ThumbUpComment(commentId int64) error
 	RankCommentByUp(amount int, time time.Time) error
+
+	GetCommentById(id int64) (*Comment, error)
+	IsOrderNoExist(orderNo string) (bool, error)
+	GetGoodsCommentNum(goodsId int64) (int, error)
+	GetSubCommentList(id int64, lastId int, limit int) ([]*Comment, error)
 }

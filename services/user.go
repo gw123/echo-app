@@ -217,7 +217,7 @@ func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, err
 	if err != nil {
 		return nil, errors.Wrap(err, "微信登录失败")
 	}
-	fmt.Printf("返回结果: %#v", res)
+	//fmt.Printf("返回结果: %#v", res)
 	user, err := u.GetUserByOpenId(comId, res.OpenID)
 	if err == gorm.ErrRecordNotFound {
 		user = &echoapp.User{
@@ -235,6 +235,7 @@ func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, err
 
 	return user, nil
 }
+
 func (t *UserService) Register(ctx echo.Context, param *echoapp.RegisterParam) (*echoapp.User, error) {
 
 	err := t.db.Table("users").Where("phone=?", param.Mobile)
@@ -257,6 +258,7 @@ func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount in
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)
 	return uSvr.Save(user)
 }
+
 func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
 	user.Score -= amount
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)

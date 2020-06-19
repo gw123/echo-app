@@ -225,9 +225,9 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 }
 
 func (rCtrl *ResourceController) UploadImage(ctx echo.Context) error {
-	newFile, err := rCtrl.resourceSvc.UploadFile(ctx, "file", echoapp.ConfigOpts.Asset.StorageRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
+	newFile, err := rCtrl.resourceSvc.UploadFile(ctx, "image", echoapp.ConfigOpts.Asset.StorageRoot, echoapp.ConfigOpts.ResourceOptions.UploadMaxFileSize)
 	if err != nil {
 		return rCtrl.Fail(ctx, echoapp.CodeNotAllow, "resourceSvc->UploadFile", err)
 	}
-	return rCtrl.Success(ctx, newFile)
+	return rCtrl.Success(ctx, map[string]string{"path": newFile.Url})
 }

@@ -6,6 +6,9 @@ etcd:
   namespace: "echoapp/"
   endpoints:
     - "127.0.0.1:2379"
+  username: root
+  password: 123456
+
 asset:
   public_root: ""
   version: "dev"
@@ -52,3 +55,21 @@ report_tickets:
     app_key: ''
     base_url: 'https://bigd.tourage.cn'
     scenic_code: ''
+
+jws:
+   audience: "user"
+   issuer: "xytschool"
+   #7天
+   timeout: 604800
+   public_key_path: "./resources/storage/keys/jws_public_key.pem"
+   private_key_path: "./resources/storage/keys/jws_private_key.pem"
+   hash_ids_salt: ""
+
+resource:
+   base_url: "http://img.xytschool.com"
+   cnd_host: "http://img.xytschool.com"
+   bucket_name: "image"
+   max_file_size: 20000000
+   callback_url: "http://goods.api.xyt.com/v1/goods-api/uploadCallback"
+   access_key: ""
+   secret_key: ""
