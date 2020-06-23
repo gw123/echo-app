@@ -53,7 +53,7 @@ func GetCtxClientUUID(c echo.Context) string {
 
 // 分页时候使用 lastId 最后一个id ，limit分页大小
 func GetCtxListParams(c echo.Context) (lastId int, limit int) {
-	lastId, _ = strconv.Atoi(c.QueryParam("lastId"))
+	lastId, _ = strconv.Atoi(c.QueryParam("last_id"))
 	limit, _ = strconv.Atoi(c.QueryParam("limit"))
 	if limit < 2 || limit > 100 {
 		limit = 10

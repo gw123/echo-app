@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startCommentServer() {
+func startTestpaperServer() {
 	echoapp_util.DefaultLogger().Info("开启HTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
@@ -32,7 +32,7 @@ func startCommentServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.CommentServer.Origins
+	origins := echoapp.ConfigOpts.TestpaperServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -53,7 +53,8 @@ func startCommentServer() {
 	//}))
 
 	//Actions
-	commentSvr := app.MustGetCommentService()
+	testpaperSvr := app.MustGetTestpaperService()
+	// commentSvr := app.MustGetCommentService()
 	//goodsSvr := app.MustGetGoodsService()
 	//resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
@@ -70,17 +71,20 @@ func startCommentServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
-	normal := e.Group("/v1/comment")
+	normal := e.Group("/v1/test")
 	normal.Use(limitMiddleware, tryJwsMiddleware)
-
-	commentCtl := controllers.NewCommentController(commentSvr)
-	normal.POST("/submitComment", commentCtl.SaveComment)
-	normal.GET("/getCommentList", commentCtl.GetCommentList)
-	normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
-	normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
-	normal.GET("/upComment", commentCtl.ThumbUpComment)
+	testpaperCtl := controllers.NewTestpaperController(testpaperSvr)
+	//commentCtl := controllers.NewCommentController(commentSvr)
+	normal.POST("/setTestpaper", testpaperCtl.SetTestpaper)
+	normal.GET("/getTestpaperById", testpaperCtl.GetTestpaperById)
+	normal.POST("/saveUserTestAnsewer", testpaperCtl.SaveUserAnswer)
+	// normal.POST("/submitComment", commentCtl.SaveComment)
+	// normal.GET("/getCommentList", commentCtl.GetCommentList)
+	// normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
+	// normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
+	// normal.GET("/upComment", commentCtl.ThumbUpComment)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.TestpaperServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -98,15 +102,15 @@ func startCommentServer() {
 }
 
 // serverCmd represents the server command
-var commentServerCmd = &cobra.Command{
-	Use:   "comment",
-	Short: "评论服务",
-	Long:  `评论服务`,
+var testpaperServerCmd = &cobra.Command{
+	Use:   "test",
+	Short: "问卷服务",
+	Long:  `问卷服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startCommentServer()
+		startTestpaperServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(commentServerCmd)
+	rootCmd.AddCommand(testpaperServerCmd)
 }

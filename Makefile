@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 DEFAULT_TAG = "echo-app:1.0.1"
+=======
+DEFAULT_TAG = "echo-app:1.0.2"
+>>>>>>> develop
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/user:1.0.1"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 DOCKER_BUILD_PATH=/data/docker/images/echoapp
@@ -32,6 +36,11 @@ upload-comment: comment-dir
      scp -r resources/public  root@sh2:/data/apps/comment/resources/public &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
+upload-site: site-dir
+	@scp  config.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
+     scp -r resources/public  root@sh2:/data/apps/site/resources/ &&\
+     scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage
+
 restart:
 	ssh root@sh2 supervisorctl restart user
 
@@ -51,8 +60,13 @@ order-dir:
 	ssh root@sh2 mkdir -p /data/apps/order
 	ssh root@sh2 mkdir -p /data/apps/order/resources/storage
 
+site-dir:
+	ssh root@sh2 mkdir -p /data/apps/site
+	ssh root@sh2 mkdir -p /data/apps/site/resources/storage
+
 build:
-	go build -o upload ./entry/main.go
+	go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
+	rm upload && upx -9 -o upload ./echoapp
 
 build-alpine:
 	@docker run --rm -v "$(PWD)":/go/src/github.com/gw123/echo-app \
@@ -60,15 +74,17 @@ build-alpine:
 	    -e GOPRIVATE=github.com/gw123/echo-app \
 		-w /go/src/github.com/gw123/echo-app \
 		golang:$(BUILD_TAG) \
-		go build -v -o echoapp github.com/gw123/echo-app/entry
+		go build -v -ldflags '-w -s' -o echoapp github.com/gw123/echo-app/entry &&\
+		rm upload && upx -9 -o upload ./echoapp
 
 docker: build-alpine
 	mkdir -p $(DOCKER_BUILD_PATH)/resources/views &&\
 	mkdir -p $(DOCKER_BUILD_PATH)/etc &&\
     mkdir -p $(DOCKER_BUILD_PATH)/resources/storage &&\
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
-    cp echoapp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
-    cp config.yaml $(DOCKER_BUILD_PATH)/etc &&\
+    cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
+    cp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
+    cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.yaml &&\
     cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/ &&\
     cp -r resources/storage/keys/ $(DOCKER_BUILD_PATH)/resources/storage
 	@docker build -t $(REMOTE_USER_API_TAG) $(DOCKER_BUILD_PATH)

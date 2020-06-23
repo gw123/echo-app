@@ -22,6 +22,9 @@ type EchoApp struct {
 	GoodsSvr        echoapp.GoodsService
 	ResourceService echoapp.ResourceService
 	CommentSvr      echoapp.CommentService
+	OrderSvr        echoapp.OrderService
+	ActivitySvr     echoapp.ActivityService
+	TestpaperSvr    echoapp.TestpaperService
 }
 
 func init() {
@@ -213,7 +216,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	// if err != nil {
 	// 	return nil, errors.Wrap(err, "GetRedis")
 	// }
-	// App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
+	//App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
 	App.ResourceService = services.NewResourceService(shopDb)
 	return App.ResourceService, nil
 }
@@ -229,7 +232,7 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
 	}
-	commentDb, err := GetDb("laraveltest")
+	commentDb, err := GetDb("comment")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -247,4 +250,78 @@ func MustGetCommentService() echoapp.CommentService {
 		panic(errors.Wrap(err, "GetCommentSvr"))
 	}
 	return comment
+}
+
+func GetOrderService() (echoapp.OrderService, error) {
+	if App.OrderSvr != nil {
+		return App.OrderSvr, nil
+	}
+	goodsDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	App.OrderSvr = services.NewOrderService(goodsDb, redis)
+	return App.OrderSvr, nil
+}
+
+func MustGetOrderService() echoapp.OrderService {
+	svr, err := GetOrderService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
+func GetActivityService() (echoapp.ActivityService, error) {
+	if App.ActivitySvr != nil {
+		return App.ActivitySvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	App.ActivitySvr = services.NewActivityService(shopDb, redis)
+	return App.ActivitySvr, nil
+}
+
+func MustGetActivityService() echoapp.ActivityService {
+	svr, err := GetActivityService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+func GetTestpaperService() (echoapp.TestpaperService, error) {
+	if App.TestpaperSvr != nil {
+		return App.TestpaperSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "GetRedis")
+	// }
+
+	App.TestpaperSvr = services.NewTestpaperService(shopDb)
+	return App.TestpaperSvr, nil
+}
+
+func MustGetTestpaperService() echoapp.TestpaperService {
+	svr, err := GetTestpaperService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetTestPapeSvr"))
+	}
+	return svr
 }

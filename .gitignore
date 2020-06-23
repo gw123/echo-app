@@ -16,6 +16,7 @@ main/
 keys/
 config.yaml
 config.inner.yaml
+config.docker.yaml
 *-linux-amd64
 test/
 main
@@ -32,3 +33,4 @@ resources/storage
 resources/echoapp-frontend
 resources/echoapp-frontend/node_modules
 .vscode
+etcd.sh

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-APP=user
+APP=order
 term() {
     echo "Caught SIGTERM signal!"
     kill -TERM "$child" 2>/dev/null
@@ -8,7 +8,6 @@ term() {
 if [ "$1" == "update-config" ]; then
   etcdctl ${AUTH} ${ENDPOINTS} get /prod/${APP}/config.yaml > ./config.new.yaml
 fi
-
 trap _term SIGTERM
 
 if [ -f upload ]; then
@@ -16,7 +15,7 @@ if [ -f upload ]; then
     chmod +x echoapp
 fi
 
-./echoapp user --config=config.yaml &
+./echoapp order --config=config.yaml &
 
 child=$!
 wait "$child"

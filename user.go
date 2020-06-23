@@ -29,7 +29,7 @@ type User struct {
 	Email      string  `json:"email"`
 	Mobile     string  `json:"mobile"`
 	Score      int     `json:"score"`
-	Openid     string  `grom:"xcx_openid" json:"-"`
+	Openid     string  `gorm:"xcx_openid" json:"-"`
 	Unionid    string  `gorm:"unionid" json:"-"`
 	IsStaff    bool    `json:"is_staff"`
 	IsVip      string  `json:"is_vip"`
