@@ -32,8 +32,8 @@ type Question struct {
 type UserAnswer struct {
 	ID          int64 `gorm:"primary_key"`
 	CreatedAt   time.Time
-	UserId      int64
-	TestpaperId int64
+	UserId      int64 `json:"user_id"`
+	TestpaperId int64 `json:"testpaper_id"`
 	//	QA          map[int]string `json:"user_answers" gorm:"-"`
 	QAStr string `gorm:"column:user_answers;size:1024" json:"-"`
 }
