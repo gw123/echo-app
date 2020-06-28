@@ -91,7 +91,7 @@ func SetCtxCompany(ctx echo.Context, company *echoapp.Company) {
 	AddField(ctx, "com_id", strconv.Itoa(company.Id))
 }
 
-func GetCtxtCompany(ctx echo.Context) (*echoapp.Company, error) {
+func GetCtxCompany(ctx echo.Context) (*echoapp.Company, error) {
 	company, ok := ctx.Get(ctxComKey).(*echoapp.Company)
 	if !ok {
 		return nil, errors.New("get ctxCompany flied")

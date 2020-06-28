@@ -12,6 +12,10 @@ import (
 func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanyService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			if c.Request().Method == echo.OPTIONS {
+				return next(c)
+			}
+			echoapp_util.ExtractEntry(c).Errorf("com %s ", c.Param("com_id"))
 			if skipper(c) {
 				return next(c)
 			}

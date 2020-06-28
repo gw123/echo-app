@@ -9,6 +9,15 @@ type SendMessageOptions struct {
 	TemplateParam string   `json:"template_param"`
 }
 
+type SmsChannel struct {
+	Type         string `json:"type"`
+	Channel      string `json:"channel"`
+	Key          string `json:"key"`
+	Secret       string `json:"secret"`
+	SignName     string `json:"sign_name"`
+	TemplateCode string `json:"template_code"`
+}
+
 type SendMessageJob struct {
 	BaseMqMsg
 	SendMessageOptions

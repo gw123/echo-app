@@ -79,7 +79,7 @@ func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
 
 func (orderCtrl *OrderController) GetTicketByCode(ctx echo.Context) error {
 	code := ctx.QueryParam("code")
-	company, err := echoapp_util.GetCtxtCompany(ctx)
+	company, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}

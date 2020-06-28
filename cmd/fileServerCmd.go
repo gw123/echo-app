@@ -50,7 +50,7 @@ func startFileServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAcceptEncoding,
-				"Accept-Language", "Referer", "Connection", "Client_UUID",
+				"Accept-Language", "Referer", "Connection", "ClientID",
 				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token"},
 		}))
 	}

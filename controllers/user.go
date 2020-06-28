@@ -2,7 +2,7 @@ package controllers
 
 import (
 	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
+	util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"strconv"
@@ -10,6 +10,7 @@ import (
 
 type UserController struct {
 	userSvr echoapp.UserService
+	smsSvr  echoapp.SmsService
 	echoapp.BaseController
 }
 
@@ -45,12 +46,12 @@ func (sCtl *UserController) Login(ctx echo.Context) error {
 	if err := ctx.Bind(param); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "登录失败", err)
 	}
-	comId, err := strconv.Atoi(ctx.QueryParam("com_id"))
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数校验失败", err)
-	}
-
-	param.ComId = comId
+	//comId, err := strconv.Atoi(ctx.QueryParam("com_id"))
+	//if err != nil {
+	//	return sCtl.Fail(ctx, echoapp.CodeArgument, "参数校验失败", err)
+	//}
+	//
+	//param.ComId = comId
 	user, err := sCtl.userSvr.Login(ctx, param)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败", err)
@@ -71,6 +72,20 @@ func (sCtl *UserController) Logout(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) SendVerifyCodeSms(ctx echo.Context) error {
+	//com, err := util.GetCtxCompany(ctx)
+	//if err != nil {
+	//	return sCtl.Fail(ctx, echoapp.CodeArgument, "", err)
+	//}
+	//
+	//options := &echoapp.SendMessageOptions{
+	//	Token:         "",
+	//	ComId:         0,
+	//	PhoneNumbers:  nil,
+	//	SignName:      "",
+	//	TemplateCode:  "",
+	//	TemplateParam: "",
+	//}
+	//sCtl.smsSvr.SendMessage(options)
 	return nil
 }
 
@@ -80,7 +95,7 @@ func (sCtl *UserController) GetVerifyPic(ctx echo.Context) error {
 
 func (sCtl *UserController) GetUserInfo(ctx echo.Context) error {
 	//echoapp_util.ExtractEntry(ctx).Info("getUserInfo")
-	user, err := echoapp_util.GetCtxtUser(ctx)
+	user, err := util.GetCtxtUser(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现用户", err)
 	}

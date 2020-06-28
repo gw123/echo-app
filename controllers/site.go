@@ -21,7 +21,7 @@ func NewSiteController(comSvr echoapp.CompanyService, actSvr echoapp.ActivitySer
 }
 
 func (sCtl *SiteController) GetNotifyList(ctx echo.Context) error {
-	company, err := echoapp_util.GetCtxtCompany(ctx)
+	company, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
