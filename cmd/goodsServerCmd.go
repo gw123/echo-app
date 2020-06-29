@@ -18,7 +18,7 @@ import (
 )
 
 func startGoodsServer() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
+	echoapp_util.DefaultLogger().Info("开启GoodsHTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -55,7 +55,6 @@ func startGoodsServer() {
 	//Actions
 	companySvr := app.MustGetCompanyService()
 	goodsSvr := app.MustGetGoodsService()
-	//resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
@@ -65,31 +64,17 @@ func startGoodsServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
-	//
-	//callback := e.Group("/v1/goods-api")
-	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
-	//
-	normal := e.Group("/v1/goods-api")
+	mode := "dev"
+	normal := e.Group("/" + mode + "/goods/:com_id")
 	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
 
 	goodsCtl := controllers.NewGoodsController(goodsSvr)
-	companyCtl := controllers.NewCompanyController(companySvr)
 
-	normal.GET("/getIndexBanner", goodsCtl.GetIndexBanners)
-	normal.GET("/getQuickNav", companyCtl.GetQuickNav)
 	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
-	normal.GET("/getRecommendGoods", goodsCtl.GetRecommendGoods)
-	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
-	//normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
+	normal.GET("/getRecommendGoodsList", goodsCtl.GetRecommendGoodsList)
+	normal.GET("/getTagGoodsList", goodsCtl.GetTagGoodsList)
+	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 
-	//jwsAuth := e.Group("/v1/goods-api")
-	//jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-	//	Skipper: middleware.DefaultSkipper,
-	//	Jws:     app.MustGetJwsHelper(),
-	//}
-	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	//jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

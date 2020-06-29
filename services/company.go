@@ -14,7 +14,7 @@ const (
 	RedisCompanyKey = "Company:%d"
 )
 
-func FormatCompanyRedisKey(comId int) string {
+func FormatCompanyRedisKey(comId uint) string {
 	return fmt.Sprintf(RedisCompanyKey, comId)
 }
 
@@ -30,7 +30,7 @@ func NewCompanyService(db *gorm.DB, redis *redis.Client) *CompanyService {
 	}
 }
 
-func (c CompanyService) GetCompanyById(comId int) (*echoapp.Company, error) {
+func (c CompanyService) GetCompanyById(comId uint) (*echoapp.Company, error) {
 	company := &echoapp.Company{}
 	if err := c.db.Where("id = ?", comId).First(company).Error; err != nil {
 		return nil, errors.Wrap(err, "db query")
@@ -38,7 +38,7 @@ func (c CompanyService) GetCompanyById(comId int) (*echoapp.Company, error) {
 	return company, nil
 }
 
-func (c CompanyService) GetCompanyList(offsetId int, limit int) ([]*echoapp.Company, error) {
+func (c CompanyService) GetCompanyList(offsetId uint, limit int) ([]*echoapp.Company, error) {
 	list := []*echoapp.Company{}
 	if err := c.db.Where("id > ?", offsetId).
 		Order("id asc").Limit(limit).
@@ -48,7 +48,7 @@ func (c CompanyService) GetCompanyList(offsetId int, limit int) ([]*echoapp.Comp
 	return list, nil
 }
 
-func (c CompanyService) GetCachedCompanyById(comId int) (*echoapp.Company, error) {
+func (c CompanyService) GetCachedCompanyById(comId uint) (*echoapp.Company, error) {
 	user := &echoapp.Company{}
 	data, err := c.redis.Get(FormatCompanyRedisKey(comId)).Result()
 	if err != nil {
@@ -72,7 +72,7 @@ func (c CompanyService) UpdateCachedCompany(company *echoapp.Company) (err error
 	return err
 }
 
-func (c *CompanyService) GetQuickNav(comId int) ([]*echoapp.Nav, error) {
+func (c *CompanyService) GetQuickNav(comId uint) ([]*echoapp.Nav, error) {
 	var navs []*echoapp.Nav
 	if err := c.db.Where("com_id = ?", comId).Find(&navs).Error; err != nil {
 		return nil, errors.Wrap(err, "query nav")

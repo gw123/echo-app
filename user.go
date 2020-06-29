@@ -63,12 +63,12 @@ type UserService interface {
 	GetUserById(userId int64) (*User, error)
 	GetCachedUserById(userId int64) (*User, error)
 	GetUserList(comId, currentMaxId, limit int) ([]*User, error)
-	GetUserByOpenId(comId int, openId string) (*User, error)
+	GetUserByOpenId(comId uint, openId string) (*User, error)
 	Save(user *User) error
 	GetUserByToken(token string) (*User, error)
 	UpdateJwsToken(user *User) error
 	UpdateCachedUser(user *User) (err error)
-	Jscode2session(comId int, code string) (*User, error)
+	Jscode2session(comId uint, code string) (*User, error)
 	AutoRegisterWxUser(user *User) (err error)
 	//Jscode2session(comId int, code string) (*User, error)
 }

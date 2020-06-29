@@ -78,6 +78,10 @@ func startFileServer() {
 		}
 		return nil
 	})
+	//resourceSvr := app.MustGetResourceService()
+	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
+	//callback := e.Group("/v1/goods-api")
+	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 
 	tryJwsAuthGroup := e.Group("/v1/file")
 

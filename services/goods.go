@@ -26,6 +26,13 @@ type GoodsService struct {
 	jws   *components.JwsHelper
 }
 
+func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
+	return &GoodsService{
+		db:    db,
+		redis: redis,
+	}
+}
+
 func (u *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	res := u.db.Where("name=?", name).Find(goods)
@@ -42,13 +49,6 @@ func (u *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
 		return u.db.Create(tag).Error
 	}
 	return nil
-}
-
-func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
-	return &GoodsService{
-		db:    db,
-		redis: redis,
-	}
 }
 
 func (u *GoodsService) GetIndexBanner(comId int) ([]*echoapp.BannerBrief, error) {
@@ -89,22 +89,30 @@ func (u *GoodsService) GetGoodsByCode(code string) (*echoapp.Goods, error) {
 	panic("implement me")
 }
 
-func (u *GoodsService) GetGoodsByToken(token string) (*echoapp.Goods, error) {
-	panic("implement me")
-}
-
-func (u *GoodsService) GetGoodsList(comId, lastId, limit int) ([]*echoapp.GoodsBrief, error) {
+func (u *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := u.db.Where("com_id = ? and id > ?", comId, lastId).
 		Where("status = 'publish'").
-		Order("id asc").Limit(limit).
+		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
 		return nil, errors.Wrap(err, "db err")
 	}
 	return goodsList, nil
 }
 
-func (u *GoodsService) GetRecommendGoodsList(comId, lastId, limit int) ([]*echoapp.GoodsBrief, error) {
+func (u *GoodsService) GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*echoapp.GoodsBrief, error) {
+	var goodsList []*echoapp.GoodsBrief
+	if err := u.db.Where("com_id = ? and id > ?", comID, lastID).
+		Where("status = 'publish'").
+		Where("match (tags) against (? in boolean mode)", tagID).
+		Order("id desc").Limit(limit).
+		Find(&goodsList).Error; err != nil {
+		return nil, errors.Wrap(err, "db err")
+	}
+	return goodsList, nil
+}
+
+func (u *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := u.db.Where("com_id = ? and id > ?", comId, lastId).
 		Where("recommend_lvl > 0 and status = 'publish'").
@@ -183,6 +191,7 @@ func (rsv *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
 	}
 	return goods, nil
 }
+
 func (u *GoodsService) GetGoodsById(goodsId int) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	if err := u.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {

@@ -1,7 +1,7 @@
 package echoapp
 
 type CompanyBrief struct {
-	Id    int    `json:"id"`
+	Id    uint    `json:"id"`
 	Name  string `json:"name"`
 	Desc  string `json:"desc"`
 	Addr  string `json:"addr"`
@@ -25,7 +25,7 @@ type Nav struct {
 	Id    int    `json:"id"`
 	Name  string `json:"name"`
 	Icon  string `json:"icon"`
-	Href  string `json:"href"`
+	Link  string `json:"href"`
 	Type  string `json:"type"`
 	RefId string `json:"ref_id"`
 }
@@ -35,9 +35,9 @@ func (*Nav) TableName() string {
 }
 
 type CompanyService interface {
-	GetCompanyById(comId int) (*Company, error)
-	GetCompanyList(offsetId int, limit int) ([]*Company, error)
-	GetCachedCompanyById(comId int) (*Company, error)
+	GetCompanyById(comId uint) (*Company, error)
+	GetCompanyList(offsetId uint, limit int) ([]*Company, error)
+	GetCachedCompanyById(comId uint) (*Company, error)
 	UpdateCachedCompany(company *Company) (err error)
-	GetQuickNav(comId int) ([]*Nav, error)
+	GetQuickNav(comId uint) ([]*Nav, error)
 }

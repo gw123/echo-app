@@ -18,14 +18,14 @@ func NewGoodsController(usrSvr echoapp.GoodsService) *GoodsController {
 	}
 }
 
-func (sCtl *GoodsController) GetIndexBanners(ctx echo.Context) error {
-	comId := echoapp_util.GetCtxComId(ctx)
-	banners, err := sCtl.goodsSvr.GetIndexBanner(comId)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
-	}
-	return sCtl.Success(ctx, banners)
-}
+//func (sCtl *GoodsController) GetIndexBanners(ctx echo.Context) error {
+//	comId := echoapp_util.GetCtxComId(ctx)
+//	banners, err := sCtl.goodsSvr.GetIndexBanner(comId)
+//	if err != nil {
+//		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+//	}
+//	return sCtl.Success(ctx, banners)
+//}
 
 func (sCtl *GoodsController) GetGoodsList(ctx echo.Context) error {
 	lastId, limit := echoapp_util.GetCtxListParams(ctx)
@@ -37,7 +37,21 @@ func (sCtl *GoodsController) GetGoodsList(ctx echo.Context) error {
 	return sCtl.Success(ctx, goods)
 }
 
-func (sCtl *GoodsController) GetRecommendGoods(ctx echo.Context) error {
+func (sCtl *GoodsController) GetTagGoodsList(ctx echo.Context) error {
+	lastId, limit := echoapp_util.GetCtxListParams(ctx)
+	comId := echoapp_util.GetCtxComId(ctx)
+	tagID, err := strconv.Atoi(ctx.QueryParam("tag_id"))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+	}
+	goodsList, err := sCtl.goodsSvr.GetTagGoodsList(comId, tagID, lastId, limit)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+	}
+	return sCtl.Success(ctx, goodsList)
+}
+
+func (sCtl *GoodsController) GetRecommendGoodsList(ctx echo.Context) error {
 	lastId, limit := echoapp_util.GetCtxListParams(ctx)
 	comId := echoapp_util.GetCtxComId(ctx)
 	goods, err := sCtl.goodsSvr.GetRecommendGoodsList(comId, lastId, limit)
@@ -48,7 +62,7 @@ func (sCtl *GoodsController) GetRecommendGoods(ctx echo.Context) error {
 }
 
 func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
-	goodsId, err := strconv.Atoi(ctx.QueryParam("goodsId"))
+	goodsId, err := strconv.Atoi(ctx.QueryParam("id"))
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
@@ -59,5 +73,3 @@ func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, goods)
 }
-
-

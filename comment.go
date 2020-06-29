@@ -111,7 +111,7 @@ type CommentService interface {
 	SaveComment(comment *Comment) error
 	//GetCommentById(id int) (*Comment, error)
 	//GetCommentByTargetId(targetId int64, limit int) (*Comment, error)
-	GetCommentList(goodsId int64, lastId, limit int) ([]*Comment, error)
+	GetCommentList(goodsId int64, lastId uint, limit int) ([]*Comment, error)
 	//UpdateComment(comment *Comment) error
 	DeleteComment(comment *Comment) error
 	ThumbUpComment(commentId int64) error
@@ -119,5 +119,5 @@ type CommentService interface {
 	GetCommentById(id int64) (*Comment, error)
 	IsOrderNoExist(orderNo string) (bool, error)
 	GetGoodsCommentNum(goodsId int64) (int, error)
-	GetSubCommentList(id int64, lastId int, limit int) ([]*Comment, error)
+	GetSubCommentList(id int64, lastId uint, limit int) ([]*Comment, error)
 }

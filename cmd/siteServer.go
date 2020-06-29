@@ -33,7 +33,7 @@ func startSiteServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "ClientID", "x-csrf-token", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -49,23 +49,30 @@ func startSiteServer() {
 	//}))
 
 	//Actions
-
 	companySvr := app.MustGetCompanyService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	comSvr := app.MustGetCompanyService()
 	actSvr := app.MustGetActivityService()
 	siteCtl := controllers.NewSiteController(comSvr, actSvr)
-	normal := e.Group("/v1/site")
+	companyCtl := controllers.NewCompanyController(comSvr)
+
+	mode := "dev"
+	normal := e.Group("/" + mode + "/site/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	}
 	normal.Use(companyMiddleware, limitMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
-	//站点通知
+	//首页显示
+	normal.GET("/getBannerList", siteCtl.GetBannerList)
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
 	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)
+	normal.GET("/getActivityList", siteCtl.GetActivityList)
+	normal.GET("/getDetailList", siteCtl.GetActivityDetail)
+	normal.GET("/getNavList", siteCtl.GetQuickNav)
+	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.SiteServer.Addr); err != nil {

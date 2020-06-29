@@ -38,12 +38,12 @@ const (
 	ctxJwtPayloadKey = "&jwtPayloadKey{}"
 )
 
-func GetCtxComId(c echo.Context) int {
+func GetCtxComId(c echo.Context) uint {
 	comId, _ := strconv.Atoi(c.Param("com_id"))
 	if comId == 0 {
 		comId, _ = strconv.Atoi(c.QueryParam("com_id"))
 	}
-	return comId
+	return uint(comId)
 }
 
 func GetCtxClientUUID(c echo.Context) string {
@@ -52,8 +52,9 @@ func GetCtxClientUUID(c echo.Context) string {
 }
 
 // 分页时候使用 lastId 最后一个id ，limit分页大小
-func GetCtxListParams(c echo.Context) (lastId int, limit int) {
-	lastId, _ = strconv.Atoi(c.QueryParam("last_id"))
+func GetCtxListParams(c echo.Context) (lastId uint, limit int) {
+	lastID, _ := strconv.Atoi(c.QueryParam("last_id"))
+	lastId = uint(lastID)
 	limit, _ = strconv.Atoi(c.QueryParam("limit"))
 	if limit < 2 || limit > 100 {
 		limit = 10
@@ -88,7 +89,7 @@ func GetCtxtUser(ctx echo.Context) (*echoapp.User, error) {
 
 func SetCtxCompany(ctx echo.Context, company *echoapp.Company) {
 	ctx.Set(ctxComKey, company)
-	AddField(ctx, "com_id", strconv.Itoa(company.Id))
+	AddField(ctx, "com_id", strconv.Itoa(int(company.Id)))
 }
 
 func GetCtxCompany(ctx echo.Context) (*echoapp.Company, error) {

@@ -66,7 +66,7 @@ func (u *UserService) UpdateJwsToken(user *echoapp.User) (err error) {
 	return nil
 }
 
-func (u *UserService) GetUserByOpenId(comId int, openId string) (*echoapp.User, error) {
+func (u *UserService) GetUserByOpenId(comId uint, openId string) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := u.db.Where("com_id = ? and openid = ? ", comId, openId).First(user).Error; err != nil {
 		return nil, errors.Wrap(err, "db error")
@@ -201,7 +201,7 @@ func (u *UserService) AutoRegisterWxUser(user *echoapp.User) (err error) {
 }
 
 //解析当前用户，如果用户未注册自动注册
-func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, error) {
+func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, error) {
 	company := &echoapp.Company{}
 	_, err := echoapp_util.GetCache(
 		u.redis,
@@ -222,7 +222,7 @@ func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, err
 	if err == gorm.ErrRecordNotFound {
 		user = &echoapp.User{
 			Nickname: "未设置用户名",
-			ComId:    comId,
+			ComId:    int(comId),
 			Openid:   res.OpenID,
 		}
 		err := u.AutoRegisterWxUser(user)

@@ -85,8 +85,19 @@ func startUserServer() {
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+	//roles
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
+	//addressList
+	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
+	jwsAuth.GET("/createUserAddress", userCtl.CreateUserAddress)
+	jwsAuth.GET("/updateUserAddress", userCtl.UpdateUserAddress)
+	jwsAuth.GET("/delUserAddress", userCtl.DelUserAddress)
+	//cart
+	jwsAuth.GET("/getCartGoodsList", userCtl.GetCartGoodsList)
+	jwsAuth.GET("/addCartGoods", userCtl.AddCartGoods)
+	jwsAuth.GET("/delCartGoods", userCtl.DelCartGoods)
+	jwsAuth.GET("/updateCartGoods", userCtl.UpdateCartGoods)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {

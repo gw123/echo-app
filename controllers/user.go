@@ -5,7 +5,6 @@ import (
 	util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	"strconv"
 )
 
 type UserController struct {
@@ -107,12 +106,40 @@ func (sCtl *UserController) CheckHasRoles(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) Jscode2session(ctx echo.Context) error {
-	comIdStr := ctx.QueryParam("com_id")
-	comId, err := strconv.Atoi(comIdStr)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现用户", err)
-	}
+	comId := util.GetCtxComId(ctx)
 	code := ctx.QueryParam("code")
 	sCtl.userSvr.Jscode2session(comId, code)
+	return nil
+}
+
+func (sCtl *UserController) GetUserAddressList(ctx echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) CreateUserAddress(ctx echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) GetCartGoodsList(context echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) AddCartGoods(context echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) DelCartGoods(context echo.Context) error {
+	return nil
+}
+
+func (sCtl *UserController) UpdateCartGoods(context echo.Context) error {
 	return nil
 }

@@ -10,6 +10,7 @@ require (
 	github.com/forgoer/openssl v0.0.0-20200331032942-ad9f8d57d8b1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-redis/redis/v7 v7.4.0
+	github.com/gw123/glog v1.1.2
 	github.com/jinzhu/gorm v1.9.12
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0

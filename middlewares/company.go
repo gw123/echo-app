@@ -15,7 +15,6 @@ func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanySer
 			if c.Request().Method == echo.OPTIONS {
 				return next(c)
 			}
-			echoapp_util.ExtractEntry(c).Errorf("com %s ", c.Param("com_id"))
 			if skipper(c) {
 				return next(c)
 			}
@@ -27,7 +26,7 @@ func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanySer
 				echoapp_util.ExtractEntry(c).Errorf("com_id not set")
 				return c.JSON(http.StatusUnauthorized, "非法请求地址")
 			}
-			company, err := comSvr.GetCachedCompanyById(comId)
+			company, err := comSvr.GetCachedCompanyById(uint(comId))
 			if err != nil {
 				echoapp_util.ExtractEntry(c).Errorf("com %d cache not set", comId)
 				return c.JSON(http.StatusUnauthorized, "服务未初始化")

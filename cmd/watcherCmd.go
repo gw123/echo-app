@@ -96,7 +96,7 @@ func watchDir(dir string) {
 									Price: 0.2,
 									//GoodType:   path.Ext(ev.Name),
 									RealPrice:  0.5,
-									Covers:     strArr[0],
+									//Covers:     strArr[0:6],
 									SmallCover: string(data),
 									Tags:       path.Dir(ev.Name),
 									//Pages:      len(strArr),
