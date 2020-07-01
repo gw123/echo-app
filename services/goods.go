@@ -197,6 +197,54 @@ func (u *GoodsService) GetGoodsById(goodsId int) (*echoapp.Goods, error) {
 	if err := u.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
-
 	return goods, nil
+}
+
+func (u *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Cart, error) {
+	cart := &echoapp.Cart{}
+	if err := u.db.Where("com_id = ? and  user_id = ?", comID, userID).
+		First(cart).Error; err != nil {
+		return nil, err
+	}
+	return cart, nil
+}
+
+func (u *GoodsService) DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error {
+	item := &echoapp.CartGoodsItem{GoodsId: goodsID, SkuID: skuID}
+	return u.UpdateCartGoods(comID, userID, item)
+}
+
+func (u *GoodsService) AddCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
+	return u.UpdateCartGoods(comID, userID, goodsItem)
+}
+
+func (u *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
+	cart, err := u.GetCartGoodsList(comID, userID)
+	if err != nil {
+		return errors.Wrap(err, "GetCartGoodsList")
+	}
+	isNew := true
+	for index, item := range cart.Content {
+		if item.GoodsId == goodsItem.GoodsId && item.SkuID == goodsItem.SkuID {
+			isNew = false
+			if goodsItem.Num == 0 {
+				cart.Content = append(cart.Content[0:index], cart.Content[index:]...)
+				break
+			}
+			item.Num = goodsItem.Num
+			break
+		}
+	}
+
+	if isNew {
+		if goodsItem.Num == 0 {
+			return errors.New("删除商品不存在购物车")
+		}
+		cart.Content = append(cart.Content, goodsItem)
+	}
+
+	if err := u.db.Save(cart).Error; err != nil {
+		return errors.Wrap(err, "SaveCart")
+	}
+	return nil
 }

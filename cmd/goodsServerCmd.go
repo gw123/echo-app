@@ -32,14 +32,11 @@ func startGoodsServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.GoodsServer.Origins
-	if len(origins) > 0 {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins: origins,
-			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
-		}))
-	}
+	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: echoapp.ConfigOpts.OrderServer.Origins,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+	})
 
 	loggerMiddleware := echoapp_middlewares.NewLoggingMiddleware(echoapp_middlewares.LoggingMiddlewareConfig{
 		Skipper: func(ctx echo.Context) bool {
@@ -74,6 +71,18 @@ func startGoodsServer() {
 	normal.GET("/getRecommendGoodsList", goodsCtl.GetRecommendGoodsList)
 	normal.GET("/getTagGoodsList", goodsCtl.GetTagGoodsList)
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
+
+	//cart
+	jwsAuth := e.Group("/v1/order")
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+	})
+	jwsAuth.Use(corsMiddleware, jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
+	jwsAuth.GET("/addCartGoods", goodsCtl.AddCartGoods)
+	jwsAuth.GET("/delCartGoods", goodsCtl.DelCartGoods)
+	jwsAuth.GET("/updateCartGoods", goodsCtl.UpdateCartGoods)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {

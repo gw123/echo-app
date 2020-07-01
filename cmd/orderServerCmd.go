@@ -86,6 +86,12 @@ func startOrderServer() {
 	jwsAuth.GET("/getTicketDetail", orderCtl.GetTicketDetail)
 	jwsAuth.GET("/fetchThirdTicket", orderCtl.FetchThirdTicket)
 
+	//cart
+	jwsAuth.GET("/getCartGoodsList", orderCtl.GetCartGoodsList)
+	jwsAuth.GET("/addCartGoods", orderCtl.AddCartGoods)
+	jwsAuth.GET("/delCartGoods", orderCtl.DelCartGoods)
+	jwsAuth.GET("/updateCartGoods", orderCtl.UpdateCartGoods)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

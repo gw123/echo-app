@@ -3,6 +3,7 @@ package echoapp
 import (
 	"encoding/json"
 	"github.com/gw123/glog"
+	"github.com/jinzhu/gorm"
 	"time"
 )
 
@@ -68,6 +69,50 @@ type GoodsTag struct {
 //	Body string `json:"body"`
 //}
 
+type Cart struct {
+	gorm.Model
+	ComId      uint             `json:"com_id"`
+	UserID     uint             `json:"user_id"`
+	Status     string           `json:"status"`
+	Content    []*CartGoodsItem `json:"content" gorm:"-"`
+	ContentStr string           `json:"-" gorm:"column:content"`
+}
+
+func (Cart) TableName() string {
+	return "carts"
+}
+
+func (c *Cart) AfterFind() error {
+	err := json.Unmarshal([]byte(c.ContentStr), &c.Content)
+	if err != nil {
+		glog.Errorf("Cart AfterFind %s", err)
+	}
+	return nil
+}
+
+func (c *Cart) BeforeSave() error {
+	data, err := json.Marshal(c.Content)
+	if err != nil {
+		glog.Errorf("Cart BeforeSave %s", err)
+	}
+	c.ContentStr = string(data)
+	return nil
+}
+
+type CartGoodsItem struct {
+	ID        uint     `json:"id"`
+	GoodsId   uint     `json:"goods_id"`
+	Name      string   `json:"name"`
+	SkuID     uint     `json:"sku_id"`
+	SkuName   string   `json:"sku_name"`
+	SkuLabel  string   `json:"sku_label"`
+	Num       uint     `json:"num"`
+	Options   []string `json:"options"`
+	Price     uint     `json:"price"`
+	RealPrice uint     `json:"real_price"`
+	Cover     string   `json:"cover"`
+}
+
 type GoodsService interface {
 	AddGoodsPv(goodsId int) error
 	GetGoodsById(goodsId int) (*Goods, error)
@@ -80,4 +125,10 @@ type GoodsService interface {
 	GetGoodsByCode(code string) (*Goods, error)
 	UpdateCachedGoods(goods *Goods) (err error)
 	GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*GoodsBrief, error)
+
+	//购物车
+	GetCartGoodsList(comID uint, userID uint) (*Cart, error)
+	DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error
+	AddCartGoods(comID uint, userID uint, goods *CartGoodsItem) error
+	UpdateCartGoods(comID uint, userID uint, goods *CartGoodsItem) error
 }

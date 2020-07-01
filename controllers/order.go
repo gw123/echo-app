@@ -143,3 +143,20 @@ func (orderCtrl *OrderController) CheckTicketByStaff(ctx echo.Context) error {
 func (orderCtrl *OrderController) CheckTicketBySelf(ctx echo.Context) error {
 	return nil
 }
+
+//
+func (orderCtrl *OrderController) GetCartGoodsList(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) AddCartGoods(context echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) DelCartGoods(context echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) UpdateCartGoods(context echo.Context) error {
+	return nil
+}
