@@ -1,6 +1,11 @@
 package echoapp
 
-import "github.com/labstack/echo"
+import (
+	"time"
+
+	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
+)
 
 type RegisterParam struct {
 	ComId    int    `json:"com_id"`
@@ -19,24 +24,57 @@ type LoginParam struct {
 }
 
 type User struct {
-	Id         int64   `json:"id"`
-	ComId      int     `json:"com_id"`
-	Name       string  `json:"name"`
-	Nickname   string  `json:"nickname"`
-	Avatar     string  `json:"avatar"`
-	Sex        string  `json:"sex"`
-	City       string  `json:"city"`
-	Email      string  `json:"email"`
-	Mobile     string  `json:"mobile"`
-	Score      int     `json:"score"`
-	Openid     string  `gorm:"xcx_openid" json:"-"`
-	Unionid    string  `gorm:"unionid" json:"-"`
-	IsStaff    bool    `json:"is_staff"`
-	IsVip      string  `json:"is_vip"`
-	VipLevel   string  `json:"vip_level"`
-	JwsToken   string  `gorm:"-" json:"jws_token"`
-	SessionKey string  `gorm:"session_key" json:"-"`
-	Roles      []*Role `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
+	Id         int64      `json:"id"`
+	ComId      int        `json:"com_id"`
+	Name       string     `json:"name"`
+	Nickname   string     `json:"nickname"`
+	Avatar     string     `json:"avatar"`
+	Sex        string     `json:"sex"`
+	City       string     `json:"city"`
+	Email      string     `json:"email"`
+	Mobile     string     `json:"mobile"`
+	Score      int        `json:"score"`
+	Openid     string     `gorm:"xcx_openid" json:"-"`
+	Unionid    string     `gorm:"unionid" json:"-"`
+	IsStaff    bool       `json:"is_staff"`
+	IsVip      string     `json:"is_vip"`
+	VipLevel   string     `json:"vip_level"`
+	JwsToken   string     `gorm:"-" json:"jws_token"`
+	SessionKey string     `gorm:"session_key" json:"-"`
+	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
+	Address    []*Address `json:"address" gorm :"ForeignKey:UserID" `
+}
+type Address struct {
+	//gorm.Model
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	//DeletedAt  *time.Time `sql:"index"`
+	AddrId     int64  `json:"addr_id" gorm:"-" `
+	UserID     int64  `json:"user_id"`
+	Username   string `json:"username" gorm:"username"` //收件人
+	Mobile     string `json:"mobile"`
+	Address    string `json:"address" gorm:"address"`
+	Checked    bool   `json:"checked" gorm:"checked"`
+	CityId     int64  `json:"city_id"`
+	DistrictId int64  `json:"district_id"`
+	ProvinceId int64  `json:"province_id"`
+	Code       string `json:"code"`
+}
+
+func (*Address) TableName() string {
+	return "user_address"
+}
+
+type Collection struct {
+	gorm.Model
+	TargetId int64  `json:"target_id"`
+	Type     string `json:"type"`
+	UserID   int64  `json:"user_id"`
+}
+
+func (*Collection) TableName() string {
+	return "user_collection"
 }
 
 type Role struct {
@@ -63,12 +101,25 @@ type UserService interface {
 	GetUserById(userId int64) (*User, error)
 	GetCachedUserById(userId int64) (*User, error)
 	GetUserList(comId, currentMaxId, limit int) ([]*User, error)
-	GetUserByOpenId(comId int, openId string) (*User, error)
+	GetUserByOpenId(comId uint, openId string) (*User, error)
 	Save(user *User) error
 	GetUserByToken(token string) (*User, error)
 	UpdateJwsToken(user *User) error
 	UpdateCachedUser(user *User) (err error)
-	Jscode2session(comId int, code string) (*User, error)
+	Jscode2session(comId uint, code string) (*User, error)
 	AutoRegisterWxUser(user *User) (err error)
 	//Jscode2session(comId int, code string) (*User, error)
+	GetUserAddressList(userId int64) ([]*Address, error)
+	CreateUserAddress(address *Address) error
+	UpdateUserAddress(address *Address) error
+	DelUserAddress(address *Address) error
+	GetUserAddrById(addrId int64) (*Address, error)
+	GetCachedUserDefaultAddrById(userId int64) (*Address, error)
+	GetCachedUserCollectionListById(userId int64) ([]*Collection, error)
+	GetUserCollectionList(userId int64, lastId uint, limit int) ([]*Collection, error)
+	CreateUserCollection(collection *Collection) error
+	//UpdateUserCollection(collection *Collection) error
+	DelUserCollection(collection *Collection) error
+	GetUserCollectionById(targetId, userId int64) (*Collection, error)
+	GetCachedUserCollectionById(userId int64, targetId string) (*Collection, error)
 }

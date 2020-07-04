@@ -41,7 +41,7 @@ func (cmtSvc *CommentService) CreateComment(comment *echoapp.Comment) error {
 	return cmtSvc.db.Create(comment).Error
 }
 
-func (cmtSvc *CommentService) GetCommentList(goodsId int64, lastId, limit int) ([]*echoapp.Comment, error) {
+func (cmtSvc *CommentService) GetCommentList(goodsId int64, lastId uint, limit int) ([]*echoapp.Comment, error) {
 	commentList := []*echoapp.Comment{}
 	query := cmtSvc.db.Where("goods_id=?", goodsId)
 	if lastId > 0 {
@@ -71,7 +71,7 @@ func (cmtSvc *CommentService) GetGoodsCommentNum(goodsId int64) (int, error) {
 	return total, nil
 }
 
-func (cmtSvc *CommentService) GetSubCommentList(commentId int64, lastId, limit int) ([]*echoapp.Comment, error) {
+func (cmtSvc *CommentService) GetSubCommentList(commentId int64, lastId uint, limit int) ([]*echoapp.Comment, error) {
 	var commentList []*echoapp.Comment
 	query := cmtSvc.db.Where("pid =?", commentId)
 	if lastId > 0 {

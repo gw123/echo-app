@@ -1,7 +1,10 @@
 package echoapp
 
 import (
+	"encoding/json"
 	"time"
+
+	"github.com/gw123/glog"
 )
 
 const (
@@ -27,15 +30,23 @@ type GoodsBrief struct {
 	Tags        string    `json:"tags"`
 	Name        string    `json:"name"`
 	SmallCover  string    `json:"small_cover"`
-	Covers      string    `json:"covers"`
+	CoversStr   string    `json:"-" gorm:"column:covers"`
+	Covers      []string  `gorm:"-" json:"covers"`
 	Desc        string    `json:"desc"`
 	GoodsType   string    `json:"goods_type" gorm:"goods_type" `
+}
+
+func (g *GoodsBrief) AfterFind() error {
+	err := json.Unmarshal([]byte(g.CoversStr), &g.Covers)
+	if err != nil {
+		glog.Errorf("Goods AfterFind")
+	}
+	return nil
 }
 
 func (*GoodsBrief) TableName() string {
 	return "goods"
 }
-
 
 type Goods struct {
 	GoodsBrief
@@ -54,40 +65,27 @@ type GoodsTag struct {
 	DeletedAt *time.Time `sql:"index"`
 }
 
-type BannerBrief struct {
-	ID        uint       `gorm:"primary_key" json:"id"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `sql:"index"`
-	Title     string     `json:"title"`
-	Cover     string     `json:"cover"`
-	Visit     int        `json:"visit"`
-	EndAt     time.Time  `json:"end_at"`
-	Type      string     `json:"type"`
-	GoodsId   int        `json:"goods_id"`
-}
+// type BannerBrief struct {
+// 	ID        uint       `gorm:"primary_key" json:"id"`
+// 	CreatedAt time.Time  `json:"created_at"`
+// 	UpdatedAt time.Time  `json:"updated_at"`
+// 	DeletedAt *time.Time `sql:"index"`
+// }
 
-func (*BannerBrief) TableName() string {
-	return "activies"
-}
-
-type Banner struct {
-	Body string `json:"body"`
-}
+//type Banner struct {
+//	Body string `json:"body"`
+//}
 
 type GoodsService interface {
-	GetIndexBanner(comId int) ([]*BannerBrief, error)
-	GetActivityById(id int) (*Banner, error)
-	AddActivityPv(goodsId int) error
 	AddGoodsPv(goodsId int) error
 	GetGoodsById(goodsId int) (*Goods, error)
 	GetGoodsByName(name string) (*Goods, error)
-	GetGoodsList(comId, lastId, limit int) ([]*GoodsBrief, error)
-
+	GetGoodsList(comId, lastId uint, limit int) ([]*GoodsBrief, error)
 	GetTagByName(name string) (*GoodsTag, error)
 	SaveTag(tag *GoodsTag) error
-	GetRecommendGoodsList(comId, lastId, limit int) ([]*GoodsBrief, error)
+	GetRecommendGoodsList(comId, lastId uint, limit int) ([]*GoodsBrief, error)
 	Save(goods *Goods) error
 	GetGoodsByCode(code string) (*Goods, error)
 	UpdateCachedGoods(goods *Goods) (err error)
+	GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*GoodsBrief, error)
 }

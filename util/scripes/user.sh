@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-APP=user
+APP=site
 term() {
     echo "Caught SIGTERM signal!"
     kill -TERM "$child" 2>/dev/null
@@ -16,7 +16,7 @@ if [ -f upload ]; then
     chmod +x echoapp
 fi
 
-./echoapp user --config=config.yaml &
+./echoapp site --config=config.yaml &
 
 child=$!
 wait "$child"

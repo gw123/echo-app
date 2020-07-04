@@ -232,7 +232,7 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
 	}
-	commentDb, err := GetDb("comment")
+	commentDb, err := GetDb("goods")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -256,7 +256,7 @@ func GetOrderService() (echoapp.OrderService, error) {
 	if App.OrderSvr != nil {
 		return App.OrderSvr, nil
 	}
-	goodsDb, err := GetDb("shop")
+	goodsDb, err := GetDb("goods")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}

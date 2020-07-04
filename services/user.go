@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -17,10 +18,11 @@ import (
 
 const (
 	//redis 相关的key
-	RedisUserKey          = "User:%d"
-	RedisUserXCXOpenidKey = "UserXCXOpenid:%d"
-	RedisSmsLoginCodeKey  = "SmsLoginCode"
-
+	RedisUserKey           = "User:%d"
+	RedisUserXCXOpenidKey  = "UserXCXOpenid:%d"
+	RedisSmsLoginCodeKey   = "SmsLoginCode"
+	RedisUserXCXAddrKey    = "UserXCXDefaultAddr:%d"
+	RedisUserCollectionKey = "UserCollection:%d"
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
@@ -32,6 +34,12 @@ func FormatUserRedisKey(userId int64) string {
 
 func FormatOpenidRedisKey(userId int64) string {
 	return fmt.Sprintf(RedisUserXCXOpenidKey, userId)
+}
+func FormatUserAddrRedisKey(userId int64) string {
+	return fmt.Sprintf(RedisUserXCXAddrKey, userId)
+}
+func FormatUserCollectionRedisKey(userId int64) string {
+	return fmt.Sprintf(RedisUserCollectionKey, userId)
 }
 
 type UserService struct {
@@ -66,7 +74,7 @@ func (u *UserService) UpdateJwsToken(user *echoapp.User) (err error) {
 	return nil
 }
 
-func (u *UserService) GetUserByOpenId(comId int, openId string) (*echoapp.User, error) {
+func (u *UserService) GetUserByOpenId(comId uint, openId string) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := u.db.Where("com_id = ? and openid = ? ", comId, openId).First(user).Error; err != nil {
 		return nil, errors.Wrap(err, "db error")
@@ -146,7 +154,44 @@ func (u *UserService) GetCachedUserById(userId int64) (*echoapp.User, error) {
 	}
 	return user, nil
 }
+func (u *UserService) GetCachedUserDefaultAddrById(userId int64) (*echoapp.Address, error) {
+	addr := &echoapp.Address{}
+	data, err := u.redis.Get(FormatUserAddrRedisKey(userId)).Result()
+	if err != nil {
+		return nil, err
+	}
 
+	if err := json.Unmarshal([]byte(data), addr); err != nil {
+		return nil, err
+	}
+	return addr, nil
+}
+func (u *UserService) GetCachedUserCollectionListById(userId int64) ([]*echoapp.Collection, error) {
+	collectionList := []*echoapp.Collection{}
+	datamap, err := u.redis.HGetAll(FormatUserCollectionRedisKey(userId)).Result()
+	if err != nil {
+		return nil, err
+	}
+	for _, val := range datamap {
+		var temp = &echoapp.Collection{}
+		if err := json.Unmarshal([]byte(val), temp); err != nil {
+			return nil, err
+		}
+		collectionList = append(collectionList, temp)
+	}
+	return collectionList, nil
+}
+func (u *UserService) GetCachedUserCollectionById(userId int64, targetId string) (*echoapp.Collection, error) {
+	collection := &echoapp.Collection{}
+	datamap, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal([]byte(datamap), collection); err != nil {
+		return nil, err
+	}
+	return collection, nil
+}
 func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	//r := time.Duration(rand.Int63n(180))
 	data, err := json.Marshal(user)
@@ -161,7 +206,36 @@ func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	}
 	return err
 }
-
+func (u *UserService) UpdateCachedUserDefaultAddr(addr *echoapp.Address) (err error) {
+	//r := time.Duration(rand.Int63n(180))
+	data, err := json.Marshal(addr)
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	//fmt.Println(string(data))
+	err = u.redis.Set(FormatUserAddrRedisKey(addr.UserID), data, 0).
+		Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
+}
+func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
+	len, err := u.redis.HLen(FormatUserCollectionRedisKey(collection.UserID)).Result()
+	if len > 1000 || err != nil {
+		return errors.New("key field beyond the limit")
+	}
+	data, err := json.Marshal(collection)
+	if err != nil {
+		return errors.Wrap(err, "user collection redis set")
+	}
+	temp := strconv.FormatInt(collection.TargetId, 10)
+	err = u.redis.HSetNX(FormatUserCollectionRedisKey(collection.UserID), temp, data).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
+}
 func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := u.db.Where(" id = ?", userId).First(user).Error; err != nil {
@@ -201,7 +275,7 @@ func (u *UserService) AutoRegisterWxUser(user *echoapp.User) (err error) {
 }
 
 //解析当前用户，如果用户未注册自动注册
-func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, error) {
+func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, error) {
 	company := &echoapp.Company{}
 	_, err := echoapp_util.GetCache(
 		u.redis,
@@ -222,7 +296,7 @@ func (u *UserService) Jscode2session(comId int, code string) (*echoapp.User, err
 	if err == gorm.ErrRecordNotFound {
 		user = &echoapp.User{
 			Nickname: "未设置用户名",
-			ComId:    comId,
+			ComId:    int(comId),
 			Openid:   res.OpenID,
 		}
 		err := u.AutoRegisterWxUser(user)
@@ -253,74 +327,170 @@ func (uSvr UserService) Create(user *echoapp.RegisterParam) error {
 	return nil
 }
 
-func (uSvr UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
+func (uSvr *UserService) AddScore(ctx echo.Context, user *echoapp.User, amount int) error {
 	user.Score += amount
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,增加积分: %d", user.Id, amount)
 	return uSvr.Save(user)
 }
 
-func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
+func (uSvr *UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
 	user.Score -= amount
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)
 	return uSvr.Save(user)
 }
 
-// func (t *UserService) Addroles(c echo.Context, param *echoapp.Role) error {
+func (uSvr *UserService) GetUserAddressList(userId int64) ([]*echoapp.Address, error) {
+	var addrList []*echoapp.Address
+	if err := uSvr.db.Table("user_address").Where("user_id=?", userId).Order("updated_at DESC").Find(&addrList).Error; err != nil {
+		return nil, errors.Wrap(err, "GetUserAddrList")
+	}
+	return addrList, nil
+}
 
-// 	res := t.db.Table("roles").Where("name=?", param.Name)
-// 	if res.Error != nil && res.RecordNotFound() {
-// 		return errors.Wrap(res.Error, "Record has Found")
-// 	}
-// 	err := t.db.Create(param)
-// 	if err.Error != nil && t.db.NewRecord(param) {
-// 		return errors.Wrap(err.Error, "role create failed")
-// 	} else if t.db.NewRecord(param) {
-// 		return errors.New("not NewRecord")
-// 	}
-// 	echoapp_util.ExtractEntry(c).Infof("create role name:%s", param.Name)
-// 	return nil
-// }
+func (uSvr *UserService) CreateUserAddress(address *echoapp.Address) error {
+	if len(address.Mobile) != 11 {
+		return errors.New("请输入11位正确手机号")
+	}
+	if len(address.Address) <= 5 || len(address.Address) > 100 {
+		return errors.New("详细地址应为5-100个字符之间")
+	}
+	if address.Checked {
+		addrList, err := uSvr.GetUserAddressList(address.UserID)
+		if err != nil {
+			return err
+		}
+		for _, addr := range addrList {
+			if addr.Checked {
+				addr.Checked = false
+				uSvr.db.Save(addr)
+				//break
+			}
 
-// func (t *UserService) AddPermission(c echo.Context, param *echoapp.Permission) error {
+		}
+	}
+	if err := uSvr.db.Create(address).Error; err != nil {
+		return err
+	}
+	if address.Checked {
+		if err := uSvr.UpdateCachedUserDefaultAddr(address); err != nil {
+			return errors.Wrap(err, "UpdateCachedUserDefaultAddr")
+		}
+	}
+	return nil
+}
+func (uSvr *UserService) GetUserAddrById(addrId int64) (*echoapp.Address, error) {
+	res := &echoapp.Address{}
+	if err := uSvr.db.Where("id=?", addrId).First(res).Error; err != nil {
+		return nil, errors.Wrap(err, "GetUsrAddrById")
+	}
+	return res, nil
+}
+func (uSvr *UserService) UpdateUserAddress(address *echoapp.Address) error {
+	if len(address.Mobile) != 11 {
+		return errors.New("请输入11位正确手机号")
+	}
+	if len(address.Address) <= 5 || len(address.Address) > 100 {
+		return errors.New("详细地址应为5-100个字符之间")
+	}
+	addr, err := uSvr.GetUserAddrById(address.AddrId)
+	if err != nil {
+		return err
+	}
+	addr.Address = address.Address
+	addr.CityId = address.CityId
+	addr.DistrictId = address.DistrictId
+	addr.ProvinceId = address.ProvinceId
+	addr.Username = address.Username
+	addr.Code = address.Code
+	addr.Mobile = address.Mobile
+	if (addr.Checked == true) && (address.Checked == false) {
+		if err := uSvr.redis.Del(FormatUserAddrRedisKey(address.UserID)).Err(); err != nil {
+			return err
+		}
+	}
+	addr.Checked = address.Checked
+	if address.Checked && addr.Checked == false {
+		addrList, err := uSvr.GetUserAddressList(address.UserID)
+		if err != nil {
+			return err
+		}
+		for _, addr := range addrList {
+			if addr.Checked {
+				addr.Checked = false
+				uSvr.db.Save(addr)
+				//break
+			}
+		}
 
-// 	res := t.db.Table("permissions").Where("name=?", param.Name)
-// 	if res.Error != nil && res.RecordNotFound() {
-// 		return errors.Wrap(res.Error, "Record has Found")
-// 	}
-// 	err := t.db.Create(param)
-// 	if err.Error != nil && t.db.NewRecord(param) {
-// 		return errors.Wrap(err.Error, "permiseeion create failed")
-// 	} else if t.db.NewRecord(param) {
-// 		return errors.New("not NewRecord")
-// 	}
-// 	echoapp_util.ExtractEntry(c).Infof("create permission name:%s", param.Name)
-// 	return nil
-// }
+	}
+	if err := uSvr.db.Save(addr).Error; err != nil {
+		return err
+	}
 
-// func (t *UserService) RoleHasPermission(c echo.Context, param *echoapp.RoleandPermissionParam) (*echoapp.RoleHasPermission, error) {
-// 	role := &echoapp.Role{}
-// 	permission := &echoapp.Permission{}
-// 	res := t.db.Where("name=?", param.Role).Find(role)
-// 	if res.Error != nil && res.RecordNotFound() {
-// 		return nil, errors.Wrap(res.Error, "Role record has Found")
-// 	} else if res.RecordNotFound() {
-// 		return nil, errors.New("Role Record has Found")
-// 	}
-// 	res = t.db.Where("name=?", param.Permission)
-// 	if res.Error != nil && res.RecordNotFound() {
-// 		return nil, errors.Wrap(res.Error, "Permission record has Found")
-// 	} else if res.RecordNotFound() {
-// 		return nil, errors.New("Permission Record has Found")
-// 	}
-// 	rolehaspermission := &echoapp.RoleHasPermission{
-// 		RoleId:       role.Id,
-// 		PermissionId: permission.Id,
-// 	}
-// 	err := t.db.Create(rolehaspermission)
-// 	if err.Error != nil && t.db.NewRecord(param) {
-// 		return nil, errors.Wrap(err.Error, "rolehasper create failed")
-// 	} else if t.db.NewRecord(param) {
-// 		return nil, errors.New("not NewRecord")
-// 	}
-// 	return rolehaspermission, nil
-// }
+	if address.Checked {
+		if err := uSvr.UpdateCachedUserDefaultAddr(addr); err != nil {
+			return errors.Wrap(err, "UpdateCachedUserDefaultAddr")
+		}
+	}
+	return nil
+}
+func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
+	if err := uSvr.db.Delete(address).Error; err != nil {
+		return err
+	}
+	if address.Checked {
+		if err := uSvr.redis.Del(FormatUserAddrRedisKey(address.UserID)).Err(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
+	var collectionList []*echoapp.Collection
+	if err := uSvr.db.
+		Table("user_collection").
+		Where("user_id=?", userId).
+		Offset(lastId).
+		Limit(limit).
+		Order("id asc").
+		Find(&collectionList).
+		Error; err != nil {
+		return nil, errors.Wrap(err, "GetUserCollectList")
+	}
+	return collectionList, nil
+}
+
+func (uSvr *UserService) CreateUserCollection(address *echoapp.Collection) error {
+	if address.TargetId == 0 {
+		return errors.New("商品不存在")
+	}
+	res, _ := uSvr.GetUserCollectionById(address.TargetId, address.UserID)
+	if res != nil {
+		return errors.New("record has found")
+	}
+	if err := uSvr.db.Save(address).Error; err != nil {
+		return errors.Wrap(err, "db err")
+	}
+	return uSvr.UpdateCacheUserCollection(address)
+}
+func (uSvr *UserService) GetUserCollectionById(targetId, userId int64) (*echoapp.Collection, error) {
+	res := &echoapp.Collection{}
+	if err := uSvr.db.Where("target_id=? AND user_id=?", targetId, userId).First(res).Error; err != nil {
+		return nil, errors.Wrap(err, "GetUsrCollectIdById")
+	}
+	return res, nil
+}
+
+func (uSvr *UserService) DelUserCollection(address *echoapp.Collection) error {
+	if err := uSvr.db.Delete(address).Error; err != nil {
+		return err
+	}
+	if err := uSvr.redis.HDel(
+		FormatUserCollectionRedisKey(address.UserID),
+		strconv.FormatInt(address.TargetId, 10)).
+		Err(); err != nil {
+		return err
+	}
+	return nil
+}

@@ -69,12 +69,12 @@ func updateUserCache() {
 func updateCompanyCache() {
 	echoapp_util.DefaultLogger().Info("开启更新com缓存服务")
 	companySvr := app.MustGetCompanyService()
-	var currentMaxId int = 0
-	var limit int = 100
+	var currentMaxId uint = 0
+	var limit uint = 100
 
 	for {
 		echoapp_util.DefaultJsonLogger().Errorf("更新缓存 from %d to %d", currentMaxId, currentMaxId+limit)
-		list, err := companySvr.GetCompanyList(currentMaxId, limit)
+		list, err := companySvr.GetCompanyList(currentMaxId, int(limit))
 		if err != nil {
 			echoapp_util.DefaultJsonLogger().WithError(err).Errorf("GetCompnayList:%s", err.Error())
 		}

@@ -37,7 +37,7 @@ func startCommentServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -70,7 +70,9 @@ func startCommentServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
-	normal := e.Group("/v1/comment")
+	mode := "dev"
+	normal := e.Group("/" + mode + "/comment/:com_id")
+	//normal := e.Group("/v1/comment")
 	normal.Use(limitMiddleware, tryJwsMiddleware)
 
 	commentCtl := controllers.NewCommentController(commentSvr)

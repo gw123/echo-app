@@ -175,7 +175,7 @@ func (rCtrl *ResourceController) UploadResource(ctx echo.Context) error {
 			RealPrice:  0,
 			Price:      0,
 			GoodsType:  newFile.Type,
-			Covers:     string(data),
+			CoversStr:     string(data),
 			SmallCover: urlstrarr[0],
 		},
 	}

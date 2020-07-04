@@ -17,15 +17,7 @@ if [ -f upload ]; then
     chmod +x echoapp
 fi
 
-<<<<<<< HEAD
-<<<<<<< HEAD:util/scripes/file.sh
 ./echoapp file --config=config.yaml &
-=======
-./echoapp comment --config=config.yaml &
->>>>>>> develop:util/scripes/run.sh
-=======
-./echoapp file --config=config.yaml &
->>>>>>> develop
 
 child=$!
 wait "$child"

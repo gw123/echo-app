@@ -79,7 +79,7 @@ func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
 
 func (orderCtrl *OrderController) GetTicketByCode(ctx echo.Context) error {
 	code := ctx.QueryParam("code")
-	company, err := echoapp_util.GetCtxtCompany(ctx)
+	company, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
@@ -89,4 +89,57 @@ func (orderCtrl *OrderController) GetTicketByCode(ctx echo.Context) error {
 	}
 	codeTicket.XcxCover = company.XcxCover
 	return orderCtrl.Success(ctx, codeTicket)
+}
+
+func (orderCtrl *OrderController) GetOrderStatistics(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) CreateOrder(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) CancelOrder(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) Refund(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) GetOrderDetail(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) CheckTicket(ctx echo.Context) error {
+
+	return nil
+}
+
+func (orderCtrl *OrderController) CheckTicketList(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) GetTicketList(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) GetTicketDetail(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) FetchThirdTicket(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) CheckTicketByStaff(ctx echo.Context) error {
+	return nil
+}
+
+func (orderCtrl *OrderController) CheckTicketBySelf(ctx echo.Context) error {
+	return nil
 }

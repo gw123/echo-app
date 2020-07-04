@@ -47,6 +47,7 @@ type ResourceServerOption struct {
 	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
 	BaseURL           string `yaml:"base_url" mapstructure:"base_url"`
 }
+
 type Server struct {
 	Addr    string   `yaml:"addr" mapstructure:"addr"`
 	Mode    string   `yaml:"mode" mapstructure:"mode"`
