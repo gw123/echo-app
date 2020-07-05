@@ -20,6 +20,7 @@ type ConfigOptions struct {
 	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
 	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
 	MessageServer     *Server                   `yaml:"message_server" mapstructure:"message_server"`
+	TestpaperServer   *Server                       `yaml:"testpaper_server" mapstructure:"testpaper_server"`
 	FileServer        *Server                   `yaml:"file_server" mapstructure:"file_server"`
 	SiteServer        *Server                   `yaml:"site_server" mapstructure:"site_server"`
 	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
@@ -31,8 +32,13 @@ type ConfigOptions struct {
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
+	RecommendOptions  *RecommendOptions             `yaml:"recommend_options" mapstructure:"recommend_options"`
 }
-
+type RecommendOptions struct {
+	AttributesWight []float64 `json:"attributes_wight" yaml:"attributes_wight" mapstructure:"attributes_wight"`
+	ParamA          float64   `json:"param_a" yaml:"param_a" mapstructure:"param_a"`
+	ParamB          float64   `json:"param_b" yaml:"param_b" mapstructure:"param_b"`
+}
 type ResourceServerOption struct {
 	BucketName        string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
 	CallbackUrl       string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`

@@ -1,7 +1,10 @@
 package controllers
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
+	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
@@ -113,19 +116,86 @@ func (sCtl *UserController) Jscode2session(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) GetUserAddressList(ctx echo.Context) error {
-	return nil
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	addressList, err := sCtl.userSvr.GetUserAddressList(userId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	return sCtl.Success(ctx, addressList)
+}
+func (sCtl *UserController) GetUserDefaultAddress(ctx echo.Context) error {
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	address, err := sCtl.userSvr.GetCachedUserDefaultAddrById(userId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeCacheError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, address)
 }
 
 func (sCtl *UserController) CreateUserAddress(ctx echo.Context) error {
-	return nil
+	addr := &echoapp.Address{}
+	if err := ctx.Bind(addr); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	addr.UserID = userId
+	if err := sCtl.userSvr.CreateUserAddress(addr); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, addr)
 }
 
 func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
-	return nil
+	addrParam := &echoapp.Address{}
+	if err := ctx.Bind(addrParam); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	addrParam.UserID = userId
+	//addrId, _ := echoapp_util.GetCtxtAddrId(ctx)
+	//addrParam.AddrId = addrId
+
+	// addr, err := sCtl.userSvr.GetUserAddrById(addrParam.AddrId)
+	// if err != nil {
+	// 	return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	// }
+	// addr.Username = addrParam.Username
+	// addr.Mobile = addrParam.Mobile
+	// addr.Address = addrParam.Address
+	// addr.Checked = addrParam.Checked
+	if err := sCtl.userSvr.UpdateUserAddress(addrParam); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, echoapp.ErrDb.Error(), err)
+	}
+	return sCtl.Success(ctx, addrParam)
 }
 
 func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
-	return nil
+	addrParam := &echoapp.Address{}
+	if err := ctx.Bind(addrParam); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	var addr *echoapp.Address
+	addr, err := sCtl.userSvr.GetUserAddrById(int64(addrParam.ID))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	if err := sCtl.userSvr.DelUserAddress(addr); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, echoapp.ErrDb.Error(), err)
+	}
+	return sCtl.Success(ctx, nil)
 }
 
 func (sCtl *UserController) GetCartGoodsList(context echo.Context) error {
@@ -142,4 +212,77 @@ func (sCtl *UserController) DelCartGoods(context echo.Context) error {
 
 func (sCtl *UserController) UpdateCartGoods(context echo.Context) error {
 	return nil
+}
+
+func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
+	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
+	// limit := ctx.QueryParam("limit")
+	// limitint, _ := strconv.Atoi(limit)
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	addressList, err := sCtl.userSvr.GetUserCollectionList(userId, lastId, limitint)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	return sCtl.Success(ctx, addressList)
+}
+func (sCtl *UserController) GetCacheUserCollectionById(ctx echo.Context) error {
+	targetId := ctx.QueryParam("targetId")
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	res, err := sCtl.userSvr.GetCachedUserCollectionById(userId, targetId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	return sCtl.Success(ctx, res)
+}
+func (sCtl *UserController) GetUserCacheCollectionList(ctx echo.Context) error {
+	// limit := ctx.QueryParam("limit")
+	// limitint, _ := strconv.Atoi(limit)
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	addressList, err := sCtl.userSvr.GetCachedUserCollectionListById(userId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeCacheError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, addressList)
+}
+func (sCtl *UserController) CreateUserCollection(ctx echo.Context) error {
+	addr := &echoapp.Collection{}
+	if err := ctx.Bind(addr); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	addr.UserID = userId
+	if err := sCtl.userSvr.CreateUserCollection(addr); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, addr)
+}
+
+func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
+	targetId := ctx.QueryParam("targetId")
+	targetIdInt, _ := strconv.ParseInt(targetId, 10, 64)
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	res, err := sCtl.userSvr.GetUserCollectionById(targetIdInt, userId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	if err := sCtl.userSvr.DelUserCollection(res); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, nil)
 }

@@ -19,4 +19,7 @@ const (
 
 	RedisActivityKey = "Activity:%d"
 	RedisArticleKey  = "Article:%d"
+
+	RedisUserDefaultAddrKey = "UserDefaultAddr:%d"
+	RedisUserCollectionKey  = "UserCollection:%d"
 )

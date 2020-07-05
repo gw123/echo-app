@@ -26,14 +26,14 @@ func (cmtSvc *CommentService) SaveComment(comment *echoapp.Comment) error {
 
 func (cmtSvc *CommentService) CreateComment(comment *echoapp.Comment) error {
 	//cmtSvc.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Comment{})
-	if comment.Pid > 0 {
-		pComment, err := cmtSvc.GetCommentById(comment.Pid)
+	if comment.PId > 0 {
+		pComment, err := cmtSvc.GetCommentById(comment.PId)
 		if err != nil {
-			return errors.Wrapf(err, "comment id %d not exist", comment.Pid)
+			return errors.Wrapf(err, "comment id %d not exist", comment.PId)
 		}
 		pComment.ReplyNum += 1
 		if err = cmtSvc.SaveComment(pComment); err != nil {
-			return errors.Wrapf(err, "comment save err id:%d", comment.Pid)
+			return errors.Wrapf(err, "comment save err id:%d", comment.PId)
 		}
 		comment.GoodsId = pComment.GoodsId
 		comment.ComId = pComment.ComId

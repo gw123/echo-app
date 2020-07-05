@@ -32,6 +32,7 @@ const (
 	//ctxkeys
 	ctxUserKey       = "&userKey{}"
 	ctxUserIdKey     = "&userIdKey{}"
+	ctxAddrIdKey     = "&addrIdKey{}"
 	ctxComKey        = "&comKey{}"
 	ctxUserRolesKey  = "&userRolesKey{}"
 	ctxLoggerKey     = "&loggerKey{}"
@@ -74,7 +75,18 @@ func GetCtxtUserId(ctx echo.Context) (int64, error) {
 	}
 	return userId, nil
 }
+func SetCtxAddrId(ctx echo.Context, addrId int64) {
+	AddField(ctx, "addr_id", strconv.FormatInt(addrId, 10))
+	ctx.Set(ctxAddrIdKey, addrId)
+}
 
+func GetCtxtAddrId(ctx echo.Context) (int64, error) {
+	addrId, ok := ctx.Get(ctxAddrIdKey).(int64)
+	if !ok {
+		return 0, errors.New("get ctxAddrId flied")
+	}
+	return addrId, nil
+}
 func SetCtxUser(ctx echo.Context, user *echoapp.User) {
 	ctx.Set(ctxUserKey, user)
 }

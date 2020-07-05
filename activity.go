@@ -77,4 +77,3 @@ type ActivityService interface {
 	GetActivityList(comId uint, lastId uint, limit int) ([]*Activity, error)
 	GetActivityDetail(id uint) (*Activity, error)
 }
-

@@ -1,10 +1,11 @@
 package controllers
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
-	"strconv"
 )
 
 type SiteController struct {

@@ -15,4 +15,3 @@ fi
 
 child=$!
 wait "$child"
-

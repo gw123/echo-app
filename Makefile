@@ -1,4 +1,12 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
+DEFAULT_TAG = "echo-app:1.0.1"
+=======
 DEFAULT_TAG = "echo-app:1.0.2"
+>>>>>>> develop
+=======
+DEFAULT_TAG = "echo-app:1.0.2"
+>>>>>>> e97b923ce01cab35b61b230f3b2c629d02a72c63
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/user:1.0.1"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 DOCKER_BUILD_PATH=/data/docker/images/echoapp

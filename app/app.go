@@ -25,6 +25,7 @@ type EchoApp struct {
 	OrderSvr        echoapp.OrderService
 	ActivitySvr     echoapp.ActivityService
 	WsSvr           echoapp.WsService
+	TestpaperSvr    echoapp.TestpaperService
 }
 
 func init() {
@@ -164,7 +165,7 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
 		return App.GoodsSvr, nil
 	}
-	goodsDb, err := GetDb("goods")
+	goodsDb, err := GetDb("shop")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -213,7 +214,7 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	if App.ResourceService != nil {
 		return App.ResourceService, nil
 	}
-	shopDb, err := GetDb("resource")
+	shopDb, err := GetDb("laraveltest")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -304,6 +305,30 @@ func MustGetActivityService() echoapp.ActivityService {
 	svr, err := GetActivityService()
 	if err != nil {
 		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+func GetTestpaperService() (echoapp.TestpaperService, error) {
+	if App.TestpaperSvr != nil {
+		return App.TestpaperSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "GetRedis")
+	// }
+
+	App.TestpaperSvr = services.NewTestpaperService(shopDb)
+	return App.TestpaperSvr, nil
+}
+
+func MustGetTestpaperService() echoapp.TestpaperService {
+	svr, err := GetTestpaperService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
 }

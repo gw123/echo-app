@@ -65,6 +65,7 @@ func startUserServer() {
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
+		MockUserId: 58,
 	}
 	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
 	//登录
@@ -74,10 +75,13 @@ func startUserServer() {
 	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
-	jwsAuth := e.Group("/v1/user")
+	//jwsAuth := e.Group("/v1/user")
+	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper: middleware.DefaultSkipper,
-		Jws:     app.MustGetJwsHelper(),
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		//IgnoreAuth: true,
+		//MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
@@ -90,11 +94,22 @@ func startUserServer() {
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
 	//addressList
 	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
-	jwsAuth.GET("/createUserAddress", userCtl.CreateUserAddress)
-	jwsAuth.GET("/updateUserAddress", userCtl.UpdateUserAddress)
-	jwsAuth.GET("/delUserAddress", userCtl.DelUserAddress)
 
-
+	jwsAuth.POST("/createUserAddress", userCtl.CreateUserAddress)
+	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
+	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
+	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
+	//cart
+	jwsAuth.GET("/getCartGoodsList", userCtl.GetCartGoodsList)
+	jwsAuth.GET("/addCartGoods", userCtl.AddCartGoods)
+	jwsAuth.GET("/delCartGoods", userCtl.DelCartGoods)
+	jwsAuth.GET("/updateCartGoods", userCtl.UpdateCartGoods)
+	//collection
+	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
+	jwsAuth.GET("/getUserCacheCollectionList", userCtl.GetUserCacheCollectionList)
+	jwsAuth.POST("/createUserCollection", userCtl.CreateUserCollection)
+	jwsAuth.GET("/deleteUserCollection", userCtl.DelUserCollection)
+	jwsAuth.GET("/getCacheUserCollectionById", userCtl.GetCacheUserCollectionById)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
