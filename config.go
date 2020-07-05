@@ -19,6 +19,7 @@ type ConfigOptions struct {
 	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
 	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
 	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
+	MessageServer     *Server                   `yaml:"message_server" mapstructure:"message_server"`
 	FileServer        *Server                   `yaml:"file_server" mapstructure:"file_server"`
 	SiteServer        *Server                   `yaml:"site_server" mapstructure:"site_server"`
 	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`

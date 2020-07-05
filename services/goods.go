@@ -33,65 +33,65 @@ func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
 	}
 }
 
-func (u *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	res := u.db.Where("name=?", name).Find(goods)
+	res := gSvr.db.Where("name=?", name).Find(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
 	}
 	return goods, nil
 }
 
-func (u *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
-	u.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.GoodsTag{})
+func (gSvr *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
+	gSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.GoodsTag{})
 	tmptag := &echoapp.GoodsTag{}
-	if u.db.Table("tags").Where("name=?", tag.Name).Find(tmptag).RecordNotFound() {
-		return u.db.Create(tag).Error
+	if gSvr.db.Table("tags").Where("name=?", tag.Name).Find(tmptag).RecordNotFound() {
+		return gSvr.db.Create(tag).Error
 	}
 	return nil
 }
 
-func (u *GoodsService) GetIndexBanner(comId int) ([]*echoapp.BannerBrief, error) {
+func (gSvr *GoodsService) GetIndexBanner(comId int) ([]*echoapp.BannerBrief, error) {
 	banners := []*echoapp.BannerBrief{}
-	if err := u.db.Where("com_id = ? and status ='online'", comId).Find(&banners).Error; err != nil {
+	if err := gSvr.db.Where("com_id = ? and status ='online'", comId).Find(&banners).Error; err != nil {
 		return nil, errors.Wrap(err, "getIndexBanner")
 	}
 	return banners, nil
 }
 
-func (u *GoodsService) GetActivityById(id int) (*echoapp.Banner, error) {
+func (gSvr *GoodsService) GetActivityById(id int) (*echoapp.Banner, error) {
 	banner := echoapp.Banner{}
-	if err := u.db.Where("id = ?", id).Find(&banner).Error; err != nil {
+	if err := gSvr.db.Where("id = ?", id).Find(&banner).Error; err != nil {
 		return nil, errors.Wrap(err, "getIndexBanner")
 	}
 	return &banner, nil
 }
 
-func (u *GoodsService) AddActivityPv(activityId int) error {
+func (gSvr *GoodsService) AddActivityPv(activityId int) error {
 	banner := echoapp.Banner{}
-	if err := u.db.Model(&banner).Where("id = ?", activityId).
+	if err := gSvr.db.Model(&banner).Where("id = ?", activityId).
 		Update("set visit=visit+1").Error; err != nil {
 		return errors.Wrap(err, "getIndexBanner")
 	}
 	return nil
 }
 
-func (u *GoodsService) AddGoodsPv(goodsId int) error {
+func (gSvr *GoodsService) AddGoodsPv(goodsId int) error {
 	goods := echoapp.Goods{}
-	if err := u.db.Model(&goods).Where("id = ?", goodsId).
+	if err := gSvr.db.Model(&goods).Where("id = ?", goodsId).
 		Update("set visit=visit+1").Error; err != nil {
 		return errors.Wrap(err, "getIndexBanner")
 	}
 	return nil
 }
 
-func (u *GoodsService) GetGoodsByCode(code string) (*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetGoodsByCode(code string) (*echoapp.Goods, error) {
 	panic("implement me")
 }
 
-func (u *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
+func (gSvr *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
-	if err := u.db.Where("com_id = ? and id > ?", comId, lastId).
+	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
 		Where("status = 'publish'").
 		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
@@ -100,9 +100,9 @@ func (u *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.G
 	return goodsList, nil
 }
 
-func (u *GoodsService) GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*echoapp.GoodsBrief, error) {
+func (gSvr *GoodsService) GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
-	if err := u.db.Where("com_id = ? and id > ?", comID, lastID).
+	if err := gSvr.db.Where("com_id = ? and id > ?", comID, lastID).
 		Where("status = 'publish'").
 		Where("match (tags) against (? in boolean mode)", tagID).
 		Order("id desc").Limit(limit).
@@ -112,9 +112,9 @@ func (u *GoodsService) GetTagGoodsList(comID uint, tagID int, lastID uint, limit
 	return goodsList, nil
 }
 
-func (u *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
+func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
-	if err := u.db.Where("com_id = ? and id > ?", comId, lastId).
+	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
 		Where("recommend_lvl > 0 and status = 'publish'").
 		Order("recommend_lvl desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
@@ -123,9 +123,9 @@ func (u *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) ([]*
 	return goodsList, nil
 }
 
-func (u *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	data, err := u.redis.Get(FormatGoodsRedisKey(goodsId)).Result()
+	data, err := gSvr.redis.Get(FormatGoodsRedisKey(goodsId)).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -136,14 +136,14 @@ func (u *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) 
 	return goods, nil
 }
 
-func (u *GoodsService) UpdateCachedGoods(goods *echoapp.Goods) (err error) {
+func (gSvr *GoodsService) UpdateCachedGoods(goods *echoapp.Goods) (err error) {
 	//r := time.Duration(rand.Int63n(180))
 	data, err := json.Marshal(goods)
 	if err != nil {
 		return errors.Wrap(err, "redis set")
 	}
 	//fmt.Println(string(data))
-	err = u.redis.Set(FormatGoodsRedisKey(goods.ID), data, 0).
+	err = gSvr.redis.Set(FormatGoodsRedisKey(goods.ID), data, 0).
 		Err()
 	if err != nil {
 		return errors.Wrap(err, "redis set")
@@ -152,17 +152,17 @@ func (u *GoodsService) UpdateCachedGoods(goods *echoapp.Goods) (err error) {
 }
 
 //基础方法自动更新cache
-func (u *GoodsService) Save(goods *echoapp.Goods) error {
-	if err := u.db.Save(goods).Error; err != nil {
+func (gSvr *GoodsService) Save(goods *echoapp.Goods) error {
+	if err := gSvr.db.Save(goods).Error; err != nil {
 		return errors.Wrap(err, "db save goods")
 	}
-	return u.UpdateCachedGoods(goods)
+	return gSvr.UpdateCachedGoods(goods)
 }
 
-func (rsv *GoodsService) GetGoodsByTagId(tagId uint, from, limit int) ([]*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetGoodsByTagId(tagId uint, from, limit int) ([]*echoapp.Goods, error) {
 	var goodslist []*echoapp.Goods
 
-	res := rsv.db.Offset(from*limit).Limit(limit).Where("tag_id=?", tagId).Find(goodslist)
+	res := gSvr.db.Offset(from*limit).Limit(limit).Where("tag_id=?", tagId).Find(goodslist)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByTagId")
 	}
@@ -170,59 +170,71 @@ func (rsv *GoodsService) GetGoodsByTagId(tagId uint, from, limit int) ([]*echoap
 	return goodslist, nil
 }
 
-func (rsv *GoodsService) GetUserPaymentGoods(userId uint, from int, limit int) ([]*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetUserPaymentGoods(userId uint, from int, limit int) ([]*echoapp.Goods, error) {
 	var goodslist []*echoapp.Goods
-	res := rsv.db.Where("user_id=?", userId).Offset(from * limit).Limit(limit).Find(goodslist)
+	res := gSvr.db.Where("user_id=?", userId).Offset(from * limit).Limit(limit).Find(goodslist)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetUserPaymentGoods")
 	}
 	return goodslist, nil
 }
 
-func (rsv *GoodsService) DeleteGoods(goods *echoapp.Goods) error {
-	return rsv.db.Delete(goods).Error
+func (gSvr *GoodsService) DeleteGoods(goods *echoapp.Goods) error {
+	return gSvr.db.Delete(goods).Error
 }
 
-func (rsv *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
+func (gSvr *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
 	goods := &echoapp.GoodsTag{}
-	res := rsv.db.Where("name=?", name).Find(goods)
+	res := gSvr.db.Where("name=?", name).Find(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetTagsByName")
 	}
 	return goods, nil
 }
 
-func (u *GoodsService) GetGoodsById(goodsId int) (*echoapp.Goods, error) {
+func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	if err := u.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
+	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
 	return goods, nil
 }
 
-func (u *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Cart, error) {
+func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Cart, error) {
 	cart := &echoapp.Cart{}
-	if err := u.db.Where("com_id = ? and  user_id = ?", comID, userID).
+	if err := gSvr.db.Where("com_id = ? and  user_id = ?", comID, userID).
 		First(cart).Error; err != nil {
 		return nil, err
 	}
 	return cart, nil
 }
 
-func (u *GoodsService) DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error {
+func (gSvr *GoodsService) DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error {
 	item := &echoapp.CartGoodsItem{GoodsId: goodsID, SkuID: skuID}
-	return u.UpdateCartGoods(comID, userID, item)
+	return gSvr.UpdateCartGoods(comID, userID, item)
 }
 
-func (u *GoodsService) AddCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
-	return u.UpdateCartGoods(comID, userID, goodsItem)
+func (gSvr *GoodsService) AddCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
+	return gSvr.updateCartGoods(comID, userID, goodsItem, "add")
 }
 
-func (u *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
-	cart, err := u.GetCartGoodsList(comID, userID)
-	if err != nil {
+func (gSvr *GoodsService) updateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem, action string) error {
+	if err := gSvr.IsValidCartGoods(goodsItem); err != nil {
+		return errors.Wrap(err, "商品校验失败")
+	}
+
+	cart, err := gSvr.GetCartGoodsList(comID, userID)
+	if err != nil && !gorm.IsRecordNotFoundError(err) {
 		return errors.Wrap(err, "GetCartGoodsList")
 	}
+
+	if err != nil && gorm.IsRecordNotFoundError(err) {
+		cart = &echoapp.Cart{
+			ComId:  comID,
+			UserID: userID,
+		}
+	}
+
 	isNew := true
 	for index, item := range cart.Content {
 		if item.GoodsId == goodsItem.GoodsId && item.SkuID == goodsItem.SkuID {
@@ -231,7 +243,11 @@ func (u *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *echoa
 				cart.Content = append(cart.Content[0:index], cart.Content[index:]...)
 				break
 			}
-			item.Num = goodsItem.Num
+			if action == "add" {
+				item.Num += 1
+			} else {
+				item.Num = goodsItem.Num
+			}
 			break
 		}
 	}
@@ -243,8 +259,55 @@ func (u *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *echoa
 		cart.Content = append(cart.Content, goodsItem)
 	}
 
-	if err := u.db.Save(cart).Error; err != nil {
+	if err := gSvr.db.Save(cart).Error; err != nil {
 		return errors.Wrap(err, "SaveCart")
+	}
+	return nil
+}
+
+func (gSvr *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem) error {
+	return gSvr.updateCartGoods(comID, userID, goodsItem, "update")
+}
+
+func (gSvr *GoodsService) IsValidCartGoods(item *echoapp.CartGoodsItem) error {
+	goods, err := gSvr.GetGoodsById(item.GoodsId)
+	if err != nil {
+		return errors.Wrap(err, "获取商品失败")
+	}
+	if item.Name != goods.Name {
+		return errors.New(item.Name + "商品名称发生变动")
+	}
+	if item.Price != goods.Price {
+		return errors.New(goods.Name + "原价对比失败")
+	}
+	if item.RealPrice != goods.RealPrice {
+		return errors.New(goods.Name + "商品价格发生变动")
+	}
+	if uint(goods.Num) < item.Num {
+		return errors.New(goods.Name + "商品数量不足")
+	}
+	return nil
+}
+
+func (gSvr *GoodsService) IsValidCartGoodsList(itemList []*echoapp.CartGoodsItem) error {
+	for _, item := range itemList {
+		if err := gSvr.IsValidCartGoods(item); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (gSvr *GoodsService) ClearCart(comID uint, userID uint) error {
+	cart, err := gSvr.GetCartGoodsList(comID, userID)
+	if gorm.IsRecordNotFoundError(err) {
+		return nil
+	}
+	if err != nil {
+		return errors.New("GetCartGoodsList")
+	}
+	if err := gSvr.db.Model(cart).Delete("id = ?", cart.ID); err != nil {
+		return errors.New("GetCartGoodsList")
 	}
 	return nil
 }

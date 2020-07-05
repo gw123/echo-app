@@ -1,34 +1,65 @@
 package echoapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/labstack/echo"
 )
 
+const (
+	OrderStatusUnpay    = "unpay"
+	OrderStatusPaid     = "unpaid"
+	OrderStatusRefund   = "refund"
+	OrderStatusShipping = "shipping"
+	OrderStatusSigned   = "signed"
+)
+
 type Order struct {
-	ID            uint `gorm:"primary_key"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	Source        string  `json:"source"`
-	PayMethod     string  `json:"pay_method"`
-	ComId         int     `json:"com_id"`
-	ShopId        int     `json:"shop_id"`
-	OrderNo       string  `json:"order_no"`
-	UserId        uint    `json:"user_id"`
-	InviterId     int     `json:"inviter_id"`
-	Status        string  `json:"status"`
-	Total         float32 `json:"total"`
-	RealTotal     float32 `json:"real_total"`
-	PaidAt        time.Time
-	GoodsList     string `json:"goods_list"`
-	GoodsType     string `json:"goods_type"`
-	TransactionId string `json:"transaction_id"`
-	Note          string `json:"note"`
-	Info          string `json:"info"`
-	Score         string `score` //积分
+	ID            uint             `json:"id" gorm:"primary_key"`
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
+	PaidAt        time.Time        `json:"paid_at"`
+	Source        string           `json:"source"`
+	PayMethod     string           `json:"pay_method"`
+	ComId         uint             `json:"com_id"`
+	ShopId        uint             `json:"shop_id"`
+	OrderNo       string           `json:"order_no"`
+	UserId        uint             `json:"user_id"`
+	SellerId      uint             `json:"seller_id"`
+	InviterId     uint             `json:"inviter_id"`
+	Status        string           `json:"status"`
+	ExpressStatus string           `json:"express_status"`
+	AddressId     uint             `json:"address_id"`
+	Total         float32          `json:"total"`
+	RealTotal     float32          `json:"real_total"`
+	GoodsList     []*CartGoodsItem `json:"goodslist" gorm:"-"`
+	GoodsListStr  string           `json:"-" gorm:"column:goodslist"`
+	GoodsType     string           `json:"goods_type"`
+	TransactionId string           `json:"transaction_id"`
+	Note          string           `json:"note"`
+	Info          string           `json:"info"`
+	//Score         string           `score` //积分
 }
+
+func (o *Order) BeforeSave() error {
+	data, err := json.Marshal(o.GoodsList)
+	if err != nil {
+		return err
+	}
+	o.GoodsListStr = string(data)
+	if o.PaidAt.IsZero() {
+		o.PaidAt = time.Now()
+	}
+	return nil
+}
+
+func (c *Order) AfterFind() error {
+	err := json.Unmarshal([]byte(c.GoodsListStr), c.GoodsList)
+	return err
+}
+
 type GetOrderOptions struct {
 	PayMethod     string    `json:"pay_method"`
 	ShopId        int       `json:"shop_id"`
@@ -40,9 +71,9 @@ type GetOrderOptions struct {
 	TransactionId string    `json:"transaction_id"`
 	Note          string    `json:"note"`
 	Info          string    `json:"info"`
-	CreatedAt     time.Time `created_at`
+	CreatedAt     time.Time `json:"created_at"`
 	PaidAt        time.Time `json:"paid_at"`
-	Score         string    `score`
+	//Score         string    `score`
 }
 
 type Ticket struct {

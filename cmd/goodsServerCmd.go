@@ -33,8 +33,8 @@ func startGoodsServer() {
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
 	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: echoapp.ConfigOpts.OrderServer.Origins,
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+		AllowOrigins: echoapp.ConfigOpts.GoodsServer.Origins,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, "ClientID",
 			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
 	})
 
@@ -44,7 +44,7 @@ func startGoodsServer() {
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
 	})
-	e.Use(loggerMiddleware)
+	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 	//	StackSize: 1 << 10, // 1 KB
 	//}))
@@ -63,7 +63,7 @@ func startGoodsServer() {
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	mode := "dev"
 	normal := e.Group("/" + mode + "/goods/:com_id")
-	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
 
 	goodsCtl := controllers.NewGoodsController(goodsSvr)
 
@@ -73,16 +73,17 @@ func startGoodsServer() {
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 
 	//cart
-	jwsAuth := e.Group("/v1/order")
+	jwsAuth := e.Group("/" + mode + "/goods/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	})
-	jwsAuth.Use(corsMiddleware, jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
-	jwsAuth.GET("/addCartGoods", goodsCtl.AddCartGoods)
-	jwsAuth.GET("/delCartGoods", goodsCtl.DelCartGoods)
-	jwsAuth.GET("/updateCartGoods", goodsCtl.UpdateCartGoods)
+	jwsAuth.POST("/addCartGoods", goodsCtl.AddCartGoods)
+	jwsAuth.POST("/delCartGoods", goodsCtl.DelCartGoods)
+	jwsAuth.POST("/clearCart", goodsCtl.ClearCart)
+	jwsAuth.POST("/updateCartGoods", goodsCtl.UpdateCartGoods)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {

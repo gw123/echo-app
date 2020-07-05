@@ -7,20 +7,24 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
+	"math/rand"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type OrderService struct {
-	db    *gorm.DB
-	mu    sync.Mutex
-	redis *redis.Client
+	db      *gorm.DB
+	mu      sync.Mutex
+	redis   *redis.Client
+	goodSvr echoapp.GoodsService
 }
 
-func NewOrderService(db *gorm.DB, redis *redis.Client) *OrderService {
+func NewOrderService(db *gorm.DB, redis *redis.Client, goodsSvr echoapp.GoodsService) *OrderService {
 	help := &OrderService{
-		db:    db,
-		redis: redis,
+		db:      db,
+		redis:   redis,
+		goodSvr: goodsSvr,
 	}
 	return help
 }
@@ -99,7 +103,12 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 }
 
 func (oSvr *OrderService) PlaceOrder(order *echoapp.Order) error {
-	oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
+	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
+	order.Status = echoapp.OrderStatusUnpay
+	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
+	if err := oSvr.goodSvr.IsValidCartGoodsList(order.GoodsList); err != nil {
+		return errors.Wrap(err, "下单失败")
+	}
 	return oSvr.db.Create(order).Error
 }
 
@@ -138,6 +147,25 @@ func (oSvr *OrderService) GetOrderList(c echo.Context, from, limit int) ([]*echo
 	var orderoptions []*echoapp.GetOrderOptions
 
 	res := oSvr.db.Table("orders").Offset(limit * from).Limit(limit).Find(orderoptions)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "OrderService->GetOrderList")
+	}
+	return orderoptions, nil
+}
+
+func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, from, limit int) ([]*echoapp.GetOrderOptions, error) {
+	var orderoptions []*echoapp.GetOrderOptions
+	query := oSvr.db.Table("orders").Where("user_id = ?", userId).Offset(limit * from).Limit(limit)
+	switch status {
+	case echoapp.OrderStatusUnpay:
+	case echoapp.OrderStatusPaid:
+	case echoapp.OrderStatusRefund:
+		query = query.Where("status = ?", status)
+	case echoapp.OrderStatusShipping:
+	case echoapp.OrderStatusSigned:
+		query = query.Where("status= ? and express_status=?", echoapp.OrderStatusPaid, status)
+	}
+	res := query.Find(orderoptions)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "OrderService->GetOrderList")
 	}

@@ -12,6 +12,8 @@ const (
 	GoodsTypeTicket  = "ticket"
 	GoodsTypeRoom    = "room"
 	GoodsTypeCombine = "combine"
+	//订单中多种商品混合可能出现
+	GoodsTypeMix = "mix"
 )
 
 type GoodsBrief struct {
@@ -108,14 +110,14 @@ type CartGoodsItem struct {
 	SkuLabel  string   `json:"sku_label"`
 	Num       uint     `json:"num"`
 	Options   []string `json:"options"`
-	Price     uint     `json:"price"`
-	RealPrice uint     `json:"real_price"`
+	Price     float32  `json:"price"`
+	RealPrice float32  `json:"real_price"`
 	Cover     string   `json:"cover"`
 }
 
 type GoodsService interface {
 	AddGoodsPv(goodsId int) error
-	GetGoodsById(goodsId int) (*Goods, error)
+	GetGoodsById(goodsId uint) (*Goods, error)
 	GetGoodsByName(name string) (*Goods, error)
 	GetGoodsList(comId, lastId uint, limit int) ([]*GoodsBrief, error)
 	GetTagByName(name string) (*GoodsTag, error)
@@ -131,4 +133,7 @@ type GoodsService interface {
 	DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error
 	AddCartGoods(comID uint, userID uint, goods *CartGoodsItem) error
 	UpdateCartGoods(comID uint, userID uint, goods *CartGoodsItem) error
+	ClearCart(id uint, u uint) error
+	IsValidCartGoods(item *CartGoodsItem) error
+	IsValidCartGoodsList(itemList []*CartGoodsItem) error
 }

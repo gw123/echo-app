@@ -24,6 +24,7 @@ type EchoApp struct {
 	CommentSvr      echoapp.CommentService
 	OrderSvr        echoapp.OrderService
 	ActivitySvr     echoapp.ActivityService
+	WsSvr           echoapp.WsService
 }
 
 func init() {
@@ -154,6 +155,11 @@ func MustGetUserService() echoapp.UserService {
 	return userSvr
 }
 
+func MustGetWsService() echoapp.WsService {
+	App.WsSvr = services.NewWsService()
+	return App.WsSvr
+}
+
 func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
 		return App.GoodsSvr, nil
@@ -264,7 +270,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
 
-	App.OrderSvr = services.NewOrderService(goodsDb, redis)
+	goodsSvr := MustGetGoodsService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr)
 	return App.OrderSvr, nil
 }
 

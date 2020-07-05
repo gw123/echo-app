@@ -33,7 +33,7 @@ func startOrderServer() {
 	origins := echoapp.ConfigOpts.OrderServer.Origins
 	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: origins,
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, "ClientID",
 			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
 	})
 
@@ -43,7 +43,7 @@ func startOrderServer() {
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
 	})
-	e.Use(loggerMiddleware)
+	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 	//	StackSize: 1 << 10, // 1 KB
 	//}))
@@ -59,25 +59,25 @@ func startOrderServer() {
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	})
-
-	normal := e.Group("/v1/order")
-	normal.Use(corsMiddleware, limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	mode := "dev"
+	normal := e.Group("/" + mode + "/order/:com_id")
+	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
 	orderCtl := controllers.NewOrderController(orderSvr)
 	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
 
-	jwsAuth := e.Group("/v1/order")
+	jwsAuth := e.Group("/" + mode + "/order/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	})
-	jwsAuth.Use(corsMiddleware, jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
 	jwsAuth.GET("/getOrderDetail", orderCtl.GetOrderDetail)
 	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
-	jwsAuth.GET("/preOrder", orderCtl.PreOrder)
-	jwsAuth.GET("/createOrder", orderCtl.CreateOrder)
-	jwsAuth.GET("/cancelOrder", orderCtl.CancelOrder)
-	jwsAuth.GET("/refund", orderCtl.Refund)
+	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
+	jwsAuth.POST("/createOrder", orderCtl.CreateOrder)
+	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
+	jwsAuth.POST("/refund", orderCtl.Refund)
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
 	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)
@@ -86,11 +86,6 @@ func startOrderServer() {
 	jwsAuth.GET("/getTicketDetail", orderCtl.GetTicketDetail)
 	jwsAuth.GET("/fetchThirdTicket", orderCtl.FetchThirdTicket)
 
-	//cart
-	jwsAuth.GET("/getCartGoodsList", orderCtl.GetCartGoodsList)
-	jwsAuth.GET("/addCartGoods", orderCtl.AddCartGoods)
-	jwsAuth.GET("/delCartGoods", orderCtl.DelCartGoods)
-	jwsAuth.GET("/updateCartGoods", orderCtl.UpdateCartGoods)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {

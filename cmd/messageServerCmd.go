@@ -32,7 +32,7 @@ import (
 )
 
 func startLocalHttp() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
+	echoapp_util.DefaultLogger().Info("开启message服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -46,12 +46,12 @@ func startLocalHttp() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.Server.Origins
+	origins := echoapp.ConfigOpts.SiteServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "ClientID", "x-csrf-token", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -62,19 +62,30 @@ func startLocalHttp() {
 		},
 	})
 	//e.Use(loggerMiddleware)
-	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-		StackSize: 1 << 10, // 1 KB
-	}))
+	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+	//	StackSize: 1 << 10, // 1 KB
+	//}))
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+	}
+
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
+	//companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	//Actions
 	usrSvr := app.MustGetUserService()
-	wsCtl := controllers.NewWsController(usrSvr)
-	authGroup := e.Group("/gapi", loggerMiddleware)
-	authGroup.GET("/createWsClient", wsCtl.CreateWsClient)
-	authGroup.GET("/sendCmd", wsCtl.SendCmd)
-	e.Static("/", assetConfig.PublicRoot)
-	e.Static("/resource/", assetConfig.StorageRoot+"/ppt")
+	wsSvr := app.MustGetWsService()
+	wsCtl := controllers.NewWsController(usrSvr, wsSvr)
+
+	mode := "dev"
+	normal := e.Group("/" + mode + "/message/:com_id")
+	normal.Use(loggerMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt), limitMiddleware)
+	normal.GET("/newClient", wsCtl.CreateWsClient)
+
+
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.MessageServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -93,7 +104,7 @@ func startLocalHttp() {
 
 // serverCmd represents the server command
 var localServerCmd = &cobra.Command{
-	Use:   "local_server",
+	Use:   "message",
 	Short: "服务",
 	Long:  `测试服务`,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -105,8 +105,9 @@ func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoa
 
 	data := make(map[string]interface{})
 	data["username"] = param.Username
-	data["com_id"] = param.ComId
-	data["avatar"] = user.Avatar
+	//data["com_id"] = param.ComId
+	//data["avatar"] = user.Avatar
+	data["client_id"] = ctx.Request().Header.Get("ClientID")
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return nil, errors.Wrap(err, "Marshal")

@@ -67,7 +67,7 @@ func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 
-	goods, err := sCtl.goodsSvr.GetGoodsById(goodsId)
+	goods, err := sCtl.goodsSvr.GetGoodsById(uint(goodsId))
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
 	}
@@ -75,21 +75,21 @@ func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
 }
 
 func (sCtl *GoodsController) GetCartGoodsList(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
 	}
 	comID := echoapp_util.GetCtxComId(ctx)
 
-	cartGoodsList, err := sCtl.goodsSvr.GetCartGoodsList(comID, uint(user.Id))
+	cart, err := sCtl.goodsSvr.GetCartGoodsList(comID, uint(userID))
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取购物车失败", err)
 	}
-	return sCtl.Success(ctx, cartGoodsList)
+	return sCtl.Success(ctx, cart.Content)
 }
 
 func (sCtl *GoodsController) AddCartGoods(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
 	}
@@ -100,14 +100,14 @@ func (sCtl *GoodsController) AddCartGoods(ctx echo.Context) error {
 	}
 	//强制新加时数量为1
 	goosdItem.Num = 1
-	if err := sCtl.goodsSvr.AddCartGoods(comID, uint(user.Id), goosdItem); err != nil {
+	if err := sCtl.goodsSvr.AddCartGoods(comID, uint(userId), goosdItem); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
 	}
 	return sCtl.Success(ctx, nil)
 }
 
 func (sCtl *GoodsController) DelCartGoods(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
 	}
@@ -117,14 +117,14 @@ func (sCtl *GoodsController) DelCartGoods(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 
-	if err := sCtl.goodsSvr.DelCartGoods(comID, uint(user.Id), goosdItem.GoodsId, goosdItem.SkuID); err != nil {
+	if err := sCtl.goodsSvr.DelCartGoods(comID, uint(userID), goosdItem.GoodsId, goosdItem.SkuID); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
 	}
 	return sCtl.Success(ctx, nil)
 }
 
 func (sCtl *GoodsController) UpdateCartGoods(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
 	}
@@ -139,7 +139,29 @@ func (sCtl *GoodsController) UpdateCartGoods(ctx echo.Context) error {
 	if goosdItem.Num < 0 {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
-	if err := sCtl.goodsSvr.UpdateCartGoods(comID, uint(user.Id), goosdItem); err != nil {
+	if err := sCtl.goodsSvr.UpdateCartGoods(comID, uint(userID), goosdItem); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
+	}
+	return sCtl.Success(ctx, nil)
+}
+
+func (sCtl *GoodsController) ClearCart(ctx echo.Context) error {
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
+	}
+	comID := echoapp_util.GetCtxComId(ctx)
+	var goosdItem *echoapp.CartGoodsItem
+	if err := ctx.Bind(&goosdItem); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+	if goosdItem.Num > 10 {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "相同商品购物车支持最多添加10个商品,请分批次购买", err)
+	}
+	if goosdItem.Num < 0 {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+	if err := sCtl.goodsSvr.ClearCart(comID, uint(userID)); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
 	}
 	return sCtl.Success(ctx, nil)
