@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"strconv"
-
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
@@ -198,22 +196,6 @@ func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
 	return sCtl.Success(ctx, nil)
 }
 
-func (sCtl *UserController) GetCartGoodsList(context echo.Context) error {
-	return nil
-}
-
-func (sCtl *UserController) AddCartGoods(context echo.Context) error {
-	return nil
-}
-
-func (sCtl *UserController) DelCartGoods(context echo.Context) error {
-	return nil
-}
-
-func (sCtl *UserController) UpdateCartGoods(context echo.Context) error {
-	return nil
-}
-
 func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
 	// limit := ctx.QueryParam("limit")
@@ -228,13 +210,13 @@ func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, addressList)
 }
-func (sCtl *UserController) GetCacheUserCollectionById(ctx echo.Context) error {
+func (sCtl *UserController) IsCollect(ctx echo.Context) error {
 	targetId := ctx.QueryParam("targetId")
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
-	res, err := sCtl.userSvr.GetCachedUserCollectionById(userId, targetId)
+	res, err := sCtl.userSvr.IsCollect(userId, targetId)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
@@ -253,7 +235,7 @@ func (sCtl *UserController) GetUserCacheCollectionList(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, addressList)
 }
-func (sCtl *UserController) CreateUserCollection(ctx echo.Context) error {
+func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 	addr := &echoapp.Collection{}
 	if err := ctx.Bind(addr); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
@@ -270,13 +252,15 @@ func (sCtl *UserController) CreateUserCollection(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
-	targetId := ctx.QueryParam("targetId")
-	targetIdInt, _ := strconv.ParseInt(targetId, 10, 64)
+	collection := &echoapp.Collection{}
+	if err := ctx.Bind(collection); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	res, err := sCtl.userSvr.GetUserCollectionById(targetIdInt, userId)
+	res, err := sCtl.userSvr.GetUserCollectionById(userId, collection.Type, uint(collection.TargetId))
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}

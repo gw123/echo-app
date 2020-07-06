@@ -51,6 +51,14 @@ func (gSvr *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
 	return nil
 }
 
+func (gSvr *GoodsService) GetGoodsTags(comID uint) ([]*echoapp.GoodsTag, error) {
+	var goodsTags []*echoapp.GoodsTag
+	if err := gSvr.db.Where("com_id=?", comID).Find(&goodsTags).Error; err != nil {
+		return nil, errors.Wrap(err, "query tags")
+	}
+	return goodsTags, nil
+}
+
 func (gSvr *GoodsService) GetIndexBanner(comId int) ([]*echoapp.BannerBrief, error) {
 	banners := []*echoapp.BannerBrief{}
 	if err := gSvr.db.Where("com_id = ? and status ='online'", comId).Find(&banners).Error; err != nil {

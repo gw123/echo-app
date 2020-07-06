@@ -53,6 +53,7 @@ type Param struct {
 	From   int  `json:"from"`
 	Limit  int  `json:"limit"`
 	TagID  uint `json:"tag_id"`
+	Status uint `json:"status"`
 }
 
 func (orderCtrl *OrderController) GetUserPaymentOrder(c echo.Context) error {
@@ -68,12 +69,17 @@ func (orderCtrl *OrderController) GetUserPaymentOrder(c echo.Context) error {
 }
 
 func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
-	params := &Param{}
-	filelist, err := orderCtrl.orderSvc.GetOrderList(c, params.From, params.Limit)
+	userID, err := echoapp_util.GetCtxtUserId(c)
+	if err != nil {
+		return orderCtrl.Fail(c, echoapp.CodeArgument, "授权失败", err)
+	}
+	last,limit := echoapp_util.GetCtxListParams(c)
+	status := c.QueryParam("status")
+	filelist, err := orderCtrl.orderSvc.GetUserOrderList(c, uint(userID),status, last, limit)
 	if err != nil {
 		return orderCtrl.Fail(c, echoapp.CodeArgument, "OrderCtrl->GetOrderList", err)
 	}
-	echoapp_util.ExtractEntry(c).Infof("from:%s,limit:%s", params.From, params.Limit)
+	echoapp_util.ExtractEntry(c).Infof("status: %s from:%s,limit:%s", status, last,limit)
 	return orderCtrl.Success(c, filelist)
 }
 
@@ -105,7 +111,7 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 	params.ComId = echoapp_util.GetCtxComId(ctx)
 	if userId, err := echoapp_util.GetCtxtUserId(ctx); err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}else {
+	} else {
 		params.UserId = uint(userId)
 	}
 

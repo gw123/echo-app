@@ -182,16 +182,15 @@ func (u *UserService) GetCachedUserCollectionListById(userId int64) ([]*echoapp.
 	}
 	return collectionList, nil
 }
-func (u *UserService) GetCachedUserCollectionById(userId int64, targetId string) (*echoapp.Collection, error) {
-	collection := &echoapp.Collection{}
-	datamap, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
+func (u *UserService) IsCollect(userId int64, targetId string) (bool, error) {
+	_, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
 	if err != nil {
-		return nil, err
+		if err == redis.Nil {
+			return false, nil
+		}
+		return false, err
 	}
-	if err := json.Unmarshal([]byte(datamap), collection); err != nil {
-		return nil, err
-	}
-	return collection, nil
+	return true, nil
 }
 func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	//r := time.Duration(rand.Int63n(180))
@@ -230,7 +229,7 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 	if err != nil {
 		return errors.Wrap(err, "user collection redis set")
 	}
-	temp := strconv.FormatInt(collection.TargetId, 10)
+	temp := strconv.FormatInt(int64(collection.TargetId), 10)
 	err = u.redis.HSetNX(FormatUserCollectionRedisKey(collection.UserID), temp, data).Err()
 	if err != nil {
 		return errors.Wrap(err, "redis set")
@@ -466,30 +465,34 @@ func (uSvr *UserService) CreateUserCollection(address *echoapp.Collection) error
 	if address.TargetId == 0 {
 		return errors.New("商品不存在")
 	}
-	res, _ := uSvr.GetUserCollectionById(address.TargetId, address.UserID)
-	if res != nil {
-		return errors.New("record has found")
+
+	_, err := uSvr.GetUserCollectionById(address.UserID, address.Type,address.TargetId)
+	if err == nil {
+		//已经收藏 不需要
+		return nil
 	}
 	if err := uSvr.db.Save(address).Error; err != nil {
 		return errors.Wrap(err, "db err")
 	}
 	return uSvr.UpdateCacheUserCollection(address)
 }
-func (uSvr *UserService) GetUserCollectionById(targetId, userId int64) (*echoapp.Collection, error) {
+
+func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, targetId uint) (*echoapp.Collection, error) {
 	res := &echoapp.Collection{}
-	if err := uSvr.db.Where("target_id=? AND user_id=?", targetId, userId).First(res).Error; err != nil {
+	if err := uSvr.db.Where("type = ? and target_id=? AND user_id=?", targetType, targetId, userId).
+		First(res).Error; err != nil {
 		return nil, errors.Wrap(err, "GetUsrCollectIdById")
 	}
 	return res, nil
 }
 
-func (uSvr *UserService) DelUserCollection(address *echoapp.Collection) error {
-	if err := uSvr.db.Delete(address).Error; err != nil {
+func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
+	if err := uSvr.db.Delete(collection).Error; err != nil {
 		return err
 	}
 	if err := uSvr.redis.HDel(
-		FormatUserCollectionRedisKey(address.UserID),
-		strconv.FormatInt(address.TargetId, 10)).
+		FormatUserCollectionRedisKey(collection.UserID),
+		strconv.FormatInt(int64(collection.TargetId), 10)).
 		Err(); err != nil {
 		return err
 	}

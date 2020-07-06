@@ -143,4 +143,5 @@ type GoodsService interface {
 	ClearCart(id uint, u uint) error
 	IsValidCartGoods(item *CartGoodsItem) error
 	IsValidCartGoodsList(itemList []*CartGoodsItem) error
+	GetGoodsTags(id uint) ([]*GoodsTag, error)
 }

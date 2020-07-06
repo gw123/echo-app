@@ -67,7 +67,7 @@ func (*Address) TableName() string {
 
 type Collection struct {
 	gorm.Model
-	TargetId int64  `json:"target_id"`
+	TargetId uint  `json:"target_id"`
 	Type     string `json:"type"`
 	UserID   int64  `json:"user_id"`
 }
@@ -119,6 +119,6 @@ type UserService interface {
 	CreateUserCollection(collection *Collection) error
 	//UpdateUserCollection(collection *Collection) error
 	DelUserCollection(collection *Collection) error
-	GetUserCollectionById(targetId, userId int64) (*Collection, error)
-	GetCachedUserCollectionById(userId int64, targetId string) (*Collection, error)
+	GetUserCollectionById(userId int64,targetType string,targetId uint) (*Collection, error)
+	IsCollect(userId int64, targetId string) (bool, error)
 }

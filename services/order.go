@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -153,19 +154,28 @@ func (oSvr *OrderService) GetOrderList(c echo.Context, from, limit int) ([]*echo
 	return orderoptions, nil
 }
 
-func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, from, limit int) ([]*echoapp.GetOrderOptions, error) {
+func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*echoapp.GetOrderOptions, error) {
 	var orderoptions []*echoapp.GetOrderOptions
-	query := oSvr.db.Table("orders").Where("user_id = ?", userId).Offset(limit * from).Limit(limit)
+	query := oSvr.db
+	if lastId != 0 {
+		query = query.Where("id < ? ", lastId)
+	}
+	glog.Info(status)
+
 	switch status {
-	case echoapp.OrderStatusUnpay:
-	case echoapp.OrderStatusPaid:
-	case echoapp.OrderStatusRefund:
+	case echoapp.OrderStatusUnpay: fallthrough
+	case echoapp.OrderStatusPaid: fallthrough
+	case echoapp.OrderStatusRefund: fallthrough
+	case echoapp.OrderStatusCommented:
 		query = query.Where("status = ?", status)
-	case echoapp.OrderStatusShipping:
+	case echoapp.OrderStatusShipping: fallthrough
 	case echoapp.OrderStatusSigned:
 		query = query.Where("status= ? and express_status=?", echoapp.OrderStatusPaid, status)
+	default:
+		glog.Warn("test === unknow")
 	}
-	res := query.Find(orderoptions)
+
+	res := query.Debug().Table("orders").Where("user_id = ?", userId).Limit(limit).Find(&orderoptions)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "OrderService->GetOrderList")
 	}

@@ -9,11 +9,12 @@ import (
 )
 
 const (
-	OrderStatusUnpay    = "unpay"
-	OrderStatusPaid     = "unpaid"
-	OrderStatusRefund   = "refund"
-	OrderStatusShipping = "shipping"
-	OrderStatusSigned   = "signed"
+	OrderStatusUnpay     = "unpay"
+	OrderStatusPaid      = "paid"
+	OrderStatusRefund    = "refund"
+	OrderStatusShipping  = "shipping"
+	OrderStatusSigned    = "signed"
+	OrderStatusCommented = "commented"
 )
 
 type Order struct {
@@ -131,4 +132,5 @@ type OrderService interface {
 	GetUserPaymentOrder(c echo.Context, userId uint, from, limit int) ([]*Order, error)
 	//查看资源文件 ，每页有 limit 条数据
 	GetOrderList(c echo.Context, from, limit int) ([]*GetOrderOptions, error)
+	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*GetOrderOptions, error)
 }

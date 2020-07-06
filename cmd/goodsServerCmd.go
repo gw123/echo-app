@@ -69,7 +69,8 @@ func startGoodsServer() {
 
 	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
 	normal.GET("/getRecommendGoodsList", goodsCtl.GetRecommendGoodsList)
-	normal.GET("/getTagGoodsList", goodsCtl.GetTagGoodsList)
+	normal.GET("/getGoodsListByTagId", goodsCtl.GetTagGoodsList)
+	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 
 	//cart

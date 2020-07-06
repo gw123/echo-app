@@ -99,17 +99,13 @@ func startUserServer() {
 	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
 	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
 	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
-	//cart
-	jwsAuth.GET("/getCartGoodsList", userCtl.GetCartGoodsList)
-	jwsAuth.GET("/addCartGoods", userCtl.AddCartGoods)
-	jwsAuth.GET("/delCartGoods", userCtl.DelCartGoods)
-	jwsAuth.GET("/updateCartGoods", userCtl.UpdateCartGoods)
+
 	//collection
 	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
 	jwsAuth.GET("/getUserCacheCollectionList", userCtl.GetUserCacheCollectionList)
-	jwsAuth.POST("/createUserCollection", userCtl.CreateUserCollection)
-	jwsAuth.GET("/deleteUserCollection", userCtl.DelUserCollection)
-	jwsAuth.GET("/getCacheUserCollectionById", userCtl.GetCacheUserCollectionById)
+	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
+	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
+	jwsAuth.POST("/isCollect", userCtl.IsCollect)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

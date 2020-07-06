@@ -51,6 +51,15 @@ func (sCtl *GoodsController) GetTagGoodsList(ctx echo.Context) error {
 	return sCtl.Success(ctx, goodsList)
 }
 
+func (sCtl *GoodsController) GetGoodsTags(ctx echo.Context) error {
+	comId := echoapp_util.GetCtxComId(ctx)
+	goodsList, err := sCtl.goodsSvr.GetGoodsTags(comId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+	}
+	return sCtl.Success(ctx, goodsList)
+}
+
 func (sCtl *GoodsController) GetRecommendGoodsList(ctx echo.Context) error {
 	lastId, limit := echoapp_util.GetCtxListParams(ctx)
 	comId := echoapp_util.GetCtxComId(ctx)
@@ -166,3 +175,5 @@ func (sCtl *GoodsController) ClearCart(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, nil)
 }
+
+
