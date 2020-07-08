@@ -2,9 +2,10 @@ package echoapp
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
-	"time"
 )
 
 const (
@@ -134,7 +135,7 @@ type GoodsService interface {
 	GetGoodsByCode(code string) (*Goods, error)
 	UpdateCachedGoods(goods *Goods) (err error)
 	GetTagGoodsList(comID uint, tagID int, lastID uint, limit int) ([]*GoodsBrief, error)
-
+	GetCachedGoodsById(goodsId uint) (*Goods, error)
 	//购物车
 	GetCartGoodsList(comID uint, userID uint) (*Cart, error)
 	DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error

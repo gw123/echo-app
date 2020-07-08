@@ -3,7 +3,6 @@ package echoapp
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 )
 
@@ -66,10 +65,14 @@ func (*Address) TableName() string {
 }
 
 type Collection struct {
-	gorm.Model
-	TargetId uint  `json:"target_id"`
-	Type     string `json:"type"`
-	UserID   int64  `json:"user_id"`
+	//gorm.Model
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	TargetId  uint       `json:"target_id"`
+	Type      string     `json:"type"`
+	UserID    int64      `json:"user_id"`
 }
 
 func (*Collection) TableName() string {
@@ -114,11 +117,13 @@ type UserService interface {
 	DelUserAddress(address *Address) error
 	GetUserAddrById(addrId int64) (*Address, error)
 	GetCachedUserDefaultAddrById(userId int64) (*Address, error)
-	GetCachedUserCollectionListById(userId int64) ([]*Collection, error)
+
+	//GetCachedUserCollectionListById(userId int64) ([]*Collection, error)
 	GetUserCollectionList(userId int64, lastId uint, limit int) ([]*Collection, error)
 	CreateUserCollection(collection *Collection) error
 	//UpdateUserCollection(collection *Collection) error
 	DelUserCollection(collection *Collection) error
-	GetUserCollectionById(userId int64,targetType string,targetId uint) (*Collection, error)
-	IsCollect(userId int64, targetId string) (bool, error)
+	GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
+	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
+	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
 }

@@ -3,7 +3,6 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -18,11 +17,12 @@ import (
 
 const (
 	//redis 相关的key
-	RedisUserKey           = "User:%d"
-	RedisUserXCXOpenidKey  = "UserXCXOpenid:%d"
-	RedisSmsLoginCodeKey   = "SmsLoginCode"
-	RedisUserXCXAddrKey    = "UserXCXDefaultAddr:%d"
-	RedisUserCollectionKey = "UserCollection:%d"
+	RedisUserKey            = "User:%d"
+	RedisUserXCXOpenidKey   = "UserXCXOpenid:%d"
+	RedisSmsLoginCodeKey    = "SmsLoginCode"
+	RedisUserXCXAddrKey     = "UserXCXDefaultAddr:%d"
+	RedisUserCollectTypeKey = "UserCollectType:%d,%s"
+	//RedisUserCollectionKey  = "UserCollection:%d"
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
@@ -40,6 +40,9 @@ func FormatUserAddrRedisKey(userId int64) string {
 }
 func FormatUserCollectionRedisKey(userId int64) string {
 	return fmt.Sprintf(RedisUserCollectionKey, userId)
+}
+func FormatUserCollectionTypeRedisKey(userId int64, collectType string) string {
+	return fmt.Sprintf(RedisUserCollectTypeKey, userId, collectType)
 }
 
 type UserService struct {
@@ -167,30 +170,44 @@ func (u *UserService) GetCachedUserDefaultAddrById(userId int64) (*echoapp.Addre
 	}
 	return addr, nil
 }
-func (u *UserService) GetCachedUserCollectionListById(userId int64) ([]*echoapp.Collection, error) {
-	collectionList := []*echoapp.Collection{}
-	datamap, err := u.redis.HGetAll(FormatUserCollectionRedisKey(userId)).Result()
+
+// func (u *UserService) GetCachedUserCollectionListById(userId int64) ([]*echoapp.Collection, error) {
+// 	collectionList := []*echoapp.Collection{}
+// 	datamap, err := u.redis.HGetAll(FormatUserCollectionRedisKey(userId)).Result()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	for _, val := range datamap {
+// 		var temp = &echoapp.Collection{}
+// 		if err := json.Unmarshal([]byte(val), temp); err != nil {
+// 			return nil, err
+// 		}
+// 		collectionList = append(collectionList, temp)
+// 	}
+// 	return collectionList, nil
+// }
+
+func (u *UserService) GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error) {
+	datamap, err := u.redis.SMembers(FormatUserCollectionTypeRedisKey(userId, targetType)).Result()
 	if err != nil {
 		return nil, err
 	}
-	for _, val := range datamap {
-		var temp = &echoapp.Collection{}
-		if err := json.Unmarshal([]byte(val), temp); err != nil {
-			return nil, err
-		}
-		collectionList = append(collectionList, temp)
-	}
-	return collectionList, nil
+	return datamap, nil
 }
-func (u *UserService) IsCollect(userId int64, targetId string) (bool, error) {
-	_, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
-	if err != nil {
-		if err == redis.Nil {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+
+// func (u *UserService) IsCollect(userId int64, targetId string) (bool, error) {
+// 	_, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
+// 	if err != nil {
+// 		if err == redis.Nil {
+// 			return false, nil
+// 		}
+// 		return false, err
+// 	}
+// 	return true, nil
+// }
+func (u *UserService) IsCollect(userId int64, targetId uint, targetType string) (bool, error) {
+	ok, err := u.redis.SIsMember(FormatUserCollectionTypeRedisKey(userId, targetType), targetId).Result()
+	return ok, err
 }
 func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	//r := time.Duration(rand.Int63n(180))
@@ -220,17 +237,36 @@ func (u *UserService) UpdateCachedUserDefaultAddr(addr *echoapp.Address) (err er
 	}
 	return err
 }
+
+// func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
+// 	len, err := u.redis.HLen(FormatUserCollectionRedisKey(collection.UserID)).Result()
+// 	if err != nil {
+// 		return errors.Wrap(err, "redis get Hlen")
+// 	}
+// 	if len > 1000 {
+// 		return errors.New("key field beyond the limit")
+// 	}
+
+// 	data, err := json.Marshal(collection)
+// 	if err != nil {
+// 		return errors.Wrap(err, "user collection redis set")
+// 	}
+// 	temp := strconv.FormatInt(int64(collection.TargetId), 10)
+// 	err = u.redis.HSetNX(FormatUserCollectionRedisKey(collection.UserID), temp, data).Err()
+// 	if err != nil {
+// 		return errors.Wrap(err, "redis set")
+// 	}
+// 	return err
+// }
 func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
-	len, err := u.redis.HLen(FormatUserCollectionRedisKey(collection.UserID)).Result()
-	if len > 1000 || err != nil {
+	len, err := u.redis.SCard(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type)).Result()
+	if err != nil {
+		return errors.Wrap(err, "redis get Hlen")
+	}
+	if len > 1000 {
 		return errors.New("key field beyond the limit")
 	}
-	data, err := json.Marshal(collection)
-	if err != nil {
-		return errors.Wrap(err, "user collection redis set")
-	}
-	temp := strconv.FormatInt(int64(collection.TargetId), 10)
-	err = u.redis.HSetNX(FormatUserCollectionRedisKey(collection.UserID), temp, data).Err()
+	err = u.redis.SAdd(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type), collection.TargetId).Err()
 	if err != nil {
 		return errors.Wrap(err, "redis set")
 	}
@@ -363,7 +399,7 @@ func (uSvr *UserService) CreateUserAddress(address *echoapp.Address) error {
 			if addr.Checked {
 				addr.Checked = false
 				uSvr.db.Save(addr)
-				//break
+				break
 			}
 
 		}
@@ -418,7 +454,7 @@ func (uSvr *UserService) UpdateUserAddress(address *echoapp.Address) error {
 			if addr.Checked {
 				addr.Checked = false
 				uSvr.db.Save(addr)
-				//break
+				break
 			}
 		}
 
@@ -450,8 +486,7 @@ func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit 
 	var collectionList []*echoapp.Collection
 	if err := uSvr.db.
 		Table("user_collection").
-		Where("user_id=?", userId).
-		Offset(lastId).
+		Where("user_id=? AND id>?", userId, lastId).
 		Limit(limit).
 		Order("id asc").
 		Find(&collectionList).
@@ -460,13 +495,18 @@ func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit 
 	}
 	return collectionList, nil
 }
-
 func (uSvr *UserService) CreateUserCollection(address *echoapp.Collection) error {
 	if address.TargetId == 0 {
 		return errors.New("商品不存在")
 	}
-
-	_, err := uSvr.GetUserCollectionById(address.UserID, address.Type,address.TargetId)
+	ok, err := uSvr.IsCollect(address.UserID, address.TargetId, address.Type)
+	if err != nil {
+		return errors.Wrap(err, "redis Sismember")
+	}
+	if ok == true {
+		return nil
+	}
+	_, err = uSvr.GetUserCollectionById(address.UserID, address.Type, address.TargetId)
 	if err == nil {
 		//已经收藏 不需要
 		return nil
@@ -486,13 +526,25 @@ func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, 
 	return res, nil
 }
 
+// func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
+// 	if err := uSvr.db.Delete(collection).Error; err != nil {
+// 		return err
+// 	}
+// 	if err := uSvr.redis.HDel(
+// 		FormatUserCollectionRedisKey(collection.UserID),
+// 		strconv.FormatInt(int64(collection.TargetId), 10)).
+// 		Err(); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
 	if err := uSvr.db.Delete(collection).Error; err != nil {
 		return err
 	}
-	if err := uSvr.redis.HDel(
-		FormatUserCollectionRedisKey(collection.UserID),
-		strconv.FormatInt(int64(collection.TargetId), 10)).
+	if err := uSvr.redis.SRem(
+		FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type),
+		collection.TargetId).
 		Err(); err != nil {
 		return err
 	}

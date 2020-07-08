@@ -58,7 +58,8 @@ func startUserServer() {
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	usrSvr := app.MustGetUserService()
-	userCtl := controllers.NewUserController(usrSvr)
+	goodsSvr := app.MustGetGoodsService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr)
 	mode := "dev"
 	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
@@ -80,8 +81,8 @@ func startUserServer() {
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
-		//IgnoreAuth: true,
-		//MockUserId: 58,
+		IgnoreAuth: true,
+		MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
@@ -101,8 +102,8 @@ func startUserServer() {
 	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
 
 	//collection
+
 	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
-	jwsAuth.GET("/getUserCacheCollectionList", userCtl.GetUserCacheCollectionList)
 	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
 	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
