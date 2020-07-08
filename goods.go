@@ -109,7 +109,6 @@ func (c *Cart) BeforeSave() error {
 }
 
 type CartGoodsItem struct {
-	ID        uint     `json:"id"`
 	GoodsId   uint     `json:"goods_id"`
 	Name      string   `json:"name"`
 	SkuID     uint     `json:"sku_id"`
@@ -130,6 +129,7 @@ type GoodsService interface {
 	GetTagByName(name string) (*GoodsTag, error)
 	SaveTag(tag *GoodsTag) error
 	GetRecommendGoodsList(comId, lastId uint, limit int) ([]*GoodsBrief, error)
+	GetGoodsListByKeyword(comId uint, keyword string, lastId uint, limit int) ([]*GoodsBrief, error)
 	Save(goods *Goods) error
 	GetGoodsByCode(code string) (*Goods, error)
 	UpdateCachedGoods(goods *Goods) (err error)

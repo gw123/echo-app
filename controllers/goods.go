@@ -30,10 +30,21 @@ func NewGoodsController(usrSvr echoapp.GoodsService) *GoodsController {
 func (sCtl *GoodsController) GetGoodsList(ctx echo.Context) error {
 	lastId, limit := echoapp_util.GetCtxListParams(ctx)
 	comId := echoapp_util.GetCtxComId(ctx)
-	goods, err := sCtl.goodsSvr.GetGoodsList(comId, lastId, limit)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+	keyword := ctx.QueryParam("keyword")
+	var goods []*echoapp.GoodsBrief
+	var err error
+	if keyword == "" {
+		goods, err = sCtl.goodsSvr.GetGoodsList(comId, lastId, limit)
+		if err != nil {
+			return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+		}
+	} else {
+		goods, err = sCtl.goodsSvr.GetGoodsListByKeyword(comId, keyword, lastId, limit)
+		if err != nil {
+			return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+		}
 	}
+
 	return sCtl.Success(ctx, goods)
 }
 
@@ -175,5 +186,3 @@ func (sCtl *GoodsController) ClearCart(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, nil)
 }
-
-
