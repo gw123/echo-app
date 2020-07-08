@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
@@ -11,12 +13,14 @@ import (
 type UserController struct {
 	userSvr echoapp.UserService
 	smsSvr  echoapp.SmsService
+	goodSvr echoapp.GoodsService
 	echoapp.BaseController
 }
 
-func NewUserController(usrSvr echoapp.UserService) *UserController {
+func NewUserController(usrSvr echoapp.UserService, goodsSvr echoapp.GoodsService) *UserController {
 	return &UserController{
 		userSvr: usrSvr,
+		goodSvr: goodsSvr,
 	}
 }
 
@@ -196,44 +200,72 @@ func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
 	return sCtl.Success(ctx, nil)
 }
 
-func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
-	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
-	// limit := ctx.QueryParam("limit")
-	// limitint, _ := strconv.Atoi(limit)
-	userId, err := echoapp_util.GetCtxtUserId(ctx)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
-	}
-	addressList, err := sCtl.userSvr.GetUserCollectionList(userId, lastId, limitint)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	return sCtl.Success(ctx, addressList)
-}
+// func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
+// 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
+// 	// limit := ctx.QueryParam("limit")
+// 	// limitint, _ := strconv.Atoi(limit)
+// 	userId, err := echoapp_util.GetCtxtUserId(ctx)
+// 	if err != nil {
+// 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+// 	}
+// 	addressList, err := sCtl.userSvr.GetUserCollectionList(userId, lastId, limitint)
+// 	if err != nil {
+// 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+// 	}
+// 	return sCtl.Success(ctx, addressList)
+// }
 func (sCtl *UserController) IsCollect(ctx echo.Context) error {
 	targetId := ctx.QueryParam("targetId")
+	targetType := ctx.QueryParam("targetType")
+	targetIdUint, _ := strconv.Atoi(targetId)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
-	res, err := sCtl.userSvr.IsCollect(userId, targetId)
+	res, err := sCtl.userSvr.IsCollect(userId, uint(targetIdUint), targetType)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	return sCtl.Success(ctx, res)
 }
-func (sCtl *UserController) GetUserCacheCollectionList(ctx echo.Context) error {
-	// limit := ctx.QueryParam("limit")
-	// limitint, _ := strconv.Atoi(limit)
+func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
+	targetType := ctx.QueryParam("targetType")
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
-	addressList, err := sCtl.userSvr.GetCachedUserCollectionListById(userId)
+	collecttionList, err := sCtl.userSvr.GetCachedUserCollectionTypeSet(userId, targetType)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeCacheError, err.Error(), err)
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	return sCtl.Success(ctx, addressList)
+	type GoodsInfo struct {
+		Price      float32 `json:"price"`
+		Name       string  `json:"name"`
+		SmallCover string  `json:"small_cover"`
+		GoodsType  string  `json:"goods_type" `
+	}
+	var goodslist []*GoodsInfo
+	if targetType == "goods" {
+		for _, val := range collecttionList {
+			tempGoods := &GoodsInfo{}
+			targetId, _ := strconv.Atoi(val)
+			//goods, err := sCtl.goodSvr.GetGoodsById(uint(targetId))
+			goods, err := sCtl.goodSvr.GetCachedGoodsById(uint(targetId))
+			if err != nil {
+				return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+			}
+			tempGoods.Name = goods.Name
+			tempGoods.Price = goods.Price
+			tempGoods.GoodsType = goods.GoodsType
+			tempGoods.SmallCover = goods.SmallCover
+			goodslist = append(goodslist, tempGoods)
+		}
+	}
+	collectionMap := make(map[string]interface{})
+	collectionMap["userId"] = userId
+	collectionMap["Type"] = targetType
+	collectionMap["target"] = goodslist
+	return sCtl.Success(ctx, collectionMap)
 }
 func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 	addr := &echoapp.Collection{}
@@ -245,12 +277,21 @@ func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	addr.UserID = userId
+	if addr.Type == "goods" {
+		res, err := sCtl.goodSvr.GetCachedGoodsById(addr.TargetId)
+		if err != nil {
+			return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		}
+		if res.Status != "publish" {
+			return sCtl.Fail(ctx, echoapp.CodeArgument, "商品已下架", err)
+		}
+	}
 	if err := sCtl.userSvr.CreateUserCollection(addr); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+
 	}
 	return sCtl.Success(ctx, addr)
 }
-
 func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
 	collection := &echoapp.Collection{}
 	if err := ctx.Bind(collection); err != nil {
