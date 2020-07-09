@@ -105,7 +105,7 @@ func startUserServer() {
 
 	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
 	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
-	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
+	jwsAuth.GET("/delUserCollection", userCtl.DelUserCollection)
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
