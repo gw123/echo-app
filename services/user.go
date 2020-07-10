@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gw123/glog"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -38,9 +39,10 @@ func FormatOpenidRedisKey(userId int64) string {
 func FormatUserAddrRedisKey(userId int64) string {
 	return fmt.Sprintf(RedisUserXCXAddrKey, userId)
 }
-func FormatUserCollectionRedisKey(userId int64) string {
-	return fmt.Sprintf(RedisUserCollectionKey, userId)
-}
+
+//func FormatUserCollectionRedisKey(userId int64) string {
+//	return fmt.Sprintf(RedisUserCollectionKey, userId)
+//}
 func FormatUserCollectionTypeRedisKey(userId int64, collectType string) string {
 	return fmt.Sprintf(RedisUserCollectTypeKey, userId, collectType)
 }
@@ -209,6 +211,7 @@ func (u *UserService) IsCollect(userId int64, targetId uint, targetType string) 
 	ok, err := u.redis.SIsMember(FormatUserCollectionTypeRedisKey(userId, targetType), targetId).Result()
 	return ok, err
 }
+
 func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	//r := time.Duration(rand.Int63n(180))
 	data, err := json.Marshal(user)
@@ -258,20 +261,7 @@ func (u *UserService) UpdateCachedUserDefaultAddr(addr *echoapp.Address) (err er
 // 	}
 // 	return err
 // }
-func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
-	len, err := u.redis.SCard(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type)).Result()
-	if err != nil {
-		return errors.Wrap(err, "redis get Hlen")
-	}
-	if len > 1000 {
-		return errors.New("key field beyond the limit")
-	}
-	err = u.redis.SAdd(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type), collection.TargetId).Err()
-	if err != nil {
-		return errors.Wrap(err, "redis set")
-	}
-	return err
-}
+
 func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := u.db.Where(" id = ?", userId).First(user).Error; err != nil {
@@ -495,26 +485,30 @@ func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit 
 	}
 	return collectionList, nil
 }
-func (uSvr *UserService) CreateUserCollection(address *echoapp.Collection) error {
-	if address.TargetId == 0 {
+
+func (uSvr *UserService) CreateUserCollection(collection *echoapp.Collection) error {
+	if collection.TargetId == 0 {
 		return errors.New("商品不存在")
 	}
-	ok, err := uSvr.IsCollect(address.UserID, address.TargetId, address.Type)
+	ok, err := uSvr.IsCollect(collection.UserID, collection.TargetId, collection.Type)
 	if err != nil {
 		return errors.Wrap(err, "redis Sismember")
 	}
 	if ok == true {
+		glog.Info("isCollect用户已经收藏")
 		return nil
 	}
-	_, err = uSvr.GetUserCollectionById(address.UserID, address.Type, address.TargetId)
-	if err == nil {
-		//已经收藏 不需要
-		return nil
-	}
-	if err := uSvr.db.Save(address).Error; err != nil {
-		return errors.Wrap(err, "db err")
-	}
-	return uSvr.UpdateCacheUserCollection(address)
+
+	//_, err = uSvr.GetUserCollectionById(collection.UserID, collection.Type, collection.TargetId)
+	//if err == nil {
+	//	//已经收藏 不需要
+	//	glog.Infof("用户已经收藏 UserID:%d,type:%s,targetId:%d", collection.UserID, collection.Type, collection.TargetId)
+	//	return uSvr.UpdateCacheUserCollection(collection)
+	//}
+	//if err := uSvr.db.Save(collection).Error; err != nil {
+	//	return errors.Wrap(err, "db err")
+	//}
+	return uSvr.UpdateCacheUserCollection(collection)
 }
 
 func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, targetId uint) (*echoapp.Collection, error) {
@@ -549,4 +543,19 @@ func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error
 		return err
 	}
 	return nil
+}
+
+func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
+	len, err := u.redis.SCard(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type)).Result()
+	if err != nil {
+		return errors.Wrap(err, "redis get Hlen")
+	}
+	if len > 1000 {
+		return errors.New("key field beyond the limit")
+	}
+	err = u.redis.SAdd(FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type), collection.TargetId).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return errors.Wrap(err, "UpdateCacheUserCollection:sadd")
 }

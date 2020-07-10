@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/gw123/glog"
 	"strconv"
 
 	echoapp "github.com/gw123/echo-app"
@@ -214,15 +215,23 @@ func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
 // 	}
 // 	return sCtl.Success(ctx, addressList)
 // }
+type CollectParams struct {
+	TargetId uint   `json:"target_id"`
+	Type     string `json:"type"`
+}
+
 func (sCtl *UserController) IsCollect(ctx echo.Context) error {
-	targetId := ctx.QueryParam("targetId")
-	targetType := ctx.QueryParam("targetType")
-	targetIdUint, _ := strconv.Atoi(targetId)
+	params := &CollectParams{}
+	if err := ctx.Bind(params); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
-	res, err := sCtl.userSvr.IsCollect(userId, uint(targetIdUint), targetType)
+	glog.Infof("是否收藏 UserID:%d,type:%s,targetId:%d", userId, params.Type, params.TargetId)
+	res, err := sCtl.userSvr.IsCollect(userId, params.TargetId, params.Type)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
@@ -278,7 +287,7 @@ func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 	}
 	addr.UserID = userId
 	if addr.Type == "goods" {
-		res, err := sCtl.goodSvr.GetCachedGoodsById(addr.TargetId)
+		res, err := sCtl.goodSvr.GetGoodsById(addr.TargetId)
 		if err != nil {
 			return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 		}
