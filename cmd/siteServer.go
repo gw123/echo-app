@@ -70,7 +70,7 @@ func startSiteServer() {
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
 	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)
 	normal.GET("/getActivityList", siteCtl.GetActivityList)
-	normal.GET("/getDetailList", siteCtl.GetActivityDetail)
+	normal.GET("/getActivityDetail", siteCtl.GetActivityDetail)
 	normal.GET("/getNavList", siteCtl.GetQuickNav)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
 

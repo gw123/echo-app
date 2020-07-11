@@ -23,6 +23,8 @@ type Activity struct {
 	EndAt     time.Time  `json:"end_at"`
 	Type      string     `json:"type"`
 	GoodsId   int        `json:"goods_id"`
+	ComId     uint       `json:"com_id"`
+	Body      string     `json:"body"`
 }
 
 func (a *Activity) TableName() string {
@@ -48,14 +50,24 @@ type Banner struct {
 	Title     string     `json:"title"`
 	Visit     int        `json:"visit"`
 	EndAt     time.Time  `json:"end_at"`
-	Type      string     `json:"type"`
 	GoodsId   int        `json:"goods_id"`
+	ComId     uint       `json:"com_id"`
+}
+
+func (b *Banner) AfterFind() error {
+	if b.Type == "goods" {
+		b.Href = fmt.Sprintf("/pages/product/product?id=%d&com_id=%d", b.GoodsId, b.ComId)
+	} else if b.Type == "activity" {
+		b.Href = fmt.Sprintf("/pages/activity/detail?id=%d&com_id=%d", b.Id, b.ComId)
+	}
+	return nil
 }
 
 type BannerBrief struct {
-	ID    uint   `gorm:"primary_key" json:"id"`
+	Id    uint   `gorm:"primary_key" json:"id"`
 	Cover string `json:"cover"`
 	Href  string `json:"href"`
+	Type  string `json:"type"`
 	//背景颜色
 	Background string `json:"background"`
 }

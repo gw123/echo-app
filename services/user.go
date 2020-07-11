@@ -40,9 +40,6 @@ func FormatUserAddrRedisKey(userId int64) string {
 	return fmt.Sprintf(RedisUserXCXAddrKey, userId)
 }
 
-//func FormatUserCollectionRedisKey(userId int64) string {
-//	return fmt.Sprintf(RedisUserCollectionKey, userId)
-//}
 func FormatUserCollectionTypeRedisKey(userId int64, collectType string) string {
 	return fmt.Sprintf(RedisUserCollectTypeKey, userId, collectType)
 }
@@ -190,11 +187,13 @@ func (u *UserService) GetCachedUserDefaultAddrById(userId int64) (*echoapp.Addre
 // }
 
 func (u *UserService) GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error) {
-	datamap, err := u.redis.SMembers(FormatUserCollectionTypeRedisKey(userId, targetType)).Result()
+
+	dataArr, err := u.redis.SMembers(FormatUserCollectionTypeRedisKey(userId, targetType)).Result()
+	//fmt.Println(dataArr, lastCursor)
 	if err != nil {
 		return nil, err
 	}
-	return datamap, nil
+	return dataArr, nil
 }
 
 // func (u *UserService) IsCollect(userId int64, targetId string) (bool, error) {
@@ -472,20 +471,20 @@ func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
 	return nil
 }
 
-func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
-	var collectionList []*echoapp.Collection
-	if err := uSvr.db.
-		Table("user_collection").
-		Where("user_id=? AND id>?", userId, lastId).
-		Limit(limit).
-		Order("id asc").
-		Find(&collectionList).
-		Error; err != nil {
-		return nil, errors.Wrap(err, "GetUserCollectList")
-	}
-	return collectionList, nil
-}
 
+// func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
+// 	var collectionList []*echoapp.Collection
+// 	if err := uSvr.db.
+// 		Table("user_collection").
+// 		Where("user_id=? AND id>?", userId, lastId).
+// 		Limit(limit).
+// 		Order("id asc").
+// 		Find(&collectionList).
+// 		Error; err != nil {
+// 		return nil, errors.Wrap(err, "GetUserCollectList")
+// 	}
+// 	return collectionList, nil
+// }
 func (uSvr *UserService) CreateUserCollection(collection *echoapp.Collection) error {
 	if collection.TargetId == 0 {
 		return errors.New("商品不存在")
@@ -494,31 +493,30 @@ func (uSvr *UserService) CreateUserCollection(collection *echoapp.Collection) er
 	if err != nil {
 		return errors.Wrap(err, "redis Sismember")
 	}
-	if ok == true {
+
+	if ok {
 		glog.Info("isCollect用户已经收藏")
 		return nil
 	}
-
-	//_, err = uSvr.GetUserCollectionById(collection.UserID, collection.Type, collection.TargetId)
-	//if err == nil {
-	//	//已经收藏 不需要
-	//	glog.Infof("用户已经收藏 UserID:%d,type:%s,targetId:%d", collection.UserID, collection.Type, collection.TargetId)
-	//	return uSvr.UpdateCacheUserCollection(collection)
-	//}
-	//if err := uSvr.db.Save(collection).Error; err != nil {
-	//	return errors.Wrap(err, "db err")
-	//}
+	// _, err = uSvr.GetUserCollectionById(address.UserID, address.Type, address.TargetId)
+	// if err == nil {
+	// 	//已经收藏 不需要
+	// 	return nil
+	// }
+	// if err := uSvr.db.Save(address).Error; err != nil {
+	// 	return errors.Wrap(err, "db err")
+	// }
 	return uSvr.UpdateCacheUserCollection(collection)
 }
 
-func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, targetId uint) (*echoapp.Collection, error) {
-	res := &echoapp.Collection{}
-	if err := uSvr.db.Where("type = ? and target_id=? AND user_id=?", targetType, targetId, userId).
-		First(res).Error; err != nil {
-		return nil, errors.Wrap(err, "GetUsrCollectIdById")
-	}
-	return res, nil
-}
+// func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, targetId uint) (*echoapp.Collection, error) {
+// 	res := &echoapp.Collection{}
+// 	if err := uSvr.db.Where("type = ? and target_id=? AND user_id=?", targetType, targetId, userId).
+// 		First(res).Error; err != nil {
+// 		return nil, errors.Wrap(err, "GetUsrCollectIdById")
+// 	}
+// 	return res, nil
+// }
 
 // func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
 // 	if err := uSvr.db.Delete(collection).Error; err != nil {
@@ -532,13 +530,17 @@ func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, 
 // 	}
 // 	return nil
 // }
-func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
-	if err := uSvr.db.Delete(collection).Error; err != nil {
-		return err
+func (uSvr *UserService) DelUserCollection(userId int64, collectType string, targetId uint) error {
+	ok, err := uSvr.IsCollect(userId, targetId, collectType)
+	if err != nil {
+		return errors.Wrap(err, "redis Sismember")
+	}
+	if !ok {
+		return nil
 	}
 	if err := uSvr.redis.SRem(
-		FormatUserCollectionTypeRedisKey(collection.UserID, collection.Type),
-		collection.TargetId).
+		FormatUserCollectionTypeRedisKey(userId, collectType),
+		targetId).
 		Err(); err != nil {
 		return err
 	}

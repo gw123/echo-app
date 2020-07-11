@@ -119,11 +119,11 @@ type UserService interface {
 	GetCachedUserDefaultAddrById(userId int64) (*Address, error)
 
 	//GetCachedUserCollectionListById(userId int64) ([]*Collection, error)
-	GetUserCollectionList(userId int64, lastId uint, limit int) ([]*Collection, error)
+	//GetUserCollectionList(userId int64, lastId uint, limit int) ([]*Collection, error)
 	CreateUserCollection(collection *Collection) error
 	//UpdateUserCollection(collection *Collection) error
-	DelUserCollection(collection *Collection) error
-	GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
+	DelUserCollection(userId int64, collectType string, targetId uint) error
+	//GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
 	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
 }

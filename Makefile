@@ -109,6 +109,9 @@ runGoodsServer:
 runOrderServer:
 	go run entry/main.go user
 
+supervisor:
+	supervisord -c supervisord.conf
+
 .PHONY: all
 all:
 	build

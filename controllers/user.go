@@ -243,6 +243,8 @@ func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
+	lastCursor, _ := strconv.Atoi(ctx.QueryParam("last_id"))
+	//lastId := uint64(lastCursor)
 	collecttionList, err := sCtl.userSvr.GetCachedUserCollectionTypeSet(userId, targetType)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
@@ -254,12 +256,17 @@ func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 		GoodsType  string  `json:"goods_type" `
 	}
 	var goodslist []*GoodsInfo
+	var limit = 20
+	var temp = lastCursor + limit
+	if temp > len(collecttionList) {
+		temp = len(collecttionList)
+	}
 	if targetType == "goods" {
-		for _, val := range collecttionList {
+		for i := lastCursor; i < temp; i++ {
 			tempGoods := &GoodsInfo{}
-			targetId, _ := strconv.Atoi(val)
-			//goods, err := sCtl.goodSvr.GetGoodsById(uint(targetId))
-			goods, err := sCtl.goodSvr.GetCachedGoodsById(uint(targetId))
+			targetId, _ := strconv.Atoi(collecttionList[i])
+			goods, err := sCtl.goodSvr.GetGoodsById(uint(targetId))
+			//goods, err := sCtl.goodSvr.GetCachedGoodsById(uint(targetId))
 			if err != nil {
 				return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 			}
@@ -301,21 +308,23 @@ func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, addr)
 }
+
+type DelCollectionParams struct {
+	Type     string `json:"type"`
+	TargetId uint   `json:"target_id"`
+}
+
 func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
-	collection := &echoapp.Collection{}
-	if err := ctx.Bind(collection); err != nil {
+	params := &DelCollectionParams{}
+	if err := ctx.Bind(params); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
+
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	res, err := sCtl.userSvr.GetUserCollectionById(userId, collection.Type, uint(collection.TargetId))
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-
-	if err := sCtl.userSvr.DelUserCollection(res); err != nil {
+	if err := sCtl.userSvr.DelUserCollection(userId, params.Type, params.TargetId); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
 	return sCtl.Success(ctx, nil)

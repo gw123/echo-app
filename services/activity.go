@@ -49,14 +49,17 @@ func (aSvr ActivityService) GetBannerList(comId uint, position string, limit int
 	if limit == 0 || limit > 12 {
 		limit = 6
 	}
+	var bannerList []*echoapp.Banner
 	var banners []*echoapp.BannerBrief
 
 	if err := aSvr.db.Where("com_id = ? and status ='online'", comId).
 		Where("position = ?", position).
-		Limit(limit).Find(&banners).Error; err != nil {
+		Limit(limit).Find(&bannerList).Error; err != nil {
 		return nil, errors.Wrap(err, "getIndexBanner")
 	}
-
+	for _, item := range bannerList {
+		banners = append(banners, &item.BannerBrief)
+	}
 	return banners, nil
 }
 
