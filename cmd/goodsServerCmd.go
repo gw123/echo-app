@@ -61,7 +61,7 @@ func startGoodsServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	mode := "dev"
+	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/goods/:com_id")
 	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
 

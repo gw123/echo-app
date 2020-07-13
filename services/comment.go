@@ -65,7 +65,7 @@ func (cmtSvc *CommentService) GetCommentList(goodsId int64, lastId uint, limit i
 
 func (cmtSvc *CommentService) GetGoodsCommentNum(goodsId int64) (int, error) {
 	var total int
-	if err := cmtSvc.db.Table("comments").Where("goods_id=?", goodsId).Count(&total).Error; err != nil {
+	if err := cmtSvc.db.Table("comments").Where("goods_id=? and pid =0", goodsId).Count(&total).Error; err != nil {
 		return 0, errors.Wrap(err, "getGoodsCommentNum")
 	}
 	return total, nil
@@ -87,6 +87,17 @@ func (cmtSvc *CommentService) GetSubCommentList(commentId int64, lastId uint, li
 		}
 	}
 	return commentList, nil
+}
+
+func (cmtSvc *CommentService) GetGoodsGoodCommentNum(goodsId int64) (int, error) {
+	var total int
+	if err := cmtSvc.db.Table("comments").
+		Where("goods_id=?", goodsId).
+		Where("goods >= 4 and pid =0").
+		Count(&total).Error; err != nil {
+		return 0, errors.Wrap(err, "getGoodsGoodCommentNum")
+	}
+	return total, nil
 }
 
 func (cmtSvc *CommentService) DeleteComment(comment *echoapp.Comment) error {

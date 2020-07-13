@@ -60,7 +60,7 @@ func startUserServer() {
 	usrSvr := app.MustGetUserService()
 	goodsSvr := app.MustGetGoodsService()
 	userCtl := controllers.NewUserController(usrSvr, goodsSvr)
-	mode := "dev"
+	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,

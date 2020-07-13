@@ -127,11 +127,29 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 }
 
 func (orderCtrl *OrderController) CreateOrder(ctx echo.Context) error {
+
 	return nil
 }
 
 func (orderCtrl *OrderController) CancelOrder(ctx echo.Context) error {
-	return nil
+	params := &echoapp.Order{}
+
+	if err := ctx.Bind(params); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	params.ComId = echoapp_util.GetCtxComId(ctx)
+	if userId, err := echoapp_util.GetCtxtUserId(ctx); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	} else {
+		params.UserId = uint(userId)
+	}
+
+	err := orderCtrl.orderSvc.CancelOrder(params)
+	if err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
+	}
+	return orderCtrl.Success(ctx, nil)
 }
 
 func (orderCtrl *OrderController) Refund(ctx echo.Context) error {

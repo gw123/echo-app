@@ -70,7 +70,7 @@ func startCommentServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
-	mode := "dev"
+	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/comment/:com_id")
 	//normal := e.Group("/v1/comment")
 	normal.Use(limitMiddleware, tryJwsMiddleware)

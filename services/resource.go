@@ -152,14 +152,14 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadRootPath 
 
 	file, err := c.FormFile(formname)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err,"c.FormFile formname" + formname)
 	}
 	src, err := file.Open()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "file.Open")
 	}
-	filetype := echoapp_util.GetFileType(file.Filename)
 	defer src.Close()
+	filetype := echoapp_util.GetFileType(file.Filename)
 	fullPath, size, err := moveToTmpFile(uploadRootPath, src)
 	if err != nil {
 		return nil, err

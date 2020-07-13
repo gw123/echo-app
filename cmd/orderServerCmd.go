@@ -59,7 +59,7 @@ func startOrderServer() {
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	})
-	mode := "dev"
+	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/order/:com_id")
 	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
 	orderCtl := controllers.NewOrderController(orderSvr)

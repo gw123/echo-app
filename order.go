@@ -3,6 +3,7 @@ package echoapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gw123/glog"
 	"time"
 
 	"github.com/labstack/echo"
@@ -14,6 +15,7 @@ const (
 	OrderStatusRefund    = "refund"
 	OrderStatusShipping  = "shipping"
 	OrderStatusSigned    = "signed"
+	OrderStatusCancel    = "cancel"
 	OrderStatusCommented = "commented"
 )
 
@@ -30,12 +32,13 @@ type Order struct {
 	UserId        uint             `json:"user_id"`
 	SellerId      uint             `json:"seller_id"`
 	InviterId     uint             `json:"inviter_id"`
-	Status        string           `json:"status"`
+	PayStatus     string           `json:"pay_status" gorm:"column:status"`
+	Status        string           `json:"status" gorm:"-"`
 	ExpressStatus string           `json:"express_status"`
 	AddressId     uint             `json:"address_id"`
 	Total         float32          `json:"total"`
 	RealTotal     float32          `json:"real_total"`
-	GoodsList     []*CartGoodsItem `json:"goodslist" gorm:"-"`
+	GoodsList     []*CartGoodsItem `json:"goodsList" gorm:"-"`
 	GoodsListStr  string           `json:"-" gorm:"column:goodslist"`
 	GoodsType     string           `json:"goods_type"`
 	TransactionId string           `json:"transaction_id"`
@@ -56,8 +59,27 @@ func (o *Order) BeforeSave() error {
 	return nil
 }
 
-func (c *Order) AfterFind() error {
-	err := json.Unmarshal([]byte(c.GoodsListStr), c.GoodsList)
+func (o *Order) AfterFind() error {
+	switch o.PayStatus {
+	case OrderStatusUnpay:
+		fallthrough
+	case OrderStatusRefund:
+		o.Status = o.PayStatus
+	case OrderStatusPaid:
+		if o.ExpressStatus == OrderStatusShipping {
+			o.Status = OrderStatusShipping
+		} else if o.ExpressStatus == OrderStatusSigned {
+			o.Status = OrderStatusSigned
+		} else if o.ExpressStatus == OrderStatusCommented {
+			o.Status = OrderStatusCommented
+		}
+	default:
+		glog.Warn("unknow pay_status")
+	}
+
+	o.GoodsList = make([]*CartGoodsItem, 0)
+	//	glog.Infof("goodsListStr %s", o.GoodsListStr)
+	err := json.Unmarshal([]byte(o.GoodsListStr), &o.GoodsList)
 	return err
 }
 
@@ -132,5 +154,6 @@ type OrderService interface {
 	GetUserPaymentOrder(c echo.Context, userId uint, from, limit int) ([]*Order, error)
 	//查看资源文件 ，每页有 limit 条数据
 	GetOrderList(c echo.Context, from, limit int) ([]*GetOrderOptions, error)
-	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*GetOrderOptions, error)
+	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*Order, error)
+	CancelOrder(o *Order) error
 }

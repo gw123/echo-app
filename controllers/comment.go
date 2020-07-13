@@ -51,7 +51,7 @@ func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 	comment.UserId = userId
 
 	health := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Health))
-	good := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Good))
+	good := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Goods))
 	staff := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Staff))
 	//express := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Express))
 
@@ -120,7 +120,12 @@ func (cmtCtrl *CommentController) GetGoodsCommentNum(ctx echo.Context) error {
 	if err != nil {
 		return cmtCtrl.Fail(ctx, echoapp.CodeDBError, "查询失败", err)
 	}
+	goodNum, err := cmtCtrl.commentSvc.GetGoodsGoodCommentNum(goodsIdint)
+	if err != nil {
+		return cmtCtrl.Fail(ctx, echoapp.CodeDBError, "查询失败", err)
+	}
 	return cmtCtrl.Success(ctx, map[string]interface{}{
-		"num": num,
+		"num":      num,
+		"good_num": goodNum,
 	})
 }

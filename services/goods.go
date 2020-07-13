@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gw123/glog"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -85,10 +86,11 @@ func (gSvr *GoodsService) AddActivityPv(activityId int) error {
 }
 
 func (gSvr *GoodsService) AddGoodsPv(goodsId int) error {
+	glog.Infof("AddGoodsPv %d", goodsId)
 	goods := echoapp.Goods{}
-	if err := gSvr.db.Model(&goods).Where("id = ?", goodsId).
-		Update("set visit=visit+1").Error; err != nil {
-		return errors.Wrap(err, "getIndexBanner")
+	if err := gSvr.db.Debug().Model(&goods).Where("id = ?", goodsId).
+		Update("pv",gorm.Expr("pv+1")).Error; err != nil {
+		return errors.Wrap(err, "AddGoodsPv")
 	}
 	return nil
 }

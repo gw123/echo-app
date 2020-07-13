@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-DEFAULT_TAG = "echo-app:1.0.1"
-=======
 DEFAULT_TAG = "echo-app:1.0.2"
->>>>>>> develop
-=======
-DEFAULT_TAG = "echo-app:1.0.2"
->>>>>>> e97b923ce01cab35b61b230f3b2c629d02a72c63
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/user:1.0.1"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 DOCKER_BUILD_PATH=/data/docker/images/echoapp
@@ -21,29 +13,31 @@ endif
 
 upload-user:
 	@scp -r resources/views/ root@sh2:/data/apps/user/resources/views &&\
-     scp  config.yaml upload util/scripes/user.sh root@sh2:/data/apps/user/ &&\
-     scp -r resources/public root@sh2:/data/apps/user/resources/public &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/user/resources/storage
+     scp  upload util/scripes/user.sh root@sh2:/data/apps/user/
+     #scp -r resources/public root@sh2:/data/apps/user/resources/public &&\
+     #scp -r resources/storage/keys/  root@sh2:/data/apps/user/resources/storage
+upload-user-config:
+	scp  config.yaml root@sh2:/data/apps/user/
 
 upload-file: file-dir
 	@scp  config.yaml upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
-     scp -r resources/public  root@sh2:/data/apps/file/resources/public &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/file/resources/storage
 
 upload-order: order-dir
 	@scp  config.yaml upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
-     scp -r resources/public  root@sh2:/data/apps/order/resources/public &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/order/resources/storage
 
 upload-comment: comment-dir
 	@scp  config.yaml upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
-     scp -r resources/public  root@sh2:/data/apps/comment/resources/public &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
 upload-site: site-dir
 	@scp  config.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
-     scp -r resources/public  root@sh2:/data/apps/site/resources/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage
+
+upload-goods: goods-dir
+	@scp  config.yaml upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
+     scp -r resources/storage/keys/  root@sh2:/data/apps/goods/resources/storage
 
 restart:
 	ssh root@sh2 supervisorctl restart user
@@ -68,9 +62,12 @@ site-dir:
 	ssh root@sh2 mkdir -p /data/apps/site
 	ssh root@sh2 mkdir -p /data/apps/site/resources/storage
 
+goods-dir:
+	ssh root@sh2 mkdir -p /data/apps/goods
+	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
 build:
 	go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
-	rm upload && upx -9 -o upload ./echoapp
+	upx -9 -o upload ./echoapp
 
 build-alpine:
 	@docker run --rm -v "$(PWD)":/go/src/github.com/gw123/echo-app \

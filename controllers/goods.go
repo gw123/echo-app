@@ -91,6 +91,10 @@ func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
 	}
+	if err := sCtl.goodsSvr.AddGoodsPv(goodsId); err != nil {
+		echoapp_util.ExtractEntry(ctx).Error(err)
+	}
+	goods.Pv += 1
 	return sCtl.Success(ctx, goods)
 }
 

@@ -105,7 +105,7 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 
 func (oSvr *OrderService) PlaceOrder(order *echoapp.Order) error {
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
-	order.Status = echoapp.OrderStatusUnpay
+	order.PayStatus = echoapp.OrderStatusUnpay
 	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
 	if err := oSvr.goodSvr.IsValidCartGoodsList(order.GoodsList); err != nil {
 		return errors.Wrap(err, "下单失败")
@@ -154,8 +154,8 @@ func (oSvr *OrderService) GetOrderList(c echo.Context, from, limit int) ([]*echo
 	return orderoptions, nil
 }
 
-func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*echoapp.GetOrderOptions, error) {
-	var orderoptions []*echoapp.GetOrderOptions
+func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*echoapp.Order, error) {
+	var orderoptions []*echoapp.Order
 	query := oSvr.db
 	if lastId != 0 {
 		query = query.Where("id < ? ", lastId)
@@ -163,21 +163,35 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	glog.Info(status)
 
 	switch status {
-	case echoapp.OrderStatusUnpay: fallthrough
-	case echoapp.OrderStatusPaid: fallthrough
-	case echoapp.OrderStatusRefund: fallthrough
+	case echoapp.OrderStatusUnpay:
+		fallthrough
+	case echoapp.OrderStatusPaid:
+		fallthrough
+	case echoapp.OrderStatusRefund:
+		fallthrough
 	case echoapp.OrderStatusCommented:
 		query = query.Where("status = ?", status)
-	case echoapp.OrderStatusShipping: fallthrough
+	case echoapp.OrderStatusShipping:
+		fallthrough
 	case echoapp.OrderStatusSigned:
 		query = query.Where("status= ? and express_status=?", echoapp.OrderStatusPaid, status)
 	default:
 		glog.Warn("test === unknow")
 	}
 
-	res := query.Debug().Table("orders").Where("user_id = ?", userId).Limit(limit).Find(&orderoptions)
+	res := query.Debug().Table("orders").
+		Where("user_id = ?", userId).
+		Limit(limit).Order("id desc").Find(&orderoptions)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "OrderService->GetOrderList")
 	}
 	return orderoptions, nil
+}
+
+func (oSvr *OrderService) CancelOrder(o *echoapp.Order) error {
+	if err := oSvr.db.Model(o).Where("user_id = ? and order_no = ?", o.UserId, o.OrderNo).
+		Update("status", echoapp.OrderStatusCancel).Error; err != nil {
+		return errors.Wrap(err, "cancelOrder")
+	}
+	return nil
 }

@@ -78,7 +78,7 @@ func startLocalHttp() {
 	wsSvr := app.MustGetWsService()
 	wsCtl := controllers.NewWsController(usrSvr, wsSvr)
 
-	mode := "dev"
+	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/message/:com_id")
 	normal.Use(loggerMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt), limitMiddleware)
 	normal.GET("/newClient", wsCtl.CreateWsClient)

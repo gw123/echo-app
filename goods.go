@@ -26,6 +26,7 @@ type GoodsBrief struct {
 	Price       float32   `json:"price"`
 	RealPrice   float32   `json:"real_price"`
 	Num         int       `json:"num"`
+	Pv          int       `json:"pv"`
 	SaleNum     int       `json:"sale_num"`
 	Status      string    `json:"status"`
 	ExpressType string    `json:"express_type"`

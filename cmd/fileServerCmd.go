@@ -83,7 +83,8 @@ func startFileServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 
-	tryJwsAuthGroup := e.Group("/v1/file")
+	mode := echoapp.ConfigOpts.ApiVersion
+	tryJwsAuthGroup := e.Group(mode + "/file")
 
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
