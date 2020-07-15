@@ -3,8 +3,9 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gw123/glog"
 	"time"
+
+	"github.com/gw123/glog"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -24,6 +25,8 @@ const (
 	RedisUserXCXAddrKey     = "UserXCXDefaultAddr:%d"
 	RedisUserCollectTypeKey = "UserCollectType:%d,%s"
 	//RedisUserCollectionKey  = "UserCollection:%d"
+	RedisUserHistoryListKey = "UserHistoryList"
+	RedisUserHistoryLockKey = "UserHistoryLock"
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
@@ -471,7 +474,6 @@ func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
 	return nil
 }
 
-
 // func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
 // 	var collectionList []*echoapp.Collection
 // 	if err := uSvr.db.
@@ -560,4 +562,73 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 		return errors.Wrap(err, "redis set")
 	}
 	return errors.Wrap(err, "UpdateCacheUserCollection:sadd")
+}
+
+func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
+	if history.TargetId <= 0 {
+		return errors.New("目标不存在")
+	}
+	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
+	fmt.Println(len)
+	if err != nil {
+		if len == 0 {
+			return errors.Wrap(err, "redis Llen is nil")
+		}
+		return errors.Wrap(err, "resdis LLen")
+	}
+	if len >= 100 {
+		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, 10).Val(); !ok {
+			targetArr, err := uSvr.GetCacheUserHistoryList()
+			if err != nil {
+				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
+			}
+			uSvr.redis.Del(RedisUserHistoryListKey)
+			for _, val := range targetArr {
+				var resHistory = &echoapp.History{}
+				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					continue
+				}
+				if err := uSvr.db.Create(resHistory).Error; err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					continue
+				}
+			}
+			uSvr.redis.Del(RedisUserHistoryLockKey)
+		}
+	}
+	return uSvr.UpdateCacheUserHistory(history)
+}
+func (u *UserService) GetCacheUserHistoryList() ([]string, error) {
+	dataArr, err := u.redis.LRange(RedisUserHistoryListKey, 0, 99).Result()
+	fmt.Println(dataArr, dataArr)
+	if err != nil {
+		return nil, err
+	}
+	return dataArr, nil
+}
+func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
+	var historyList []*echoapp.History
+	if err := u.db.
+		Table("user_history").
+		Where("user_id=? AND id>?", userId, lastId).
+		Limit(limit).
+		Order("created_at asc").
+		Find(&historyList).
+		Error; err != nil {
+		return nil, errors.Wrap(err, "GetUserCollectList")
+	}
+	return historyList, nil
+}
+
+func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err error) {
+	data, err := json.Marshal(history)
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	err = u.redis.LPush(RedisUserHistoryListKey, string(data)).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
 }

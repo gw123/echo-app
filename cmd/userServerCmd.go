@@ -81,8 +81,8 @@ func startUserServer() {
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
-		//IgnoreAuth: true,
-		//MockUserId: 58,
+		IgnoreAuth: true,
+		MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
@@ -95,18 +95,18 @@ func startUserServer() {
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
 	//addressList
 	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
-
 	jwsAuth.POST("/createUserAddress", userCtl.CreateUserAddress)
 	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
 	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
 	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
-
 	//collection
-
 	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
 	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
 	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
+	//history
+	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
+	jwsAuth.GET("/getUserHistory", userCtl.GetUserHistoryList)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
