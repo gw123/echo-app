@@ -17,26 +17,26 @@ upload-user:
      #scp -r resources/public root@sh2:/data/apps/user/resources/public &&\
      #scp -r resources/storage/keys/  root@sh2:/data/apps/user/resources/storage
 upload-user-config:
-	scp  config.yaml root@sh2:/data/apps/user/
+	scp  config.prod.yaml root@sh2:/data/apps/user/
 
 upload-file: file-dir
-	@scp  config.yaml upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
+	@scp  config.prod.yaml upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/file/resources/storage
 
 upload-order: order-dir
-	@scp  config.yaml upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
+	@scp  config.prod.yaml upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/order/resources/storage
 
 upload-comment: comment-dir
-	@scp  config.yaml upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
+	@scp  config.prod.yaml upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
 upload-site: site-dir
-	@scp  config.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
+	@scp  config.prod.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage
 
 upload-goods: goods-dir
-	@scp  config.yaml upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
+	@scp  config.prod.yaml upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/goods/resources/storage
 
 restart:
@@ -85,7 +85,7 @@ docker: build-alpine
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
     cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
     cp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
-    cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.yaml &&\
+    cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.prod.yaml &&\
     cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/ &&\
     cp -r resources/storage/keys/ $(DOCKER_BUILD_PATH)/resources/storage
 	@docker build -t $(REMOTE_USER_API_TAG) $(DOCKER_BUILD_PATH)
@@ -95,7 +95,7 @@ docker: build-alpine
 run-docker:
 	docker run -it --rm  -v $(DOCKER_BUILD_PATH)/etc:/etc/echoapp \
     -v $(DOCKER_BUILD_PATH)/resources/storage/keys:/usr/local/var/echoapp/resources/storage/keys \
-    $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.yaml
+    $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.prod.yaml
 
 runUserServer:
 	go run entry/main.go user

@@ -63,6 +63,22 @@ func (b *Banner) AfterFind() error {
 	return nil
 }
 
+type Coupon struct {
+	Id         uint   `gorm:"primary_key" json:"id"`
+	Type       string `json:"type"`
+	Aid        string `json:"aid"` //关联活动id
+	Cover      string `json:"cover"`
+	Name       string
+	Href       string `json:"href"`
+	CreatedAt  time.Time
+	MinConsume uint   `json:"min_consume"` // 最低消费
+	Range      []uint `json:"range"`       //商品适用范围
+	Total      uint
+	UsedTotal  uint
+	ExpireAt   uint
+	StartAt    uint
+}
+
 type BannerBrief struct {
 	Id    uint   `gorm:"primary_key" json:"id"`
 	Cover string `json:"cover"`

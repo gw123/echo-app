@@ -1,8 +1,9 @@
 package controllers
 
 import (
+	"io/ioutil"
+	"net/http"
 	"strconv"
-
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
@@ -12,6 +13,7 @@ type SiteController struct {
 	actSvr echoapp.ActivityService
 	comSvr echoapp.CompanyService
 	echoapp.BaseController
+	indexCachePage []byte
 }
 
 func NewSiteController(comSvr echoapp.CompanyService, actSvr echoapp.ActivityService) *SiteController {
@@ -85,4 +87,16 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
 	}
 	return sCtl.Success(ctx, navs)
+}
+
+func (sCtl *SiteController) Index(ctx echo.Context) error {
+     if len(sCtl.indexCachePage) == 0 {
+     	indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot +"/m/index.html"
+     	var err error
+		sCtl.indexCachePage ,err = ioutil.ReadFile(indexFilePath)
+		if err != nil{
+			return ctx.HTML(502,"文件不存在")
+		}
+	 }
+	 return ctx.HTMLBlob(http.StatusOK, sCtl.indexCachePage)
 }

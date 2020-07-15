@@ -74,7 +74,7 @@ func (sSvr SmsService) SendMessage(opt *tasksapp.SendMessageOptions) error {
 	}
 	smsChannel, ok := com.SmsChannels[opt.Type]
 	if !ok {
-		glog.Error("sms type not set")
+		glog.Errorf("sms type: %d not set", opt.Type)
 		return errors.Wrap(err, "请配置smschannel :"+opt.Type)
 	}
 

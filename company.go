@@ -18,7 +18,7 @@ type Company struct {
 	WxPaymentKey   string                `json:"wx_payment_key"`
 	XcxCover       string                `json:"xcx_cover"`
 	WechatCover    string                `json:"wechat_cover"`
-	SmsChannels    map[string]SmsChannel `json:"sms_channels"`
+	SmsChannels    map[string]*SmsChannel `json:"sms_channels"`
 }
 
 type Nav struct {

@@ -35,6 +35,12 @@ func (c CompanyService) GetCompanyById(comId uint) (*echoapp.Company, error) {
 	if err := c.db.Where("id = ?", comId).First(company).Error; err != nil {
 		return nil, errors.Wrap(err, "db query")
 	}
+	company.SmsChannels = make(map[string]*echoapp.SmsChannel)
+	var channels []echoapp.SmsChannel
+	c.db.Where("com_id = ?", comId).Find(&channels)
+	for  _, sch := range channels  {
+		company.SmsChannels[sch.Type] = &sch
+	}
 	return company, nil
 }
 

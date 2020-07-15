@@ -15,6 +15,7 @@ logs/
 main/
 keys/
 config.yaml
+config.prod.yaml
 config.inner.yaml
 config.docker.yaml
 *-linux-amd64
