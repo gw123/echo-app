@@ -58,7 +58,9 @@ func GetSmsService() (echoapp.SmsService, error) {
 	if App.smsSvc != nil {
 		return App.smsSvc, nil
 	}
-	smsSvc := services.NewSmsService(echoapp.ConfigOpts.SmsOptionTokenMap)
+	comSvr := MustGetCompanyService()
+	redis :=  MustGetRedis("")
+	smsSvc := services.NewSmsService(comSvr, redis)
 	App.smsSvc = smsSvc
 	return smsSvc, nil
 }

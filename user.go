@@ -14,7 +14,7 @@ type RegisterParam struct {
 }
 
 type LoginParam struct {
-	ComId int `json:"com_id"`
+	ComId uint `json:"com_id"`
 	//auth type sms|password ;认证方式  短信验证码|账号密码
 	Method   string `json:"method"`
 	Username string `json:"username"`
@@ -24,7 +24,7 @@ type LoginParam struct {
 
 type User struct {
 	Id         int64      `json:"id"`
-	ComId      int        `json:"com_id"`
+	ComId      uint       `json:"com_id"`
 	Name       string     `json:"name"`
 	Nickname   string     `json:"nickname"`
 	Avatar     string     `json:"avatar"`
@@ -33,11 +33,11 @@ type User struct {
 	Email      string     `json:"email"`
 	Mobile     string     `json:"mobile"`
 	Score      int        `json:"score"`
+	Password   string     `gorm:"column:password" json:"-"`
 	Openid     string     `gorm:"xcx_openid" json:"-"`
 	Unionid    string     `gorm:"unionid" json:"-"`
 	IsStaff    bool       `json:"is_staff"`
-	IsVip      string     `json:"is_vip"`
-	VipLevel   string     `json:"vip_level"`
+	VipLevel   int16      `json:"vip_level"`
 	JwsToken   string     `gorm:"-" json:"jws_token"`
 	SessionKey string     `gorm:"session_key" json:"-"`
 	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
@@ -126,4 +126,5 @@ type UserService interface {
 	//GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
 	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
+	GetUserByMobile(id uint, mobile string) (*User, error)
 }

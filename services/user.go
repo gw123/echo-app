@@ -92,17 +92,37 @@ func (u *UserService) GetUserByOpenId(comId uint, openId string) (*echoapp.User,
 	return user, nil
 }
 
+func (u *UserService) CheckVerifyCode(comId uint, phone string, code string) bool {
+	rCode := u.redis.Get(fmt.Sprintf(RedisSmsCode, comId, phone)).Val()
+	if code == "" || len(code) < 4 || rCode != code {
+		return false
+	}
+	return true
+}
+
 func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoapp.User, error) {
 	echoapp_util.ExtractEntry(ctx).Warnf("login params :%+v", param)
 	user := &echoapp.User{}
 	if param.Method == LoginMethodSms {
-		code := u.redis.HGet(RedisSmsLoginCodeKey, param.Username).Val()
-		if code == "" {
-			return nil, errors.New("请求过期")
+		ok := u.CheckVerifyCode(param.ComId, param.Username, param.SmsCode)
+		if !ok {
+			return nil, errors.New("短信验证码不匹配")
 		}
-		if code != param.SmsCode {
-			return nil, errors.New("code not match")
+
+		var err error
+		user, err = u.GetUserByMobile(param.ComId, param.Username)
+		if err == gorm.ErrRecordNotFound {
+			user = &echoapp.User{}
+			user.Mobile = param.Username
+			user.Nickname = param.Username
+			user.ComId = param.ComId
+			if err := u.db.Create(user).Error; err != nil {
+				return nil, errors.Wrap(err, "创建用户失败")
+			}
+		} else if err != nil {
+			return nil, errors.Wrap(err, "GetUserByMobile")
 		}
+
 	} else {
 		sign := echoapp_util.Md5(echoapp_util.Md5(param.Password))
 		if err := u.db.Debug().
@@ -115,8 +135,7 @@ func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoa
 
 	data := make(map[string]interface{})
 	data["username"] = param.Username
-	//data["com_id"] = param.ComId
-	//data["avatar"] = user.Avatar
+	data["com_id"] = param.ComId
 	data["client_id"] = ctx.Request().Header.Get("ClientID")
 	payload, err := json.Marshal(data)
 	if err != nil {
@@ -124,15 +143,12 @@ func (u *UserService) Login(ctx echo.Context, param *echoapp.LoginParam) (*echoa
 	}
 
 	token, err := u.jws.CreateToken(user.Id, string(payload))
-	newUser, err := u.GetUserById(user.Id)
-	if err != nil {
-		return nil, errors.Wrap(err, "CreateToken")
-	}
-	newUser.JwsToken = token
-	if err := u.UpdateCachedUser(newUser); err != nil {
+
+	user.JwsToken = token
+	if err := u.UpdateCachedUser(user); err != nil {
 		echoapp_util.ExtractEntry(ctx).Warnf("redis set user err :%s", err.Error())
 	}
-	return newUser, nil
+	return user, nil
 }
 
 func (u *UserService) GetUserList(comId, currentMaxId, limit int) ([]*echoapp.User, error) {
@@ -277,6 +293,22 @@ func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
 	return user, nil
 }
 
+func (u *UserService) GetUserByMobile(comId uint, mobile string) (*echoapp.User, error) {
+	user := &echoapp.User{}
+	if err := u.db.Where("com_id = ? and mobile = ?", comId, mobile).First(user).Error; err != nil {
+		return nil, err
+	}
+	if user.IsStaff {
+		u.db.
+			Table("model_has_roles as r").
+			Select("roles.id ,roles.name,roles.label").
+			Joins("inner join roles on roles.id = r.role_id").
+			Where("r.model_id = ?", user.Id).
+			Find(&user.Roles)
+	}
+	return user, nil
+}
+
 //基础方法自动更新cache
 func (u *UserService) Save(user *echoapp.User) error {
 	if err := u.db.Save(user).Error; err != nil {
@@ -321,7 +353,7 @@ func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, er
 	if err == gorm.ErrRecordNotFound {
 		user = &echoapp.User{
 			Nickname: "未设置用户名",
-			ComId:    int(comId),
+			ComId:    comId,
 			Openid:   res.OpenID,
 		}
 		err := u.AutoRegisterWxUser(user)
@@ -470,7 +502,6 @@ func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
 	}
 	return nil
 }
-
 
 // func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
 // 	var collectionList []*echoapp.Collection
