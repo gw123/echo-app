@@ -107,6 +107,7 @@ func startUserServer() {
 	//history
 	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
 	jwsAuth.GET("/getUserHistory", userCtl.GetUserHistoryList)
+	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

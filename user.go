@@ -102,6 +102,7 @@ type History struct {
 	Type      string     `json:"type"`
 	TargetId  uint       `json:"target_id"`
 	UserID    int64      `json:"user_id"`
+	ComId     uint       `json:"com_id"`
 }
 
 func (*History) TableName() string {
@@ -143,4 +144,5 @@ type UserService interface {
 	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
 	GetCacheUserHistoryList() ([]string, error)
 	CreateUserHistory(history *History) error
+	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
 }

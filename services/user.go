@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gw123/glog"
@@ -27,6 +28,7 @@ const (
 	//RedisUserCollectionKey  = "UserCollection:%d"
 	RedisUserHistoryListKey = "UserHistoryList"
 	RedisUserHistoryLockKey = "UserHistoryLock"
+	RedisUserHistoryHotKey  = "CompanyTypeZset:%d,%s"
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
@@ -45,6 +47,9 @@ func FormatUserAddrRedisKey(userId int64) string {
 
 func FormatUserCollectionTypeRedisKey(userId int64, collectType string) string {
 	return fmt.Sprintf(RedisUserCollectTypeKey, userId, collectType)
+}
+func FormatUserHistoryHotKey(comId uint, targetType string) string {
+	return fmt.Sprintf(RedisUserHistoryHotKey, comId, targetType)
 }
 
 type UserService struct {
@@ -569,7 +574,7 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 		return errors.New("目标不存在")
 	}
 	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
-	fmt.Println(len)
+	//fmt.Println(len)
 	if err != nil {
 		if len == 0 {
 			return errors.Wrap(err, "redis Llen is nil")
@@ -597,15 +602,27 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 			uSvr.redis.Del(RedisUserHistoryLockKey)
 		}
 	}
+	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
+		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
+	}
 	return uSvr.UpdateCacheUserHistory(history)
 }
 func (u *UserService) GetCacheUserHistoryList() ([]string, error) {
 	dataArr, err := u.redis.LRange(RedisUserHistoryListKey, 0, 99).Result()
-	fmt.Println(dataArr, dataArr)
+
 	if err != nil {
 		return nil, err
 	}
 	return dataArr, nil
+}
+func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) ([]string, error) {
+	setLen, err := u.redis.ZCard(FormatUserHistoryHotKey(comId, targetType)).Result()
+	//fmt.Println(setLen)
+	if err != nil {
+		return nil, err
+	}
+	dataArr, err := u.redis.ZRevRange(FormatUserHistoryHotKey(comId, targetType), 0, setLen-1).Result()
+	return dataArr, err
 }
 func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
@@ -627,6 +644,14 @@ func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err erro
 		return errors.Wrap(err, "redis set")
 	}
 	err = u.redis.LPush(RedisUserHistoryListKey, string(data)).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
+}
+func (u *UserService) UpdateCacheUserHistoryHot(history *echoapp.History) (err error) {
+	member := strconv.Itoa(int(history.TargetId))
+	err = u.redis.ZIncrBy(FormatUserHistoryHotKey(history.ComId, history.Type), 1, member).Err()
 	if err != nil {
 		return errors.Wrap(err, "redis set")
 	}
