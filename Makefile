@@ -109,6 +109,9 @@ runOrderServer:
 supervisor:
 	supervisord -c supervisord.conf
 
+goose:
+	goose -dir migrations mysql  'root:password@tcp(sh2:13306)/laraveltest' up
+
 .PHONY: all
 all:
 	build
