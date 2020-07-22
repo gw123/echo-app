@@ -582,12 +582,16 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 		return errors.Wrap(err, "resdis LLen")
 	}
 	if len >= 100 {
-		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, 10).Val(); !ok {
-			targetArr, err := uSvr.GetCacheUserHistoryList()
+		//todo 过期时间
+		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); !ok {
+			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
 			if err != nil {
+				//todo 释放锁
+				uSvr.redis.Del(RedisUserHistoryLockKey)
 				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
 			}
-			uSvr.redis.Del(RedisUserHistoryListKey)
+			//uSvr.redis.Del(RedisUserHistoryListKey)
+			//todo 删除修改成只删除前100个
 			for _, val := range targetArr {
 				var resHistory = &echoapp.History{}
 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
@@ -607,8 +611,12 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 	}
 	return uSvr.UpdateCacheUserHistory(history)
 }
-func (u *UserService) GetCacheUserHistoryList() ([]string, error) {
-	dataArr, err := u.redis.LRange(RedisUserHistoryListKey, 0, 99).Result()
+
+func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
+	if length > 500 {
+		length = 500
+	}
+	dataArr, err := u.redis.LRange(RedisUserHistoryListKey, 0, int64(length)).Result()
 
 	if err != nil {
 		return nil, err

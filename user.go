@@ -142,7 +142,7 @@ type UserService interface {
 	//History
 	UpdateCacheUserHistory(history *History) (err error)
 	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
-	GetCacheUserHistoryList() ([]string, error)
+	GetCacheUserHistoryList(len uint) ([]string, error)
 	CreateUserHistory(history *History) error
 	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
 }
