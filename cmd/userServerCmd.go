@@ -59,14 +59,15 @@ func startUserServer() {
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	usrSvr := app.MustGetUserService()
 	goodsSvr := app.MustGetGoodsService()
-	userCtl := controllers.NewUserController(usrSvr, goodsSvr)
+	smsSvr := app.MustGetSmsService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr)
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
-		MockUserId: 58,
+		//MockUserId: 58,
 	}
 	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
 	//登录
@@ -74,6 +75,9 @@ func startUserServer() {
 	normal.POST("/register", userCtl.Register)
 	normal.POST("/logout", userCtl.Logout)
 	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
+	//normal.POST("/checkVerifyCode", userCtl.CheckVerifyCode)
+	//
+
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
 	//jwsAuth := e.Group("/v1/user")

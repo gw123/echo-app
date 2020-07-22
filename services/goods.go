@@ -236,6 +236,9 @@ func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Ca
 		}
 		return nil, err
 	}
+	if cart.Content == nil {
+		cart.Content = []*echoapp.CartGoodsItem{}
+	}
 	return cart, nil
 }
 

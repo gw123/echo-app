@@ -58,6 +58,7 @@ func startSiteServer() {
 	companyCtl := controllers.NewCompanyController(comSvr)
 
 	mode := echoapp.ConfigOpts.ApiVersion
+	e.GET("/index/:com_id", siteCtl.Index)
 	normal := e.Group("/" + mode + "/site/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,

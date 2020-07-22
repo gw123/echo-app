@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"strconv"
-
-	"github.com/gw123/glog"
-
+	"errors"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"math/rand"
+	"strconv"
 )
 
 type UserController struct {
@@ -19,10 +19,11 @@ type UserController struct {
 	echoapp.BaseController
 }
 
-func NewUserController(usrSvr echoapp.UserService, goodsSvr echoapp.GoodsService) *UserController {
+func NewUserController(usrSvr echoapp.UserService, goodsSvr echoapp.GoodsService, smsSvr echoapp.SmsService) *UserController {
 	return &UserController{
 		userSvr: usrSvr,
 		goodSvr: goodsSvr,
+		smsSvr:  smsSvr,
 	}
 }
 
@@ -52,15 +53,11 @@ func (sCtl *UserController) Login(ctx echo.Context) error {
 	if err := ctx.Bind(param); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "登录失败", err)
 	}
-	//comId, err := strconv.Atoi(ctx.QueryParam("com_id"))
-	//if err != nil {
-	//	return sCtl.Fail(ctx, echoapp.CodeArgument, "参数校验失败", err)
-	//}
-	//
-	//param.ComId = comId
-	user, err := sCtl.userSvr.Login(ctx, param)
+	var user *echoapp.User
+	var err error
+	user, err = sCtl.userSvr.Login(ctx, param)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败", err)
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败," + err.Error(), err)
 	}
 	return sCtl.Success(ctx, user)
 }
@@ -77,22 +74,36 @@ func (sCtl *UserController) Logout(ctx echo.Context) error {
 	return nil
 }
 
+type SmsRequest struct {
+	Mobile string `json:"mobile"`
+	Code   string `json:"code"`
+	ComId  uint   `json:"com_id"`
+}
+
 func (sCtl *UserController) SendVerifyCodeSms(ctx echo.Context) error {
-	//com, err := util.GetCtxCompany(ctx)
-	//if err != nil {
-	//	return sCtl.Fail(ctx, echoapp.CodeArgument, "", err)
-	//}
-	//
-	//options := &echoapp.SendMessageOptions{
-	//	Token:         "",
-	//	ComId:         0,
-	//	PhoneNumbers:  nil,
-	//	SignName:      "",
-	//	TemplateCode:  "",
-	//	TemplateParam: "",
-	//}
-	//sCtl.smsSvr.SendMessage(options)
-	return nil
+	params := &SmsRequest{}
+	if err := ctx.Bind(params); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+	comID := util.GetCtxComId(ctx)
+	code := rand.Int31n(900000) + 100000
+	if err := sCtl.smsSvr.SendVerifyCodeSms(comID, params.Mobile, strconv.Itoa(int(code))); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "发送失败," + err.Error(), err)
+	}
+	return sCtl.Success(ctx, nil)
+}
+
+//
+func (sCtl *UserController) CheckVerifyCode(ctx echo.Context) error {
+	params := &SmsRequest{}
+	if err := ctx.Bind(params); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+	comID := util.GetCtxComId(ctx)
+	if ok := sCtl.smsSvr.CheckVerifyCode(comID, params.Mobile, params.Code); !ok {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "验证码校验失败", errors.New("验证码校验失败"))
+	}
+	return sCtl.Success(ctx, nil)
 }
 
 func (sCtl *UserController) GetVerifyPic(ctx echo.Context) error {

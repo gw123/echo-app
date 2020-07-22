@@ -16,7 +16,7 @@ if [ -f upload ]; then
     chmod +x echoapp
 fi
 
-./echoapp site --config=config.yaml &
+./echoapp user --config=config.yaml &
 
 child=$!
 wait "$child"

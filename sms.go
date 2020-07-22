@@ -1,11 +1,9 @@
 package echoapp
 
 type SendMessageOptions struct {
-	Token         string   `json:"token"`
-	ComId         int      `json:"com_id"`
+	ComId         uint     `json:"com_id"`
 	PhoneNumbers  []string `json:"phone_numbers"`
-	SignName      string   `json:"sign_name"`
-	TemplateCode  string   `json:"template_code"`
+	Type          string   `json:"type"`
 	TemplateParam string   `json:"template_param"`
 }
 
@@ -24,5 +22,7 @@ type SendMessageJob struct {
 }
 
 type SmsService interface {
+	CheckVerifyCode(comId uint,phone string, code string) bool
+	SendVerifyCodeSms(comId uint, phone string ,code string) error
 	SendMessage(opt *SendMessageOptions) error
 }

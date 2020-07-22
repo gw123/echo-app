@@ -19,6 +19,7 @@ import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
 	"os"
@@ -85,7 +86,12 @@ func updateCompanyCache() {
 		}
 
 		for _, company := range list {
-			if err := companySvr.UpdateCachedCompany(company); err != nil {
+			companyDetail ,err := companySvr.GetCompanyById(company.Id)
+			if err != nil{
+				glog.Error(err.Error())
+				continue
+			}
+			if err := companySvr.UpdateCachedCompany(companyDetail); err != nil {
 				echoapp_util.DefaultJsonLogger().WithError(err).Error("更新用户缓存失败")
 			}
 			currentMaxId = company.Id
