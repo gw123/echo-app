@@ -22,4 +22,5 @@ const (
 
 	RedisUserDefaultAddrKey = "UserDefaultAddr:%d"
 	RedisUserCollectionKey  = "UserCollection:%d"
+
 )

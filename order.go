@@ -2,7 +2,6 @@ package echoapp
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gw123/glog"
 	"time"
 
@@ -40,10 +39,13 @@ type Order struct {
 	RealTotal     float32          `json:"real_total"`
 	GoodsList     []*CartGoodsItem `json:"goodsList" gorm:"-"`
 	GoodsListStr  string           `json:"-" gorm:"column:goodslist"`
-	GoodsType     string           `json:"goods_type"`
-	TransactionId string           `json:"transaction_id"`
-	Note          string           `json:"note"`
-	Info          string           `json:"info"`
+
+	Coupons       []*CouponBase `json:"coupons" gorm:"-"`
+	CouponsStr    string        `json:"-" gorm:"column:coupons"`
+	GoodsType     string        `json:"goods_type"`
+	TransactionId string        `json:"transaction_id"`
+	Note          string        `json:"note"`
+	Info          string        `json:"info"`
 	//Score         string           `score` //积分
 }
 
@@ -55,6 +57,16 @@ func (o *Order) BeforeSave() error {
 	o.GoodsListStr = string(data)
 	if o.PaidAt.IsZero() {
 		o.PaidAt = time.Now()
+	}
+
+	if len(o.Coupons) > 0 {
+		couponStr, err := json.Marshal(o.Coupons)
+		if err != nil {
+			return err
+		}
+		o.CouponsStr = string(couponStr)
+	} else {
+		o.CouponsStr = "[]"
 	}
 	return nil
 }
@@ -97,48 +109,6 @@ type GetOrderOptions struct {
 	CreatedAt     time.Time `json:"created_at"`
 	PaidAt        time.Time `json:"paid_at"`
 	//Score         string    `score`
-}
-
-type Ticket struct {
-	ID         int64     `gorm:"primary_key" json:"id"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"-"`
-	Code       string    `json:"code"`
-	GoodsId    int       `json:"-"`
-	OrderNo    string    `json:"-"`
-	OrderId    uint      `json:"-"`
-	Mobile     string    `json:"mobile"`
-	Name       string    `json:"name"`
-	Number     int       `json:"number"`
-	Status     string    `json:"status"  gorm:"status" `
-	UsedNumber int       `json:"used_number"`
-	Username   string    `json:"username"`
-	UsedAt     time.Time `json:"used_at"`
-	Cover      string    `json:"cover"`
-	ComId      int       `json:"com_id"`
-	UserId     int       `json:"user_id"`
-	Rand       int64     `json:"-"`
-}
-
-func (c *Ticket) AfterFind() error {
-	if c.Rand != 0 {
-		c.Code = fmt.Sprintf("%d%d", c.Rand, c.Rand+1234+c.ID)
-	}
-	return nil
-}
-
-type CodeTicket struct {
-	BayAt       time.Time `json:"bay_at"`
-	ComId       int       `json:"com_id"`
-	GoodsCover  string    `json:"goods_cover"`
-	GoodsId     uint      `json:"goods_id"`
-	GoodsName   string    `json:"goods_name"`
-	OrderNo     string    `json:"order_no"`
-	OrderStatus string    `json:"order_status"`
-	Username    string    `json:"username"`
-	UserId      int       `json:"user_id"`
-	Tickets     []*Ticket `json:"tickets"`
-	XcxCover    string    `json:"xcx_cover"`
 }
 
 type OrderService interface {

@@ -23,6 +23,7 @@ type ConfigOptions struct {
 	TestpaperServer   *Server                   `yaml:"testpaper_server" mapstructure:"testpaper_server"`
 	FileServer        *Server                   `yaml:"file_server" mapstructure:"file_server"`
 	SiteServer        *Server                   `yaml:"site_server" mapstructure:"site_server"`
+	ActivityServer    *Server                   `yaml:"activity_server" mapstructure:"activity_server"`
 	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
 	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
