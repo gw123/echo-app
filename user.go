@@ -95,6 +95,20 @@ func (*UserRole) TableName() string {
 	return "model_has_roles"
 }
 
+type History struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
+	Type      string     `json:"type"`
+	TargetId  uint       `json:"target_id"`
+	UserID    int64      `json:"user_id"`
+	ComId     uint       `json:"com_id"`
+}
+
+func (*History) TableName() string {
+	return "user_history"
+}
+
 type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
@@ -121,10 +135,15 @@ type UserService interface {
 	//GetCachedUserCollectionListById(userId int64) ([]*Collection, error)
 	//GetUserCollectionList(userId int64, lastId uint, limit int) ([]*Collection, error)
 	CreateUserCollection(collection *Collection) error
-	//UpdateUserCollection(collection *Collection) error
 	DelUserCollection(userId int64, collectType string, targetId uint) error
 	//GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
 	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
+	//History
+	UpdateCacheUserHistory(history *History) (err error)
+	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
+	GetCacheUserHistoryList(len uint) ([]string, error)
+	CreateUserHistory(history *History) error
+	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
 	GetUserByMobile(id uint, mobile string) (*User, error)
 }

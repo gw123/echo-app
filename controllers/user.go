@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"errors"
-	"github.com/gw123/glog"
-	"math/rand"
-	"strconv"
-
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"math/rand"
+	"strconv"
 )
 
 type UserController struct {
@@ -341,4 +340,132 @@ func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
 	return sCtl.Success(ctx, nil)
+}
+
+func (sCtl *UserController) AddUserHistory(ctx echo.Context) error {
+	his := &echoapp.History{}
+	if err := ctx.Bind(his); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	//comID := echoapp_util.GetCtxComId(ctx)
+	// comId := ctx.QueryParam("com_id")
+	// comID, _ := strconv.Atoi(comId)
+	his.UserID = userId
+	//his.ComId = uint(comID)
+	if err := sCtl.userSvr.CreateUserHistory(his); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+	}
+	return sCtl.Success(ctx, his)
+}
+func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
+	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
+	}
+	hisList, err := sCtl.userSvr.GetUserHistoryList(userId, lastId, limitint)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	type GoodsInfo struct {
+		//BrowsTime string
+		Price      float32 `json:"price"`
+		Name       string  `json:"name"`
+		SmallCover string  `json:"small_cover"`
+		GoodsType  string  `json:"goods_type" `
+	}
+	hisResMap := make(map[string][]*GoodsInfo)
+	var goodslist []*GoodsInfo
+	hisListLen := len(hisList)
+	browseTime := hisList[0].CreatedAt.Format("2006-01-02")
+	goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
+	//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[0].TargetId)
+	if err != nil {
+		glog.Info("sCtl.goodSvr.GetGoodsById")
+		//return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	tempGoods := &GoodsInfo{}
+	tempGoods.Name = goods.Name
+	tempGoods.Price = goods.Price
+	tempGoods.GoodsType = goods.GoodsType
+	tempGoods.SmallCover = goods.SmallCover
+	goodslist = append(goodslist, tempGoods)
+	for i := 1; i < hisListLen; i++ {
+		tempGoods := &GoodsInfo{}
+		//if hisList[i].Type=="goods"{
+		goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
+		//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[i].TargetId)
+		if err != nil {
+			glog.Info("sCtl.goodSvr.GetGoodsById")
+			continue
+		}
+		tempGoods.Name = goods.Name
+		tempGoods.Price = goods.Price
+		tempGoods.GoodsType = goods.GoodsType
+		tempGoods.SmallCover = goods.SmallCover
+		//}
+		curTime := hisList[i].CreatedAt.Format("2006-01-02")
+		if curTime == browseTime {
+			goodslist = append(goodslist, tempGoods)
+		} else {
+			hisResMap[browseTime] = goodslist
+			browseTime = curTime
+			goodslist = nil
+			goodslist = append(goodslist, tempGoods)
+		}
+		hisResMap[browseTime] = goodslist
+	}
+	return sCtl.Success(ctx, hisResMap)
+}
+func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
+	targetType := ctx.QueryParam("targetType")
+	//comId := echoapp_util.GetCtxComId(ctx)
+	comId := ctx.QueryParam("com_id")
+	comID, _ := strconv.Atoi(comId)
+	lastCursor, _ := strconv.Atoi(ctx.QueryParam("last_id"))
+	collecttionList, err := sCtl.userSvr.GetCacheUserHistoryHotZset(uint(comID), targetType)
+	//fmt.Println(collecttionList)
+	if err != nil {
+		glog.Info("sCtl.userSvr.GetCacheUserHistoryHotZset")
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	type GoodsInfo struct {
+		Price      float32 `json:"price"`
+		Name       string  `json:"name"`
+		SmallCover string  `json:"small_cover"`
+		GoodsType  string  `json:"goods_type" `
+	}
+	var goodslist []*GoodsInfo
+	var limit = 20
+	var temp = lastCursor + limit
+	if temp > len(collecttionList) {
+		temp = len(collecttionList)
+	}
+	if targetType == "goods" {
+		for i := lastCursor; i < temp; i++ {
+			tempGoods := &GoodsInfo{}
+			targetId, _ := strconv.Atoi(collecttionList[i])
+			goods, err := sCtl.goodSvr.GetGoodsById(uint(targetId))
+			//goods, err := sCtl.goodSvr.GetCachedGoodsById(uint(targetId))
+			if err != nil {
+				glog.Info(collecttionList[i] + "not found")
+				continue
+			}
+			tempGoods.Name = goods.Name
+			tempGoods.Price = goods.Price
+			tempGoods.GoodsType = goods.GoodsType
+			tempGoods.SmallCover = goods.SmallCover
+			goodslist = append(goodslist, tempGoods)
+		}
+	}
+	collectionMap := make(map[string]interface{})
+	collectionMap["comId"] = comId
+	collectionMap["Type"] = targetType
+	collectionMap["target"] = goodslist
+	return sCtl.Success(ctx, collectionMap)
 }

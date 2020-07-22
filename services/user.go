@@ -3,8 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gw123/glog"
+	"strconv"
 	"time"
+
+	"github.com/gw123/glog"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -24,6 +26,9 @@ const (
 	RedisUserXCXAddrKey     = "UserXCXDefaultAddr:%d"
 	RedisUserCollectTypeKey = "UserCollectType:%d,%s"
 	//RedisUserCollectionKey  = "UserCollection:%d"
+	RedisUserHistoryListKey = "UserHistoryList"
+	RedisUserHistoryLockKey = "UserHistoryLock"
+	RedisUserHistoryHotKey  = "CompanyTypeZset:%d,%s"
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
@@ -42,6 +47,9 @@ func FormatUserAddrRedisKey(userId int64) string {
 
 func FormatUserCollectionTypeRedisKey(userId int64, collectType string) string {
 	return fmt.Sprintf(RedisUserCollectTypeKey, userId, collectType)
+}
+func FormatUserHistoryHotKey(comId uint, targetType string) string {
+	return fmt.Sprintf(RedisUserHistoryHotKey, comId, targetType)
 }
 
 type UserService struct {
@@ -591,4 +599,101 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 		return errors.Wrap(err, "redis set")
 	}
 	return errors.Wrap(err, "UpdateCacheUserCollection:sadd")
+}
+
+func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
+	if history.TargetId <= 0 {
+		return errors.New("目标不存在")
+	}
+	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
+	//fmt.Println(len)
+	if err != nil {
+		if len == 0 {
+			return errors.Wrap(err, "redis Llen is nil")
+		}
+		return errors.Wrap(err, "resdis LLen")
+	}
+	if len >= 100 {
+		//todo 过期时间
+		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); !ok {
+			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
+			if err != nil {
+				//todo 释放锁
+				uSvr.redis.Del(RedisUserHistoryLockKey)
+				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
+			}
+			//uSvr.redis.Del(RedisUserHistoryListKey)
+			//todo 删除修改成只删除前100个
+			for _, val := range targetArr {
+				var resHistory = &echoapp.History{}
+				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					continue
+				}
+				if err := uSvr.db.Create(resHistory).Error; err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					continue
+				}
+			}
+			uSvr.redis.Del(RedisUserHistoryLockKey)
+		}
+	}
+	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
+		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
+	}
+	return uSvr.UpdateCacheUserHistory(history)
+}
+
+func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
+	if length > 500 {
+		length = 500
+	}
+	dataArr, err := u.redis.LRange(RedisUserHistoryListKey, 0, int64(length)).Result()
+
+	if err != nil {
+		return nil, err
+	}
+	return dataArr, nil
+}
+func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) ([]string, error) {
+	setLen, err := u.redis.ZCard(FormatUserHistoryHotKey(comId, targetType)).Result()
+	//fmt.Println(setLen)
+	if err != nil {
+		return nil, err
+	}
+	dataArr, err := u.redis.ZRevRange(FormatUserHistoryHotKey(comId, targetType), 0, setLen-1).Result()
+	return dataArr, err
+}
+func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
+	var historyList []*echoapp.History
+	if err := u.db.
+		Table("user_history").
+		Where("user_id=? AND id>?", userId, lastId).
+		Limit(limit).
+		Order("created_at asc").
+		Find(&historyList).
+		Error; err != nil {
+		return nil, errors.Wrap(err, "GetUserCollectList")
+	}
+	return historyList, nil
+}
+
+func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err error) {
+	data, err := json.Marshal(history)
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	err = u.redis.LPush(RedisUserHistoryListKey, string(data)).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
+}
+func (u *UserService) UpdateCacheUserHistoryHot(history *echoapp.History) (err error) {
+	member := strconv.Itoa(int(history.TargetId))
+	err = u.redis.ZIncrBy(FormatUserHistoryHotKey(history.ComId, history.Type), 1, member).Err()
+	if err != nil {
+		return errors.Wrap(err, "redis set")
+	}
+	return err
 }
