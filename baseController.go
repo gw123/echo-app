@@ -2,8 +2,9 @@ package echoapp
 
 import (
 	"errors"
-	"github.com/labstack/echo"
 	"net/http"
+
+	"github.com/labstack/echo"
 )
 
 const (
@@ -19,17 +20,17 @@ const (
 
 var ErrNotFoundCache = errors.New("not found cache item")
 var ErrNotFoundDb = errors.New("not found db item")
+var ErrDb = errors.New("db exec err")
 var ErrNotFoundEtcd = errors.New("not found etcd item")
 var ErrArgument = errors.New("argument error")
 var ErrNotLogin = errors.New("not login")
 var ErrNotAuth = errors.New("not auth")
 var ErrNotAllow = errors.New("not allow")
 
-
 type Response struct {
 	ErrorCode  int         `json:"code"`
 	Msg        string      `json:"msg"`
-	InnerError string      `json:"inner_error"`
+	InnerError string      `json:"-"`
 	Data       interface{} `json:"data"`
 }
 
@@ -38,7 +39,7 @@ type BaseController struct {
 
 func (b *BaseController) Success(ctx echo.Context, data interface{}) error {
 	response := Response{
-		ErrorCode: 0,
+		ErrorCode: 200,
 		Msg:       "success",
 		Data:      data,
 	}
@@ -51,5 +52,6 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 		Msg:       msg,
 	}
 	ctx.JSON(http.StatusOK, response)
+
 	return innerErr
 }

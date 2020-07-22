@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"fmt"
-	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/services"
-	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/labstack/echo"
 	"math/rand"
 	"net/http"
 	"time"
+
+	echoapp "github.com/gw123/echo-app"
+	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/labstack/echo"
 )
 
 type WsController struct {
@@ -17,9 +17,9 @@ type WsController struct {
 	usrSvr echoapp.UserService
 }
 
-func NewWsController(usrSvr echoapp.UserService) *WsController {
+func NewWsController(usrSvr echoapp.UserService, wsSvr echoapp.WsService) *WsController {
 	temp := new(WsController)
-	temp.wsSvr = services.NewWsService()
+	temp.wsSvr = wsSvr
 	temp.usrSvr = usrSvr
 	return temp
 }
@@ -29,14 +29,20 @@ func (c *WsController) Index(ctx echo.Context) error {
 }
 
 func (c *WsController) CreateWsClient(ctx echo.Context) error {
-	token := ctx.QueryParam("token")
-	echoapp_util.ExtractEntry(ctx).Infof("CreateWsClient: %s", token)
-	user, err := c.usrSvr.GetUserByToken(token)
+	//token := ctx.QueryParam("token")
+	clientID := ctx.QueryParam("ClientID")
+	echoapp_util.ExtractEntry(ctx).Infof("创建新的客户端")
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
 		return c.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	echoapp_util.ExtractEntry(ctx).Infof("user_id:%d 登录成功", user.Id)
-	return c.wsSvr.AddWsClient(ctx, token)
+
+	echoapp_util.ExtractEntry(ctx).Infof("user_id:%d 登录成功", userId)
+	if err := c.wsSvr.AddWsClient(ctx, uint(userId), clientID); err != nil {
+		return c.Fail(ctx, echoapp.CodeArgument, "创建ws客户端失败", err)
+	}
+
+	return c.Success(ctx, nil)
 }
 
 func (c *WsController) SendCmd(ctx echo.Context) error {

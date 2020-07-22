@@ -14,7 +14,12 @@ const (
 	RedisSmsLoginCodeKey  = "SmsLoginCode"
 	RedisCompanyKey       = "Company:%d"
 	RedisGoodsKey         = "Goods:%d"
+	//Goods:comId:position
+	RedisBannerListKey = "Goods:%d:%s"
 
 	RedisActivityKey = "Activity:%d"
 	RedisArticleKey  = "Article:%d"
+
+	RedisUserDefaultAddrKey = "UserDefaultAddr:%d"
+	RedisUserCollectionKey  = "UserCollection:%d"
 )

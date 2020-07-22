@@ -1,11 +1,12 @@
 package echoapp_util
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strconv"
 )
 
 type ctxLogger struct {
@@ -29,12 +30,38 @@ var (
 
 const (
 	//ctxkeys
-	ctxUserKey      = "&userKey{}"
-	ctxUserIdKey    = "&userIdKey{}"
-	ctxComKey       = "&comKey{}"
-	ctxUserRolesKey = "&userRolesKey{}"
-	ctxLoggerKey    = "&loggerKey{}"
+	ctxUserKey       = "&userKey{}"
+	ctxUserIdKey     = "&userIdKey{}"
+	ctxAddrIdKey     = "&addrIdKey{}"
+	ctxComKey        = "&comKey{}"
+	ctxUserRolesKey  = "&userRolesKey{}"
+	ctxLoggerKey     = "&loggerKey{}"
+	ctxJwtPayloadKey = "&jwtPayloadKey{}"
 )
+
+func GetCtxComId(c echo.Context) uint {
+	comId, _ := strconv.Atoi(c.Param("com_id"))
+	if comId == 0 {
+		comId, _ = strconv.Atoi(c.QueryParam("com_id"))
+	}
+	return uint(comId)
+}
+
+func GetCtxClientUUID(c echo.Context) string {
+	clientUuid := c.Request().Header.Get("Client_UUID")
+	return clientUuid
+}
+
+// 分页时候使用 lastId 最后一个id ，limit分页大小
+func GetCtxListParams(c echo.Context) (lastId uint, limit int) {
+	lastID, _ := strconv.Atoi(c.QueryParam("last_id"))
+	lastId = uint(lastID)
+	limit, _ = strconv.Atoi(c.QueryParam("limit"))
+	if limit < 2 || limit > 100 {
+		limit = 10
+	}
+	return lastId, limit
+}
 
 func SetCtxUserId(ctx echo.Context, userId int64) {
 	AddField(ctx, "user_id", strconv.FormatInt(userId, 10))
@@ -48,7 +75,18 @@ func GetCtxtUserId(ctx echo.Context) (int64, error) {
 	}
 	return userId, nil
 }
+func SetCtxAddrId(ctx echo.Context, addrId int64) {
+	AddField(ctx, "addr_id", strconv.FormatInt(addrId, 10))
+	ctx.Set(ctxAddrIdKey, addrId)
+}
 
+func GetCtxtAddrId(ctx echo.Context) (int64, error) {
+	addrId, ok := ctx.Get(ctxAddrIdKey).(int64)
+	if !ok {
+		return 0, errors.New("get ctxAddrId flied")
+	}
+	return addrId, nil
+}
 func SetCtxUser(ctx echo.Context, user *echoapp.User) {
 	ctx.Set(ctxUserKey, user)
 }
@@ -63,9 +101,10 @@ func GetCtxtUser(ctx echo.Context) (*echoapp.User, error) {
 
 func SetCtxCompany(ctx echo.Context, company *echoapp.Company) {
 	ctx.Set(ctxComKey, company)
+	AddField(ctx, "com_id", strconv.Itoa(int(company.Id)))
 }
 
-func GetCtxtCompany(ctx echo.Context) (*echoapp.Company, error) {
+func GetCtxCompany(ctx echo.Context) (*echoapp.Company, error) {
 	company, ok := ctx.Get(ctxComKey).(*echoapp.Company)
 	if !ok {
 		return nil, errors.New("get ctxCompany flied")
@@ -86,11 +125,11 @@ func GetCtxtUserRoles(ctx echo.Context) ([]echoapp.Role, error) {
 }
 
 func SetCtxJwsPayload(ctx echo.Context, payload string) {
-	ctx.Set(ctxComKey, payload)
+	ctx.Set(ctxJwtPayloadKey, payload)
 }
 
 func GetCtxtJwsPayload(ctx echo.Context) (string, error) {
-	payload, ok := ctx.Get(ctxComKey).(string)
+	payload, ok := ctx.Get(ctxJwtPayloadKey).(string)
 	if !ok {
 		return "", errors.New("get ctxPayload flied")
 	}

@@ -6,28 +6,32 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"net/http"
+	"strconv"
 )
 
-func NewCompanyMiddlewares(skipper middleware.Skipper, usrSvr echoapp.UserService) echo.MiddlewareFunc {
+func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanyService) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			if c.Request().Method == echo.OPTIONS {
+				return next(c)
+			}
 			if skipper(c) {
 				return next(c)
 			}
-			userId, err := echoapp_util.GetCtxtUserId(c)
-			if err != nil {
-				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
-				return c.JSON(http.StatusUnauthorized, "未授权")
+			comId, _ := strconv.Atoi(c.Param("com_id"))
+			if comId == 0 {
+				comId, _ = strconv.Atoi(c.QueryParam("com_id"))
 			}
-			user, err := usrSvr.GetUserById(userId)
-			if err != nil {
-				//这个级别比较严重，可能秘钥已经泄露(伪造用户id), 或者redis 数据库都出现问题
-				echoapp_util.ExtractEntry(c).
-					WithField("report", "可能秘钥已经泄露(伪造用户id), 或者redis 数据库都出现问题").
-					Errorf("jwsMiddleware not found userId: %d, err: %s", userId, err.Error())
-				return c.JSON(http.StatusUnauthorized, "未授权")
+			if comId == 0 {
+				echoapp_util.ExtractEntry(c).Errorf("com_id not set")
+				return c.JSON(http.StatusUnauthorized, "非法请求地址")
 			}
-			echoapp_util.SetCtxUser(c, user)
+			company, err := comSvr.GetCachedCompanyById(uint(comId))
+			if err != nil {
+				echoapp_util.ExtractEntry(c).Errorf("com %d cache not set", comId)
+				return c.JSON(http.StatusUnauthorized, "服务未初始化")
+			}
+			echoapp_util.SetCtxCompany(c, company)
 			return next(c)
 		}
 	}

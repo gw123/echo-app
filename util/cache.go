@@ -2,8 +2,9 @@ package echoapp_util
 
 import (
 	"encoding/json"
-	"github.com/go-redis/redis/v7"
 	"time"
+
+	"github.com/go-redis/redis/v7"
 )
 
 //isEmpty 当从数据库拿不到数据时候是否缓存一个空的数据

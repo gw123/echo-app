@@ -17,15 +17,16 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 type RealGateDay struct {
@@ -69,7 +70,8 @@ func doReportHttpRequest(url, app_key string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
 	}
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 	req.Header.Set("appKey", app_key)
 
 	res, err := http.DefaultClient.Do(req)
@@ -204,7 +206,7 @@ func reportHourTicketV2() error {
 		}
 
 		now := time.Now()
-		hourAgo := now.Add(-time.Hour)
+		hourAgo := now.Add(-time.Minute * 15)
 		toTime := now.Format("2006-01-02 15:04:05")
 		fromTime := hourAgo.Format("2006-01-02 15:04:05")
 		var channelHourReports []*ChannelHourReportV2
@@ -224,14 +226,14 @@ func reportHourTicketV2() error {
 			Data:      channelHourReports,
 		}
 		data, err := json.Marshal(reportDataRequest)
-		echoapp_util.DefaultLogger().Infof("请求数据: %s", string(data))
 		if err != nil {
 			return errors.Wrap(err, "json.Marshal")
 		}
-
+		body := "jsonParams=" + string(data)
 		//入园
 		url := options.BaseUrl + "/scenic/report"
-		responseData, err := doReportHttpRequest(url, options.AppKey, data)
+		echoapp_util.DefaultLogger().Infof("请求数据: %s", string(body))
+		responseData, err := doReportHttpRequest(url, options.AppKey, []byte(body))
 		if err != nil {
 			return errors.Wrap(err, "doReportHttpRequestV2")
 		}

@@ -1,11 +1,12 @@
 package echoapp_middlewares
 
 import (
+	"net/http"
+
 	"github.com/gw123/echo-app/components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"net/http"
 )
 
 type JwsMiddlewaresOptions struct {
@@ -13,6 +14,7 @@ type JwsMiddlewaresOptions struct {
 	Jws     *components.JwsHelper
 	//调试时候使用直接模拟一个用户id,正式环境要把这个设置为0
 	MockUserId int64
+	IgnoreAuth bool
 }
 
 func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
@@ -30,20 +32,32 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 				return next(c)
 			}
 
+			token := c.QueryParam("token")
 			auth := req.Header.Get(echo.HeaderAuthorization)
-			authScheme := "Bearer"
-			l := len(authScheme)
-			if len(auth) > l+1 && auth[:l] == authScheme {
-				echoapp_util.ExtractEntry(c).Error("未设置token")
-				return c.JSON(http.StatusUnauthorized, "未授权")
+			if token =="" && len(auth) == 0 && opt.IgnoreAuth {
+				return next(c)
 			}
 
-			token := auth[l+1:]
+			authScheme := "Bearer"
+			l := len(authScheme)
+			if token == ""	{
+				if !(len(auth) > l+1 && auth[:l] == authScheme) {
+					echoapp_util.ExtractEntry(c).Error("未设置token")
+					return c.JSON(http.StatusUnauthorized, "未授权")
+				}
+				token = auth[l+1:]
+			}
 			userId, payload, err := opt.Jws.ParseToken(token)
 			if err != nil {
-				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
-				return c.JSON(http.StatusUnauthorized, "未授权")
+				if opt.IgnoreAuth {
+					return next(c)
+				} else {
+					echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
+					return c.JSON(http.StatusUnauthorized, "未授权")
+				}
 			}
+
+			//glog.Infof("userId:" , userId)
 			echoapp_util.SetCtxUserId(c, userId)
 			echoapp_util.SetCtxJwsPayload(c, payload)
 			return next(c)

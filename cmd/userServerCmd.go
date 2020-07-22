@@ -1,21 +1,12 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -24,10 +15,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startUserServer() {
@@ -45,12 +32,12 @@ func startUserServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.Server.Origins
+	origins := echoapp.ConfigOpts.UserServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -66,33 +53,67 @@ func startUserServer() {
 	//}))
 
 	//Actions
+
+	companySvr := app.MustGetCompanyService()
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
+	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	usrSvr := app.MustGetUserService()
-	userCtl := controllers.NewUserController(usrSvr)
-	normal := e.Group("/v1/user")
+	goodsSvr := app.MustGetGoodsService()
+	smsSvr := app.MustGetSmsService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr)
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/user/:com_id")
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+		//MockUserId: 58,
+	}
+	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
+	//登录
 	normal.POST("/login", userCtl.Login)
 	normal.POST("/register", userCtl.Register)
 	normal.POST("/logout", userCtl.Logout)
 	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
+	//normal.POST("/checkVerifyCode", userCtl.CheckVerifyCode)
+	//
+
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
-	jwsAuth := e.Group("/v1/user")
+	//jwsAuth := e.Group("/v1/user")
+	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper: middleware.DefaultSkipper,
-		Jws:     app.MustGetJwsHelper(),
-		//MockUserId: 0,
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+		MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
-	jwsAuth.POST("/getUserInfo",     userCtl.GetUserInfo)
-	jwsAuth.POST("/getUserRoles",    userCtl.GetUserRoles)
-	jwsAuth.POST("/checkHasRoles",   userCtl.CheckHasRoles)
-
+	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+	//roles
+	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
+	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
+	//addressList
+	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
+	jwsAuth.POST("/createUserAddress", userCtl.CreateUserAddress)
+	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
+	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
+	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
+	//collection
+	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
+	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
+	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
+	jwsAuth.POST("/isCollect", userCtl.IsCollect)
+	//history
+	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
+	jwsAuth.GET("/getUserHistory", userCtl.GetUserHistoryList)
+	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}

@@ -1,91 +1,84 @@
 package echoapp
 
 import (
-	"encoding/json"
+	"time"
+
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
 )
-
-type Category struct {
-	gorm.Model
-	Title string `json:"title"`
-}
-
-type Tag struct {
-	gorm.Model
-	Title string `json:"title"`
-}
-
-type TagGroup struct {
-	gorm.Model
-	TagId   uint `json:"tag_id"`
-	GroupId uint `json:"group_id"`
-}
-
-func (TagGroup) TableName() string {
-	return "tag_group"
-}
-
-type Group struct {
-	gorm.Model
-	Title      string    `gorm:"column:title" json:"title"`
-	UserId     uint      `gorm:"column:user_id"json:"user_id"`
-	Covers     []string  `gorm:"-" json:"covers"`
-	CoversStr  string    `gorm:"column:covers" json:"covers_str"`
-	Desc       string    `gorm:"column:desc" json:"desc"`
-	CategoryId uint      `gorm:"column:category_id" json:"category_id"`
-	TagIds     []uint    `gorm:"-" json:"tags"`
-	Display    string    `json:"display"`
-	Chapters   []Chapter `json:"chapters"`
-}
-
-func (g *Group) BeforeSave() (err error) {
-	var str []byte
-	if str, err = json.Marshal(g.Covers); err != nil {
-		return err
-	}
-	g.CoversStr = string(str)
-	return
-}
-
-type Chapter struct {
-	gorm.Model
-	Title     string     `json:"title"`
-	GroupId   uint       `json:"group_id"`
-	ParentId  uint       `json:"parent_id"`
-	Resources []Resource `json:"resources"`
-}
 
 type Resource struct {
 	gorm.Model
-	Title     string     `json:"title"`
-	UserId    uint       `json:"user_id"`
-	GroupId   uint       `json:"group_id"`
-	ChapterId uint       `json:"chapter_id"`
-	Covers    string     `json:"covers"`
-	Type      string     `json:"type"`
-	Article   *Article   `json:"article" gorm:"ForeignKey:rid"`
-	Testpaper *Testpaper `json:"testpaper" gorm:"ForeignKey:rid"`
+	UserId     int64      `json:"user_id"`
+	Type       string     `json:"type"`
+	Testpaper  *Testpaper `json:"testpaper" gorm:"ForeignKey:rid"`
+	Path       string     `json:"path" gorm:"unique"`
+	Status     string     `json:"status"`
+	Download   string     `json:"download"`
+	Name       string     `json:"name"`
+	Privilege  string     `json:"privilege"`
+	TagId      int64      `json:"tag_id"`
+	GoodsId    int64      `json:"goods_id"`
+	Covers     string     `gorm:"type:varchar(2048)" json:"covers"`
+	SmallCover string     `json:"small_cover"`
+	Pages      int        `json:"pages"`
 }
 
-type Article struct {
-	gorm.Model
-	Rid     int    `json:"rid"`
-	Content string `json:"content"`
+// type Testpaper struct {
+// 	gorm.Model
+// 	Rid     int    `json:"rid"`
+// 	Content string `json:"content"`
+// }
+type GetResourceOptions struct {
+	Path string `json:"path"`
+	Name string `json:"name"`
 }
 
-type Testpaper struct {
-	gorm.Model
-	Rid     int    `json:"rid"`
-	Content string `json:"content"`
+type File struct {
+	ID        uint64 `gorm:"primary_key"`
+	CreatedAt time.Time
+	UserId    uint   `json:"user_id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Md5       string `json:"md5"`
+	Size      int64  `json:"size"`
+	Rid       int    `json:"rid"`
+	Url       string `json:"url"`
+	Type      string `json:"type"`
+	Bucket    string `json:"bucket"`
+	ClientId  string `json:"client_id"`
+	IP        string `json:"ip"`
 }
 
 type ResourceService interface {
-	SaveResource(resource Resource) error
-	GetResourceById(id uint) (*Resource, error)
+	//保存上传的资源到数据库
+	SaveResource(resource *Resource) error
+	//删除资源
+	DeleteResource(resource *Resource) error
+	//更改资源
+	ModifyResource(resource *Resource) error
+
+	//通过资源ID查找资源
+	GetResourceById(c echo.Context, id int64) (*Resource, error)
 	//通过tagId查找资源
-	GetResourcesByTagID(tagID uint, from, limit int) ([]*Resource, error)
+	GetResourcesByTagId(c echo.Context, tagId int64, from int, limit int) ([]*Resource, error)
 	//用户上传的资源
-	GetSelfResources(userId uint, from, limit int) ([]*Resource, error)
+	GetSelfResources(c echo.Context, userId int64, from int, limit int) ([]*Resource, error)
 	//用户购买的资源
-	GetUserPaymentResources(userId uint, from, limit int) ([]*Resource, error)
+	GetUserPaymentResources(c echo.Context, userId int64, from int, limit int) ([]*Resource, error)
+	//通过文件name（加后缀）查找资源
+	GetResourceByName(path string) (*Resource, error)
+	//通过文件name MD5（加后缀）查找资源
+	GetResourceByMd5Path(c echo.Context, file string) (*Resource, error)
+	//查看资源文件 ，每页有 limit 条数据
+	GetResourceList(c echo.Context, from, limit int) ([]*GetResourceOptions, error)
+
+	//本地上传文件到服务端
+	UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) (*File, error)
+	//保存文件
+	SaveFile(file *File) error
+	//资源下载
+	DownloadFile(durl, localpath string) (string, error)
+	//Md5文件内容
+	//Md5SumFile(file string) (string, error)
 }

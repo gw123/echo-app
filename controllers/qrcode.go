@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"net/http"
+	"strings"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	qrcode "github.com/skip2/go-qrcode"
-	"net/http"
-	"strings"
 )
 
 type QrcodeController struct {
@@ -14,8 +15,7 @@ type QrcodeController struct {
 }
 
 func NewQrcodeController() *QrcodeController {
-	help := &QrcodeController{
-	}
+	help := &QrcodeController{}
 	return help
 }
 

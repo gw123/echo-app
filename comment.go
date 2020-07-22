@@ -1,30 +1,71 @@
 package echoapp
 
 import (
+	"encoding/json"
 	"time"
 )
 
-/***
-`type` varchar(198) COLLATE utf8mb4_unicode_ci NOT NULL,
-`target_id` int(11) NOT NULL,
-`user_id` int(11) NOT NULL,
-`parent_id` int(11) NOT NULL DEFAULT '0',
-`created_at` datetime NOT NULL,
-*/
-
-type Comment struct {
-	ID        int32     `gorm:"primary_key" json:"id"`
-	CreatedAt time.Time `json:"created_at" gorm:"index:created_at"`
-	Ip        string    `json:"ip" form:"ip" gorm:"size:16"`
-	Mac       string    `json:"mac" form:"mac" gorm:"size:40"`
-	ClientId  string    `json:"client_id" form:"client_id" gorm:"size:40"`
-	Content   string    `json:"content" form:"content" gorm:"size:4096"`
-	Type      string    `json:"type" form:"type" gorm:"size:10;index:type_targetId" `
-	TargetId  int32     `json:"target_id" form:"target_id" gorm:"index:type_targetId"`
-	UserId    int32     `json:"user_id" form:"user_id" gorm:"index:userId"`
-	ParentId  int32     `json:"parent_id" form:"parent_id" gorm:"index:parentId"`
+type CommentDetail struct {
+	Comment
+	Express                int        `json:"express" `
 }
 
-func (u Comment) TableName() string {
-	return "comments"
+type Comment struct {
+	ID                     int64     `gorm:"primary_key" json:"id"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time
+	DeletedAt              *time.Time `sql:"index"`
+	ComId                  int        `json:"com_id"`
+	ShopId                 int        `json:"shop_id" gorm:"not null"`
+	UserId                 int64      `json:"user_id" form:"user_id" gorm:"not null"`
+	GoodsId                int64      `json:"goods_id" gorm:"not null"`
+	PId                    int64      `json:"pid" gorm:"column:pid"`
+	OrderNo                string     `json:"order_no" grom:"not null"`
+	SellerId               int        `json:"seller_id" gorm:"not null"`
+	StaffId                int        `json:"staff_id" gorm:"not null"`
+	Health                 int        `json:"health" gorm:"not null"`
+	Goods                  int        `json:"goods" gorm:"not null"`
+	Staff                  int        `json:"staff" gorm:"not null"`
+	UpNum                  int        `json:"up_num" gorm:"not null"`
+	ReplyNum               int        `json:"reply_num" gorm:"not null"`
+	CoversStr              string     `json:"-" gorm:"column:covers;size:1024"`
+	Covers                 []string   `json:"covers" gorm:"-"`
+	Content                string     `json:"content" form:"content" gorm:"size:256"`
+	Source                 string     `json:"source"`
+	Avatar                 string     `json:"avatar"`
+	Nickname               string     `json:"nickname" gorm:"column:nickname"`
+	ReplyList              []*Comment `json:"reply_list" gorm:"-"`
+	UserComprehensiveScore float64    `json:"score" gorm:"column:score"`
+}
+
+func (c *Comment) BeforeCreate() (err error) {
+	str, err := json.Marshal(c.Covers)
+	if err != nil {
+		return err
+	}
+	c.CoversStr = string(str)
+	return
+}
+func (c *Comment) AfterFind() error {
+	if err := json.Unmarshal([]byte(c.CoversStr), &c.Covers); err != nil {
+		return err
+	}
+	return nil
+}
+
+type CommentService interface {
+	CreateComment(comment *Comment) error
+	SaveComment(comment *Comment) error
+	//GetCommentById(id int) (*Comment, error)
+	//GetCommentByTargetId(targetId int64, limit int) (*Comment, error)
+	GetCommentList(goodsId int64, lastId uint, limit int) ([]*Comment, error)
+	//UpdateComment(comment *Comment) error
+	DeleteComment(comment *Comment) error
+	ThumbUpComment(commentId int64) error
+	RankCommentByUp(amount int, time time.Time) error
+	GetCommentById(id int64) (*Comment, error)
+	IsOrderNoExist(orderNo string) (bool, error)
+	GetGoodsCommentNum(goodsId int64) (int, error)
+	GetSubCommentList(id int64, lastId uint, limit int) ([]*Comment, error)
+	GetGoodsGoodCommentNum(goodsId int64) (int, error)
 }

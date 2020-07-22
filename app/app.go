@@ -11,18 +11,27 @@ import (
 
 var App *EchoApp
 
-//私有变量 防止未初始化调用
 type EchoApp struct {
-	areaSvc    echoapp.AreaService
-	smsSvc     echoapp.SmsService
-	UserSvr    echoapp.UserService
-	dbPool     echoapp.DbPool
-	redisPool  echoapp.RedisPool
-	CompanySvr echoapp.CompanyService
+	IsHealth        bool
+	areaSvc         echoapp.AreaService
+	smsSvc          echoapp.SmsService
+	UserSvr         echoapp.UserService
+	dbPool          echoapp.DbPool
+	redisPool       echoapp.RedisPool
+	CompanySvr      echoapp.CompanyService
+	GoodsSvr        echoapp.GoodsService
+	ResourceService echoapp.ResourceService
+	CommentSvr      echoapp.CommentService
+	OrderSvr        echoapp.OrderService
+	ActivitySvr     echoapp.ActivityService
+	WsSvr           echoapp.WsService
+	TestpaperSvr    echoapp.TestpaperService
 }
 
 func init() {
-	App = &EchoApp{}
+	App = &EchoApp{
+		IsHealth: true,
+	}
 }
 
 func GetAreaService() (echoapp.AreaService, error) {
@@ -49,7 +58,9 @@ func GetSmsService() (echoapp.SmsService, error) {
 	if App.smsSvc != nil {
 		return App.smsSvc, nil
 	}
-	smsSvc := services.NewSmsService(echoapp.ConfigOpts.SmsOptionTokenMap)
+	comSvr := MustGetCompanyService()
+	redis :=  MustGetRedis("")
+	smsSvc := services.NewSmsService(comSvr, redis)
 	App.smsSvc = smsSvc
 	return smsSvc, nil
 }
@@ -123,12 +134,14 @@ func GetUserService() (echoapp.UserService, error) {
 	}
 	userDb, err := GetDb("user")
 	if err != nil {
-		return nil, errors.Wrap(err, "GetDb")
+		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
+
 	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
+
 	jws, err := GetJwsHelper()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetJws")
@@ -140,9 +153,39 @@ func GetUserService() (echoapp.UserService, error) {
 func MustGetUserService() echoapp.UserService {
 	userSvr, err := GetUserService()
 	if err != nil {
-		panic(errors.Wrap(err, "GetUserSvr"))
+		panic(errors.Wrap(err, "MustuserSer-> GetUserSvr"))
 	}
 	return userSvr
+}
+
+func MustGetWsService() echoapp.WsService {
+	App.WsSvr = services.NewWsService()
+	return App.WsSvr
+}
+
+func GetGoodsService() (echoapp.GoodsService, error) {
+	if App.GoodsSvr != nil {
+		return App.GoodsSvr, nil
+	}
+	goodsDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	App.GoodsSvr = services.NewGoodsService(goodsDb, redis)
+	return App.GoodsSvr, nil
+}
+
+func MustGetGoodsService() echoapp.GoodsService {
+	goodsSvr, err := GetGoodsService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return goodsSvr
 }
 
 func GetCompanyService() (echoapp.CompanyService, error) {
@@ -167,4 +210,127 @@ func MustGetCompanyService() echoapp.CompanyService {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}
 	return company
+}
+
+func GetResourceService() (echoapp.ResourceService, error) {
+	if App.ResourceService != nil {
+		return App.ResourceService, nil
+	}
+	shopDb, err := GetDb("resource")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "GetRedis")
+	// }
+	//App.ResourceService = services.NewResourceService(shopDb, redis, echoapp.ConfigOpts.ResourceOptions)
+	App.ResourceService = services.NewResourceService(shopDb)
+	return App.ResourceService, nil
+}
+
+func MustGetResourceService() echoapp.ResourceService {
+	resource, err := GetResourceService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return resource
+}
+func GetCommentService() (echoapp.CommentService, error) {
+	if App.CompanySvr != nil {
+		return App.CommentSvr, nil
+	}
+	commentDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "GetRedis")
+	// }
+	App.CommentSvr = services.NewCommentService(commentDb)
+	return App.CommentSvr, nil
+}
+
+func MustGetCommentService() echoapp.CommentService {
+	comment, err := GetCommentService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetCommentSvr"))
+	}
+	return comment
+}
+
+func GetOrderService() (echoapp.OrderService, error) {
+	if App.OrderSvr != nil {
+		return App.OrderSvr, nil
+	}
+	goodsDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	goodsSvr := MustGetGoodsService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr)
+	return App.OrderSvr, nil
+}
+
+func MustGetOrderService() echoapp.OrderService {
+	svr, err := GetOrderService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
+func GetActivityService() (echoapp.ActivityService, error) {
+	if App.ActivitySvr != nil {
+		return App.ActivitySvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+
+	App.ActivitySvr = services.NewActivityService(shopDb, redis)
+	return App.ActivitySvr, nil
+}
+
+func MustGetActivityService() echoapp.ActivityService {
+	svr, err := GetActivityService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+func GetTestpaperService() (echoapp.TestpaperService, error) {
+	if App.TestpaperSvr != nil {
+		return App.TestpaperSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "GetRedis")
+	// }
+
+	App.TestpaperSvr = services.NewTestpaperService(shopDb)
+	return App.TestpaperSvr, nil
+}
+
+func MustGetTestpaperService() echoapp.TestpaperService {
+	svr, err := GetTestpaperService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetTestPapeSvr"))
+	}
+	return svr
 }

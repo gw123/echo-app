@@ -15,6 +15,15 @@ var Viper *viper.Viper
 type ConfigOptions struct {
 	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
+	UserServer        *Server                   `yaml:"user_server" mapstructure:"user_server"`
+	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
+	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
+	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
+	MessageServer     *Server                   `yaml:"message_server" mapstructure:"message_server"`
+	TestpaperServer   *Server                   `yaml:"testpaper_server" mapstructure:"testpaper_server"`
+	FileServer        *Server                   `yaml:"file_server" mapstructure:"file_server"`
+	SiteServer        *Server                   `yaml:"site_server" mapstructure:"site_server"`
+	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
 	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
 	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
 	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
@@ -23,13 +32,29 @@ type ConfigOptions struct {
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
+	RecommendOptions  *RecommendOptions             `yaml:"recommend_options" mapstructure:"recommend_options"`
+	ApiVersion        string                        `yaml:"api_version" mapstructure:"api_version"`
+}
+type RecommendOptions struct {
+	AttributesWight []float64 `json:"attributes_wight" yaml:"attributes_wight" mapstructure:"attributes_wight"`
+	ParamA          float64   `json:"param_a" yaml:"param_a" mapstructure:"param_a"`
+	ParamB          float64   `json:"param_b" yaml:"param_b" mapstructure:"param_b"`
+}
+type ResourceServerOption struct {
+	BucketName        string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
+	CallbackUrl       string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`
+	AccessKey         string `json:"access_key" yaml:"access_key" mapstructure:"access_key"`
+	SecretKey         string `json:"secret_key" yaml:"secret_key" mapstructure:"secret_key"`
+	XytUrl            string `yaml:"xyt_url" mapstructure:"xyt_url"`
+	UploadMaxFileSize int64  `yaml:"max_file_size" mapstructure:"max_file_size"`
+	BaseURL           string `yaml:"base_url" mapstructure:"base_url"`
 }
 
 type Server struct {
-	Addr      string   `yaml:"addr" mapstructure:"addr"`
-	Origins   []string `yaml:"origins" mapstructure:"origins"`
-	AppMode   string   `yaml:"app_mode" mapstructure:"app_mode"`
-	JwtPubkey string   `yaml:"jwt_pubkey" mapstructure:"jwt_pubkey"`
+	Addr    string   `yaml:"addr" mapstructure:"addr"`
+	Mode    string   `yaml:"mode" mapstructure:"mode"`
+	Origins []string `yaml:"origins" mapstructure:"origins"`
+	AppMode string   `yaml:"app_mode" mapstructure:"app_mode"`
 }
 
 type JwsHelperOpt struct {
@@ -82,8 +107,8 @@ type ReportTicketOption struct {
 	BaseUrl    string `yaml:"base_url" mapstructure:"base_url"`
 	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
 	//
-	LoginName  string `yaml:"loginName" mapstructure:"loginName"`
-	Pwd        string `yaml:"pwd" mapstructure:"pwd"`
+	LoginName string `yaml:"loginName" mapstructure:"loginName"`
+	Pwd       string `yaml:"pwd" mapstructure:"pwd"`
 }
 
 type DBOption struct {

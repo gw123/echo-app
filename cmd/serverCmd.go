@@ -16,6 +16,11 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
@@ -23,10 +28,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func startHttp() {
@@ -65,17 +66,44 @@ func startHttp() {
 	}))
 
 	//Actions
-	exampleController := controllers.ExampleController{}
-	qrcodeController := controllers.NewQrcodeController()
+	//	usrSvr := app.MustUserService()
+	//	resourceSvr := app.MustGetResourceService()
+	//orderSvr := app.MustGetOrderService()
+	//exampleController := controllers.ExampleController{}
+	// qrcodeController := controllers.NewQrcodeController()
 	areaCtr := controllers.NewAreaController()
 	smsCtr := controllers.NewSmsController()
-
-	e.GET("/index", exampleController.Index)
-	e.GET("/getQrcode", qrcodeController.GetQrcode)
+	//	userCtl := controllers.NewUserController(usrSvr)
+	//	resourceCtl := controllers.NewResourceController(resourceSvr)
+	//orderCtl := controllers.NewOrderController(orderSvr)
+	// e.GET("/index", exampleController.Index)
+	// e.GET("/getQrcode", qrcodeController.GetQrcode)
 	e.GET("/getAreaMap", areaCtr.GetAreaMap)
 	e.GET("/getAreaArray", areaCtr.GetAreaArray)
 	e.POST("/sendMessage", smsCtr.SendMessageByToken)
 
+	// e.POST("/addUserScore", userCtl.AddUserScore)
+	// e.POST("/subUserScore", userCtl.SubUserScore)
+	// e.POST("/addUser", userCtl.Register)
+	// e.POST("/login", userCtl.Login)
+	// e.POST("/addUserRole", userCtl.AddUserRoles)
+	// e.POST("/addPermission", userCtl.AddPermissions)
+	// e.POST("/roleHasPermission", userCtl.RoleHasPermission)
+
+	// e.POST("/saveReource", resourceCtl.SaveResource)
+	// e.POST("/getResourcebyId", resourceCtl.GetResourceById)
+	// e.POST("/getResourcesbyTagId", resourceCtl.GetResourcesByTagId)
+	// e.POST("/getUserPamentResources", resourceCtl.GetUserPaymentResources)
+	// e.POST("/uploadResource", resourceCtl.UploadResource)
+	// e.GET("/getResourceList", resourceCtl.GetResourceList)
+	// //e.GET("/getResourcebyPath", resourceCtl.GetResourceByName)
+	// e.GET("/getResourcebyName", resourceCtl.GetResourceByName)
+	// e.GET("/downloadFile", resourceCtl.DownloadResource)
+
+	// e.POST("/placeOrder", orderCtl.PlaceOrder)
+	// e.POST("/getOrderbyId", orderCtl.GetOrdereById)
+	// e.POST("/getUserPaymentOrder", orderCtl.GetUserPaymentOrder)
+	// e.POST("/getOrderList", orderCtl.GetOrderList)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.Server.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
