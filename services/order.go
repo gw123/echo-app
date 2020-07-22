@@ -19,13 +19,19 @@ type OrderService struct {
 	mu      sync.Mutex
 	redis   *redis.Client
 	goodSvr echoapp.GoodsService
+	actSvr  echoapp.ActivityService
 }
 
-func NewOrderService(db *gorm.DB, redis *redis.Client, goodsSvr echoapp.GoodsService) *OrderService {
+func NewOrderService(db *gorm.DB,
+	redis *redis.Client,
+	goodsSvr echoapp.GoodsService,
+	actSvr echoapp.ActivityService,
+) *OrderService {
 	help := &OrderService{
 		db:      db,
 		redis:   redis,
 		goodSvr: goodsSvr,
+		actSvr:  actSvr,
 	}
 	return help
 }
@@ -104,13 +110,66 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 }
 
 func (oSvr *OrderService) PlaceOrder(order *echoapp.Order) error {
+	glog.GetLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
 	order.PayStatus = echoapp.OrderStatusUnpay
 	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
 	if err := oSvr.goodSvr.IsValidCartGoodsList(order.GoodsList); err != nil {
 		return errors.Wrap(err, "下单失败")
 	}
-	return oSvr.db.Create(order).Error
+
+	var (
+		totalCouponAmount float32 = 0
+		totalGoodsAmount  float32 = 0
+	)
+	for _, goods := range order.GoodsList {
+		totalGoodsAmount += goods.RealPrice
+	}
+	glog.GetLogger().Info("校验优惠券")
+	for _, coupon := range order.Coupons {
+		realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
+		if err != nil {
+			glog.GetLogger().Error("下单失败,优惠券校验失败")
+			return errors.Wrap(err, "下单失败,优惠券校验失败")
+		}
+		if realCoupon.Amount != coupon.Amount {
+			glog.GetLogger().Error("下单失败,优惠券金额校验错误")
+			return errors.New("下单失败,优惠券金额校验错误")
+		}
+		if realCoupon.IsExpire() {
+			glog.GetLogger().Error("下单失败,优惠券已经过期")
+			return errors.New("下单失败,优惠券已经过期")
+		}
+		if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
+			//todo 检查商品是否满足条件
+		}
+		totalCouponAmount += realCoupon.Amount
+	}
+
+	if totalGoodsAmount-totalCouponAmount != order.RealTotal {
+		glog.GetLogger().Info("订单金额校验失败")
+		return errors.New("订单金额校验失败")
+	}
+
+	tx := oSvr.db.Begin()
+	var userCoupon echoapp.UserCoupon
+	glog.GetLogger().Info("开始核销优惠券")
+	for _, coupon := range order.Coupons {
+		glog.GetLogger().WithField("coupon", coupon).Info("核销优惠券")
+		if err := tx.Model(&userCoupon).
+			Where("id = ?", coupon.Id).
+			Update("used_at", time.Now()).Error;
+			err != nil {
+			tx.Rollback()
+			return errors.Wrap(err, "优惠券核销失败")
+		}
+	}
+	if err := tx.Create(order).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "订单保存失败")
+	}
+	tx.Commit()
+	return nil
 }
 
 func (oSvr *OrderService) GetOrderById(id uint) (*echoapp.Order, error) {
@@ -160,7 +219,6 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	if lastId != 0 {
 		query = query.Where("id < ? ", lastId)
 	}
-	glog.Info(status)
 
 	switch status {
 	case echoapp.OrderStatusUnpay:

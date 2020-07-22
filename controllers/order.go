@@ -73,13 +73,13 @@ func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
 	if err != nil {
 		return orderCtrl.Fail(c, echoapp.CodeArgument, "授权失败", err)
 	}
-	last,limit := echoapp_util.GetCtxListParams(c)
+	last, limit := echoapp_util.GetCtxListParams(c)
 	status := c.QueryParam("status")
-	filelist, err := orderCtrl.orderSvc.GetUserOrderList(c, uint(userID),status, last, limit)
+	filelist, err := orderCtrl.orderSvc.GetUserOrderList(c, uint(userID), status, last, limit)
 	if err != nil {
 		return orderCtrl.Fail(c, echoapp.CodeArgument, "OrderCtrl->GetOrderList", err)
 	}
-	echoapp_util.ExtractEntry(c).Infof("status: %s from:%s,limit:%s", status, last,limit)
+	echoapp_util.ExtractEntry(c).Infof("status: %s from:%s,limit:%s", status, last, limit)
 	return orderCtrl.Success(c, filelist)
 }
 
@@ -120,7 +120,7 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 		if err == gorm.ErrRecordNotFound {
 			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
 		} else {
-			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
+			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 		}
 	}
 	return orderCtrl.Success(ctx, nil)

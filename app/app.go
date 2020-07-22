@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
@@ -59,7 +60,7 @@ func GetSmsService() (echoapp.SmsService, error) {
 		return App.smsSvc, nil
 	}
 	comSvr := MustGetCompanyService()
-	redis :=  MustGetRedis("")
+	redis := MustGetRedis("")
 	smsSvc := services.NewSmsService(comSvr, redis)
 	App.smsSvc = smsSvc
 	return smsSvc, nil
@@ -110,6 +111,11 @@ func MustGetRedis(dbName string) *redis.Client {
 		panic(errors.Wrap(err, "MustGetRedis->GetRedis"))
 	}
 	return db
+}
+
+func MustGetRedLock(dbName string) *redislock.Client {
+	redisClient := MustGetRedis(dbName)
+	return redislock.New(redisClient)
 }
 
 func GetJwsHelper() (*components.JwsHelper, error) {
@@ -274,7 +280,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 	}
 
 	goodsSvr := MustGetGoodsService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr)
+	actSvr := MustGetActivityService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr)
 	return App.OrderSvr, nil
 }
 
@@ -298,8 +305,8 @@ func GetActivityService() (echoapp.ActivityService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
-
-	App.ActivitySvr = services.NewActivityService(shopDb, redis)
+	lock := MustGetRedLock("")
+	App.ActivitySvr = services.NewActivityService(shopDb, redis, lock)
 	return App.ActivitySvr, nil
 }
 

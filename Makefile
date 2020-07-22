@@ -67,7 +67,7 @@ goods-dir:
 	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
 build:
 	go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
-	upx -9 -o upload ./echoapp
+	upx -9 -f -o upload ./echoapp
 
 build-alpine:
 	@docker run --rm -v "$(PWD)":/go/src/github.com/gw123/echo-app \
