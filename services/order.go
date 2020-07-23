@@ -20,18 +20,21 @@ type OrderService struct {
 	redis   *redis.Client
 	goodSvr echoapp.GoodsService
 	actSvr  echoapp.ActivityService
+	wechat  echoapp.WechatService
 }
 
 func NewOrderService(db *gorm.DB,
 	redis *redis.Client,
 	goodsSvr echoapp.GoodsService,
 	actSvr echoapp.ActivityService,
+	wechat echoapp.WechatService,
 ) *OrderService {
 	help := &OrderService{
 		db:      db,
 		redis:   redis,
 		goodSvr: goodsSvr,
 		actSvr:  actSvr,
+		wechat:  wechat,
 	}
 	return help
 }
@@ -109,7 +112,15 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 	return ticket, nil
 }
 
-func (oSvr *OrderService) PlaceOrder(order *echoapp.Order) error {
+func (oSvr *OrderService) PlaceOrder(order *echoapp.Order, user *echoapp.User) error {
+	_, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
+	if err != nil {
+		return errors.Wrap(err, "下单失败")
+	}
+	return nil
+}
+
+func (oSvr *OrderService) PreOrder(order *echoapp.Order) error {
 	glog.GetLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
 	order.PayStatus = echoapp.OrderStatusUnpay

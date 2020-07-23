@@ -46,6 +46,9 @@ type Order struct {
 	TransactionId string        `json:"transaction_id"`
 	Note          string        `json:"note"`
 	Info          string        `json:"info"`
+	ClientIP      string        `json:"client_ip"`
+	ClientType    string        `json:"client_type"`
+
 	//Score         string           `score` //积分
 }
 
@@ -114,7 +117,7 @@ type GetOrderOptions struct {
 type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
 	//保存上传的资源到数据库
-	PlaceOrder(order *Order) error
+	PlaceOrder(order *Order, user *User) error
 	//通过资源ID查找资源
 	GetOrderById(id uint) (*Order, error)
 	GetOrderByOrderNo(orderNo string) (*Order, error)

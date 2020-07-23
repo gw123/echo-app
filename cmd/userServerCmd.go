@@ -60,7 +60,8 @@ func startUserServer() {
 	usrSvr := app.MustGetUserService()
 	goodsSvr := app.MustGetGoodsService()
 	smsSvr := app.MustGetSmsService()
-	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr)
+	wechatSvr := app.MustGetWechatService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr, wechatSvr)
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{

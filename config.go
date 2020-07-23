@@ -13,34 +13,37 @@ var ConfigOpts ConfigOptions
 var Viper *viper.Viper
 
 type ConfigOptions struct {
-	Asset             Asset `yaml:"asset" mapstructure:"asset"`
 	Server            *Server
-	UserServer        *Server                   `yaml:"user_server" mapstructure:"user_server"`
-	GoodsServer       *Server                   `yaml:"goods_server" mapstructure:"goods_server"`
-	OrderServer       *Server                   `yaml:"order_server" mapstructure:"order_server"`
-	CommentServer     *Server                   `yaml:"comment_server" mapstructure:"comment_server"`
-	MessageServer     *Server                   `yaml:"message_server" mapstructure:"message_server"`
-	TestpaperServer   *Server                   `yaml:"testpaper_server" mapstructure:"testpaper_server"`
-	FileServer        *Server                   `yaml:"file_server" mapstructure:"file_server"`
-	SiteServer        *Server                   `yaml:"site_server" mapstructure:"site_server"`
-	ActivityServer    *Server                   `yaml:"activity_server" mapstructure:"activity_server"`
-	ResourceOptions   *ResourceServerOption     `yaml:"resource" mapstructure:"resource"`
-	SmsOptionTokenMap map[string]SmsOption      `yaml:"sms_tokens" mapstructure:"sms_tokens"`
-	DBMap             map[string]DBOption       `yaml:"database" mapstructure:"database"`
-	RedisMap          map[string]*redis.Options `yaml:"cache" mapstructure:"cache"`
-	Redis             *redis.Options
+	Asset             Asset                         `yaml:"asset" mapstructure:"asset"`
+	UserServer        *Server                       `yaml:"user_server" mapstructure:"user_server"`
+	GoodsServer       *Server                       `yaml:"goods_server" mapstructure:"goods_server"`
+	OrderServer       *Server                       `yaml:"order_server" mapstructure:"order_server"`
+	CommentServer     *Server                       `yaml:"comment_server" mapstructure:"comment_server"`
+	MessageServer     *Server                       `yaml:"message_server" mapstructure:"message_server"`
+	TestpaperServer   *Server                       `yaml:"testpaper_server" mapstructure:"testpaper_server"`
+	FileServer        *Server                       `yaml:"file_server" mapstructure:"file_server"`
+	SiteServer        *Server                       `yaml:"site_server" mapstructure:"site_server"`
+	ActivityServer    *Server                       `yaml:"activity_server" mapstructure:"activity_server"`
+	ResourceOptions   *ResourceServerOption         `yaml:"resource" mapstructure:"resource"`
+	SmsOptionTokenMap map[string]SmsOption          `yaml:"sms_tokens" mapstructure:"sms_tokens"`
+	DBMap             map[string]DBOption           `yaml:"database" mapstructure:"database"`
+	RedisMap          map[string]*redis.Options     `yaml:"cache" mapstructure:"cache"`
 	MQMap             map[string]RabbitMqOption     `yaml:"rabbit_mq" mapstructure:"rabbit_mq"`
 	TongchengConfig   TongchengConfig               `yaml:"tongcheng" mapstructure:"tongcheng"`
 	ReportTicketMap   map[string]ReportTicketOption `yaml:"report_tickets" mapstructure:"report_tickets"`
 	Jws               JwsHelperOpt                  `yaml:"jws" mapstructure:"jws"`
 	RecommendOptions  *RecommendOptions             `yaml:"recommend_options" mapstructure:"recommend_options"`
 	ApiVersion        string                        `yaml:"api_version" mapstructure:"api_version"`
+	Wechat            *Wechat                       `yaml:"wechat" mapstructure:"wechat"`
+	Redis             *redis.Options
 }
+
 type RecommendOptions struct {
 	AttributesWight []float64 `json:"attributes_wight" yaml:"attributes_wight" mapstructure:"attributes_wight"`
 	ParamA          float64   `json:"param_a" yaml:"param_a" mapstructure:"param_a"`
 	ParamB          float64   `json:"param_b" yaml:"param_b" mapstructure:"param_b"`
 }
+
 type ResourceServerOption struct {
 	BucketName        string `json:"bucket_name" yaml:"bucket_name" mapstructure:"bucket_name"`
 	CallbackUrl       string `json:"callback_url" yaml:"callback_url" mapstructure:"callback_url"`
@@ -118,6 +121,10 @@ type DBOption struct {
 	KeepAlive int    `yaml:"keey_alive" mapstructure:"keey_alive"`
 	MaxOpens  int    `yaml:"max_opens" mapstructure:"max_opens"`
 	MaxIdles  int    `yaml:"max_idles" mapstructure:"max_idles"`
+}
+
+type Wechat struct {
+	AuthRedirectUrl string `yaml:"auth_redirect_url" mapstructure:"auth_redirect_url"`
 }
 
 func InitConfig(cfgFile string) {

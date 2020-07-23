@@ -54,11 +54,20 @@ func startSiteServer() {
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	comSvr := app.MustGetCompanyService()
 	actSvr := app.MustGetActivityService()
+	userSvr := app.MustGetUserService()
 	siteCtl := controllers.NewSiteController(comSvr, actSvr)
 	companyCtl := controllers.NewCompanyController(comSvr)
-
 	mode := echoapp.ConfigOpts.ApiVersion
-	e.GET("/index/:com_id", siteCtl.Index)
+	wechatSvr := app.MustGetWechatService()
+	weChatMiddle := echoapp_middlewares.NewWechatAuthMiddlewares(
+		middleware.DefaultSkipper,
+		wechatSvr,
+		userSvr,
+	)
+	e.GET("/index/:com_id", siteCtl.Index, weChatMiddle)
+	e.GET("/index-dev/:com_id", siteCtl.Index, weChatMiddle)
+	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, weChatMiddle)
+
 	normal := e.Group("/" + mode + "/site/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,

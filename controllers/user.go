@@ -16,14 +16,21 @@ type UserController struct {
 	userSvr echoapp.UserService
 	smsSvr  echoapp.SmsService
 	goodSvr echoapp.GoodsService
+	wechat  echoapp.WechatService
 	echoapp.BaseController
 }
 
-func NewUserController(usrSvr echoapp.UserService, goodsSvr echoapp.GoodsService, smsSvr echoapp.SmsService) *UserController {
+func NewUserController(
+	usrSvr echoapp.UserService,
+	goodsSvr echoapp.GoodsService,
+	smsSvr echoapp.SmsService,
+	wechat echoapp.WechatService,
+) *UserController {
 	return &UserController{
 		userSvr: usrSvr,
 		goodSvr: goodsSvr,
 		smsSvr:  smsSvr,
+		wechat:  wechat,
 	}
 }
 
@@ -45,6 +52,7 @@ func (sCtl *UserController) AddUserScore(ctx echo.Context) error {
 		}
 	}
 	sCtl.userSvr.AddScore(ctx, user, params.Score)
+	ctx.Request()
 	return sCtl.Success(ctx, nil)
 }
 
@@ -57,7 +65,7 @@ func (sCtl *UserController) Login(ctx echo.Context) error {
 	var err error
 	user, err = sCtl.userSvr.Login(ctx, param)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败," + err.Error(), err)
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败,"+err.Error(), err)
 	}
 	return sCtl.Success(ctx, user)
 }
@@ -88,7 +96,7 @@ func (sCtl *UserController) SendVerifyCodeSms(ctx echo.Context) error {
 	comID := util.GetCtxComId(ctx)
 	code := rand.Int31n(900000) + 100000
 	if err := sCtl.smsSvr.SendVerifyCodeSms(comID, params.Mobile, strconv.Itoa(int(code))); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeInnerError, "发送失败," + err.Error(), err)
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "发送失败,"+err.Error(), err)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -469,3 +477,4 @@ func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
 	collectionMap["target"] = goodslist
 	return sCtl.Success(ctx, collectionMap)
 }
+

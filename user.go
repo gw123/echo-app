@@ -124,6 +124,7 @@ type UserService interface {
 	UpdateCachedUser(user *User) (err error)
 	Jscode2session(comId uint, code string) (*User, error)
 	AutoRegisterWxUser(user *User) (err error)
+
 	//Jscode2session(comId int, code string) (*User, error)
 	GetUserAddressList(userId int64) ([]*Address, error)
 	CreateUserAddress(address *Address) error

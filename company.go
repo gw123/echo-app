@@ -10,14 +10,18 @@ type CompanyBrief struct {
 
 type Company struct {
 	CompanyBrief
-	WxMiniAppId    string                `json:"wx_mini_app_id"`
-	WxMinSecret    string                `json:"wx_min_secret"`
-	WxMiniAesKey   string                `json:"wx_mini_aes_key"`
-	WxPaymentAppId string                `json:"wx_payment_app_id"`
-	WxPaymentMchId string                `json:"wx_payment_mch_id"`
-	WxPaymentKey   string                `json:"wx_payment_key"`
-	XcxCover       string                `json:"xcx_cover"`
-	WechatCover    string                `json:"wechat_cover"`
+	WxMiniAppId  string `json:"wx_mini_app_id"`
+	WxMinSecret  string `json:"wx_min_secret"`
+	WxMiniAesKey string `json:"wx_mini_aes_key"`
+
+	WxOfficialAppId  string `json:"wx_official_app_id"`
+	WxOfficialSecret string `json:"wx_official_secret"`
+
+	WxPaymentAppId string                 `json:"wx_payment_app_id"`
+	WxPaymentMchId string                 `json:"wx_payment_mch_id"`
+	WxPaymentKey   string                 `json:"wx_payment_key"`
+	XcxCover       string                 `json:"xcx_cover"`
+	WechatCover    string                 `json:"wechat_cover"`
 	SmsChannels    map[string]*SmsChannel `json:"sms_channels"`
 }
 

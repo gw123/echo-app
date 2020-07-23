@@ -200,9 +200,9 @@ var updateCacheCmd = &cobra.Command{
 		switch updateMethod {
 		case "once":
 			go func() {
-				//updateCompanyCache()
+				updateCompanyCache()
 				updateCouponCache()
-				//updateUserCache()
+				updateUserCache()
 				quit <- os.Interrupt
 			}()
 		case "mq":

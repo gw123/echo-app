@@ -326,14 +326,29 @@ func (u *UserService) Save(user *echoapp.User) error {
 }
 
 //自动注册微信用户
-func (u *UserService) AutoRegisterWxUser(user *echoapp.User) (err error) {
-	user.JwsToken, err = u.jws.CreateToken(user.Id, "")
+func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (err error) {
+	user, err := u.GetUserByOpenId(newUser.ComId, newUser.Openid)
+	if err == nil {
+		newUser = user
+		glog.Infof("用户已经存在 %+v", newUser)
+		return nil
+	}
+
+	data := make(map[string]interface{})
+	data["username"] = newUser.Nickname
+	data["com_id"] = newUser.ComId
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "Marshal")
+	}
+
+	newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
 	if err != nil {
 		return errors.Wrap(err, "createToken")
 	}
 
-	if err := u.Save(user); err != nil {
-		return errors.Wrap(err, "save user")
+	if err := u.Save(newUser); err != nil {
+		return errors.Wrap(err, "save newUser")
 	}
 	//更新缓存
 	return nil
@@ -368,6 +383,24 @@ func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, er
 		if err != nil {
 			return nil, errors.Wrap(err, "微信用户保存失败")
 		}
+	} else if err != nil {
+		return nil, errors.Wrapf(err, "查找失败请重试")
+	}
+
+	return user, nil
+}
+
+//解析当前用户，如果用户未注册自动注册
+func (u *UserService) RegisterWechatUser(comId uint, newUser *echoapp.User) (*echoapp.User, error) {
+	//fmt.Printf("返回结果: %#v", res)
+	user, err := u.GetUserByOpenId(comId, newUser.Openid)
+	if err == gorm.ErrRecordNotFound {
+		newUser.ComId = comId
+		err := u.AutoRegisterWxUser(newUser)
+		if err != nil {
+			return nil, errors.Wrap(err, "微信用户保存失败")
+		}
+		user = newUser
 	} else if err != nil {
 		return nil, errors.Wrapf(err, "查找失败请重试")
 	}

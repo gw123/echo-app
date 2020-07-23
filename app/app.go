@@ -27,6 +27,7 @@ type EchoApp struct {
 	ActivitySvr     echoapp.ActivityService
 	WsSvr           echoapp.WsService
 	TestpaperSvr    echoapp.TestpaperService
+	WechatService   echoapp.WechatService
 }
 
 func init() {
@@ -317,6 +318,24 @@ func MustGetActivityService() echoapp.ActivityService {
 	}
 	return svr
 }
+
+func GetWechatService() (echoapp.WechatService, error) {
+	if App.WechatService != nil {
+		return App.WechatService, nil
+	}
+	com := MustGetCompanyService()
+	App.WechatService = services.NewWechatService(com, echoapp.ConfigOpts.Wechat.AuthRedirectUrl)
+	return App.WechatService, nil
+}
+
+func MustGetWechatService() echoapp.WechatService {
+	svr, err := GetWechatService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
 func GetTestpaperService() (echoapp.TestpaperService, error) {
 	if App.TestpaperSvr != nil {
 		return App.TestpaperSvr, nil

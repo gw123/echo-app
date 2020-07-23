@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"io/ioutil"
-	"net/http"
-	"strconv"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 )
 
 type SiteController struct {
@@ -90,13 +90,19 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 }
 
 func (sCtl *SiteController) Index(ctx echo.Context) error {
-     if len(sCtl.indexCachePage) == 0 {
-     	indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot +"/m/index.html"
-     	var err error
-		sCtl.indexCachePage ,err = ioutil.ReadFile(indexFilePath)
-		if err != nil{
-			return ctx.HTML(502,"文件不存在")
+	echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
+	if len(sCtl.indexCachePage) == 0 {
+		indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot + "/m/index.html"
+		var err error
+		sCtl.indexCachePage, err = ioutil.ReadFile(indexFilePath)
+		if err != nil {
+			return ctx.HTML(502, "文件不存在")
 		}
-	 }
-	 return ctx.HTMLBlob(http.StatusOK, sCtl.indexCachePage)
+	}
+	return ctx.HTMLBlob(http.StatusOK, sCtl.indexCachePage)
+}
+
+func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
+
+	return ctx.HTML(http.StatusOK, "授权成功")
 }
