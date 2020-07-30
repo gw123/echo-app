@@ -123,7 +123,8 @@ type UserService interface {
 	UpdateJwsToken(user *User) error
 	UpdateCachedUser(user *User) (err error)
 	Jscode2session(comId uint, code string) (*User, error)
-	AutoRegisterWxUser(user *User) (err error)
+	AutoRegisterWxUser(user *User) (u *User, err error)
+	ChangeUserJwsToken(newUser *User) (err error)
 
 	//Jscode2session(comId int, code string) (*User, error)
 	GetUserAddressList(userId int64) ([]*Address, error)

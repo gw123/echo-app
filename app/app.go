@@ -282,7 +282,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 
 	goodsSvr := MustGetGoodsService()
 	actSvr := MustGetActivityService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr)
+	wechatSvr := MustGetWechatService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr)
 	return App.OrderSvr, nil
 }
 

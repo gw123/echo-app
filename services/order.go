@@ -5,6 +5,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/glog"
+	"github.com/iGoogle-ink/gopay/wechat"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -21,6 +22,7 @@ type OrderService struct {
 	goodSvr echoapp.GoodsService
 	actSvr  echoapp.ActivityService
 	wechat  echoapp.WechatService
+	tkSvr   echoapp.TicketService
 }
 
 func NewOrderService(db *gorm.DB,
@@ -28,6 +30,7 @@ func NewOrderService(db *gorm.DB,
 	goodsSvr echoapp.GoodsService,
 	actSvr echoapp.ActivityService,
 	wechat echoapp.WechatService,
+	tkSvr echoapp.TicketService,
 ) *OrderService {
 	help := &OrderService{
 		db:      db,
@@ -35,8 +38,26 @@ func NewOrderService(db *gorm.DB,
 		goodSvr: goodsSvr,
 		actSvr:  actSvr,
 		wechat:  wechat,
+		tkSvr:   tkSvr,
 	}
 	return help
+}
+
+func (oSvr *OrderService) GetGoodsById(id uint) (*echoapp.GoodsBrief, error) {
+	goods := &echoapp.GoodsBrief{}
+	if err := oSvr.db.Where("id = ?", id).First(goods).Error; err != nil {
+		return nil, err
+	}
+	return goods, nil
+}
+
+//生成随机订单 增加
+func (oSvr *OrderService) makeTicketNo(userId uint) string {
+	date := time.Now().Format("200601021504")
+	r := rand.Int31n(89999) + 10000
+	idHash := userId % 1137
+	str := fmt.Sprintf("%s%d%d", date, idHash, r)
+	return str
 }
 
 func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, error) {
@@ -86,14 +107,6 @@ func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, err
 	return codeTicket, nil
 }
 
-func (oSvr *OrderService) GetGoodsById(id int) (*echoapp.GoodsBrief, error) {
-	goods := &echoapp.GoodsBrief{}
-	if err := oSvr.db.Where("id = ?", id).First(goods).Error; err != nil {
-		return nil, err
-	}
-	return goods, nil
-}
-
 func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 	rand, _ := strconv.ParseInt(code[0:8], 10, 64)
 	temp, _ := strconv.ParseInt(code[8:], 10, 64)
@@ -112,16 +125,92 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 	return ticket, nil
 }
 
-func (oSvr *OrderService) PlaceOrder(order *echoapp.Order, user *echoapp.User) error {
-	_, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
+func (oSvr *OrderService) PlaceOrder(order *echoapp.Order, user *echoapp.User) (*wechat.UnifiedOrderResponse, error) {
+	glog.DefaultLogger().Info(oSvr.wechat)
+	resp, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
 	if err != nil {
-		return errors.Wrap(err, "下单失败")
+		return nil, errors.Wrap(err, "下单失败")
 	}
-	return nil
+	return resp, nil
+}
+
+func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order) (*echoapp.Order, error) {
+	if order.Status == echoapp.OrderStatusPaid ||
+		order.Status == echoapp.OrderStatusRefund {
+		//订单已经是最终的状态
+		return order, nil
+	}
+
+	currentStatus, err := oSvr.wechat.QueryOrder(order)
+	if err != nil {
+		return nil, err
+	}
+
+	if currentStatus == echoapp.OrderPayStatusUnpay {
+		return order, nil
+	}
+
+	//从未支付到支付成功
+	if order.Status == echoapp.OrderStatusUnpay && currentStatus == echoapp.OrderStatusPaid {
+		//创建票
+		//发送通知
+		order.Status = currentStatus
+		tx := oSvr.db.Begin()
+		err := func() error {
+			for _, cartGoods := range order.GoodsList {
+				goods, err := oSvr.goodSvr.GetCachedGoodsById(cartGoods.GoodsId)
+				if err != nil {
+					return err
+				}
+
+				if goods.GoodsType == echoapp.GoodsTypeTicket {
+					ticket := oSvr.tkSvr.PreCreateTicket(order, "", cartGoods)
+					if err := oSvr.db.Save(ticket).Error; err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		}()
+		if err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "create ticket")
+		}
+
+		if err := oSvr.db.Save(order).Error; err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
+		}
+		tx.Commit()
+
+	} else if currentStatus == echoapp.OrderPayStatusRefund {
+		//todo 修改退款的订单中的门票为退款状态
+		order.Status = echoapp.OrderStatusRefund
+		tickets, err := oSvr.tkSvr.GetTicketsByOrder(order)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetTicketsByOrder")
+		}
+
+		tx := oSvr.db.Begin()
+		for _, ticket := range tickets {
+			ticket.Status = echoapp.TicketstatusRefund
+			if err := oSvr.db.Save(ticket).Error; err != nil {
+				tx.Rollback()
+				return nil, errors.Wrap(err, "create ticket")
+			}
+		}
+
+		if err := oSvr.db.Save(order).Error; err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
+		}
+		tx.Commit()
+	}
+	return order, nil
 }
 
 func (oSvr *OrderService) PreOrder(order *echoapp.Order) error {
-	glog.GetLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
+	glog.JsonLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
 	order.PayStatus = echoapp.OrderStatusUnpay
 	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
@@ -136,19 +225,19 @@ func (oSvr *OrderService) PreOrder(order *echoapp.Order) error {
 	for _, goods := range order.GoodsList {
 		totalGoodsAmount += goods.RealPrice
 	}
-	glog.GetLogger().Info("校验优惠券")
+	glog.JsonLogger().Info("校验优惠券")
 	for _, coupon := range order.Coupons {
 		realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
 		if err != nil {
-			glog.GetLogger().Error("下单失败,优惠券校验失败")
+			glog.JsonLogger().Error("下单失败,优惠券校验失败")
 			return errors.Wrap(err, "下单失败,优惠券校验失败")
 		}
 		if realCoupon.Amount != coupon.Amount {
-			glog.GetLogger().Error("下单失败,优惠券金额校验错误")
+			glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
 			return errors.New("下单失败,优惠券金额校验错误")
 		}
 		if realCoupon.IsExpire() {
-			glog.GetLogger().Error("下单失败,优惠券已经过期")
+			glog.JsonLogger().Error("下单失败,优惠券已经过期")
 			return errors.New("下单失败,优惠券已经过期")
 		}
 		if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
@@ -158,15 +247,15 @@ func (oSvr *OrderService) PreOrder(order *echoapp.Order) error {
 	}
 
 	if totalGoodsAmount-totalCouponAmount != order.RealTotal {
-		glog.GetLogger().Info("订单金额校验失败")
+		glog.JsonLogger().Info("订单金额校验失败")
 		return errors.New("订单金额校验失败")
 	}
 
 	tx := oSvr.db.Begin()
 	var userCoupon echoapp.UserCoupon
-	glog.GetLogger().Info("开始核销优惠券")
+	glog.JsonLogger().Info("开始核销优惠券")
 	for _, coupon := range order.Coupons {
-		glog.GetLogger().WithField("coupon", coupon).Info("核销优惠券")
+		glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
 		if err := tx.Model(&userCoupon).
 			Where("id = ?", coupon.Id).
 			Update("used_at", time.Now()).Error;
@@ -210,18 +299,9 @@ func (oSvr *OrderService) GetUserPaymentOrder(c echo.Context, userId uint, from,
 	//echoapp_util.ExtractEntry(c).Info("UserID:%d,from:%d,limit:%d", userId, from, limit)
 	return orderlist, nil
 }
+
 func (oSvr *OrderService) ModifyOrder(Order *echoapp.Order) error {
 	return oSvr.db.Save(Order).Error
-}
-
-func (oSvr *OrderService) GetOrderList(c echo.Context, from, limit int) ([]*echoapp.GetOrderOptions, error) {
-	var orderoptions []*echoapp.GetOrderOptions
-
-	res := oSvr.db.Table("orders").Offset(limit * from).Limit(limit).Find(orderoptions)
-	if res.Error != nil {
-		return nil, errors.Wrap(res.Error, "OrderService->GetOrderList")
-	}
-	return orderoptions, nil
 }
 
 func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*echoapp.Order, error) {
@@ -257,10 +337,71 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	return orderoptions, nil
 }
 
+func (oSvr *OrderService) GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*echoapp.Order, error) {
+	var (
+		order echoapp.Order
+	)
+
+	if err := oSvr.db.Debug().Table("orders").
+		Where("user_id = ? and order_no", userId, orderNo).
+		First(&order).Error; err != nil {
+		return nil, errors.Wrap(err, "db query")
+	}
+
+	if order.GoodsType == echoapp.GoodsTypeTicket {
+		ticketList, err := oSvr.tkSvr.GetTicketsByOrder(&order)
+		if err != nil {
+			return nil, errors.Wrap(err, "db query")
+		}
+		order.Tickets = ticketList
+	}
+	return &order, nil
+}
+
 func (oSvr *OrderService) CancelOrder(o *echoapp.Order) error {
 	if err := oSvr.db.Model(o).Where("user_id = ? and order_no = ?", o.UserId, o.OrderNo).
 		Update("status", echoapp.OrderStatusCancel).Error; err != nil {
 		return errors.Wrap(err, "cancelOrder")
 	}
+	return nil
+}
+
+func (oSvr *OrderService) CheckTicket(code string, num uint, staffID uint) error {
+	ticket, err := oSvr.tkSvr.GetTicketByCode(code)
+	if err != nil {
+		return errors.Wrap(err, "GetTicketByCode")
+	}
+	if err := ticket.IsValid(); err != nil {
+		return err
+	}
+
+	order, err := oSvr.GetOrderById(ticket.OrderId)
+	if err != nil {
+		return err
+	}
+	err = oSvr.tkSvr.CheckTicket(ticket, num, staffID)
+	if err != nil {
+		return errors.Wrap(err, "CheckTicket")
+	}
+	order.ExpressStatus = echoapp.OrderStatusSigned
+
+	tx := oSvr.db.Begin()
+	if err := tx.Save(ticket).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "update ticket")
+	}
+
+	if err := tx.Save(order).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "update order")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return errors.Wrap(err, "tx err")
+	}
+	return nil
+}
+
+func (oSvr *OrderService) Refund() error {
 	return nil
 }

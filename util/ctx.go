@@ -21,7 +21,7 @@ type Record struct {
 	Place     string `json:"place"`
 }
 
-const ctxRequestIdKey = echo.HeaderXRequestID
+const ctxRequestIdKey = "request_id"
 
 var (
 	defaultLogger *logrus.Logger
@@ -87,6 +87,7 @@ func GetCtxtAddrId(ctx echo.Context) (int64, error) {
 	}
 	return addrId, nil
 }
+
 func SetCtxUser(ctx echo.Context, user *echoapp.User) {
 	ctx.Set(ctxUserKey, user)
 }
@@ -167,11 +168,13 @@ func DefaultJsonLogger() *logrus.Logger {
 		CallerPrettyfier: nil,
 		PrettyPrint:      isDebug,
 	})
+
 	return defaultLogger
 }
 
 func NewDefaultEntry() *logrus.Entry {
-	return logrus.NewEntry(DefaultLogger())
+	//return logrus.NewEntry(DefaultLogger())
+	return logrus.NewEntry(DefaultJsonLogger())
 }
 
 // 添加logrus.Entry到context, 这个操作添加的logrus.Entry在后面AddFields和Extract都会使用到

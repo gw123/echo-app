@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +47,7 @@ func startUserServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -86,8 +88,8 @@ func startUserServer() {
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
-		MockUserId: 58,
+		//IgnoreAuth: true,
+		//MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)

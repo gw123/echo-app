@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -42,6 +43,7 @@ func startSiteServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -64,17 +66,21 @@ func startSiteServer() {
 		wechatSvr,
 		userSvr,
 	)
-	e.GET("/index/:com_id", siteCtl.Index, weChatMiddle)
-	e.GET("/index-dev/:com_id", siteCtl.Index, weChatMiddle)
-	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, weChatMiddle)
 
-	normal := e.Group("/" + mode + "/site/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	}
-	normal.Use(companyMiddleware, limitMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
+	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
+
+	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
+	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
+	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+
+	normal := e.Group("/" + mode + "/site/:com_id")
+
+	normal.Use(companyMiddleware, limitMiddleware, )
 	//首页显示
 	normal.GET("/getBannerList", siteCtl.GetBannerList)
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)

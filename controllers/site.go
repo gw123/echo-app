@@ -3,8 +3,8 @@ package controllers
 import (
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/labstack/echo"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -91,18 +91,30 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 
 func (sCtl *SiteController) Index(ctx echo.Context) error {
 	echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
-	if len(sCtl.indexCachePage) == 0 {
-		indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot + "/m/index.html"
-		var err error
-		sCtl.indexCachePage, err = ioutil.ReadFile(indexFilePath)
-		if err != nil {
-			return ctx.HTML(502, "文件不存在")
-		}
-	}
-	return ctx.HTMLBlob(http.StatusOK, sCtl.indexCachePage)
+	//if len(sCtl.indexCachePage) == 0 {
+	//	indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot + "/m/index.html"
+	//	var err error
+	//	sCtl.indexCachePage, err = ioutil.ReadFile(indexFilePath)
+	//	if err != nil {
+	//		return ctx.HTML(502, "文件不存在")
+	//	}
+	//}
+	return ctx.Render(http.StatusOK, "index", nil)
 }
 
 func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return ctx.HTML(502, "授权失败")
+	}
+	data := make(map[string]interface{})
+	glog.Infof("WxAUthCallback UserInfo :+v", user)
+	data["userToken"] = user.JwsToken
+	data["nickname"] = user.Nickname
+	data["avatar"] = user.Avatar
+	data["sex"] = user.Sex
+	data["roles"] = user.Roles
+	data["id"] = user.Id
 
-	return ctx.HTML(http.StatusOK, "授权成功")
+	return ctx.Render(http.StatusOK, "index", data)
 }

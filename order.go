@@ -3,6 +3,7 @@ package echoapp
 import (
 	"encoding/json"
 	"github.com/gw123/glog"
+	"github.com/iGoogle-ink/gopay/wechat"
 	"time"
 
 	"github.com/labstack/echo"
@@ -16,6 +17,10 @@ const (
 	OrderStatusSigned    = "signed"
 	OrderStatusCancel    = "cancel"
 	OrderStatusCommented = "commented"
+
+	OrderPayStatusUnpay  = "unpay"
+	OrderPayStatusPaid   = "paid"
+	OrderPayStatusRefund = "refund"
 )
 
 type Order struct {
@@ -48,7 +53,7 @@ type Order struct {
 	Info          string        `json:"info"`
 	ClientIP      string        `json:"client_ip"`
 	ClientType    string        `json:"client_type"`
-
+	Tickets       []*Ticket     `json:"tickets" gorm:"-"`
 	//Score         string           `score` //积分
 }
 
@@ -116,17 +121,29 @@ type GetOrderOptions struct {
 
 type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
-	//保存上传的资源到数据库
-	PlaceOrder(order *Order, user *User) error
-	//通过资源ID查找资源
-	GetOrderById(id uint) (*Order, error)
-	GetOrderByOrderNo(orderNo string) (*Order, error)
 
-	ModifyOrder(order *Order) error
+	//
+	PlaceOrder(order *Order, user *User) (*wechat.UnifiedOrderResponse, error)
+	//预下单接口
+	PreOrder(order *Order) error
+
+	//查询订单支付状态
+	QueryOrderAndUpdate(order *Order) (*Order, error)
 
 	GetUserPaymentOrder(c echo.Context, userId uint, from, limit int) ([]*Order, error)
 	//查看资源文件 ，每页有 limit 条数据
-	GetOrderList(c echo.Context, from, limit int) ([]*GetOrderOptions, error)
 	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*Order, error)
-	CancelOrder(o *Order) error
+
+	//取消订单
+	CancelOrder(order *Order) error
+	//验票
+	CheckTicket(code string, num uint, staffID uint) error
+	//通过资源ID查找资源
+	GetOrderById(id uint) (*Order, error)
+	//
+	GetOrderByOrderNo(orderNo string) (*Order, error)
+	//
+	GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+	//退款
+	Refund() error
 }

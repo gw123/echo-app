@@ -34,13 +34,13 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 
 			token := c.QueryParam("token")
 			auth := req.Header.Get(echo.HeaderAuthorization)
-			if token =="" && len(auth) == 0 && opt.IgnoreAuth {
+			if token == "" && len(auth) == 0 && opt.IgnoreAuth {
 				return next(c)
 			}
 
 			authScheme := "Bearer"
 			l := len(authScheme)
-			if token == ""	{
+			if token == "" {
 				if !(len(auth) > l+1 && auth[:l] == authScheme) {
 					echoapp_util.ExtractEntry(c).Error("未设置token")
 					return c.JSON(http.StatusUnauthorized, "未授权")
@@ -57,7 +57,7 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 				}
 			}
 
-			//glog.Infof("userId:" , userId)
+			//glog.Infof("userId:%d", userId)
 			echoapp_util.SetCtxUserId(c, userId)
 			echoapp_util.SetCtxJwsPayload(c, payload)
 			return next(c)

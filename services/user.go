@@ -326,13 +326,42 @@ func (u *UserService) Save(user *echoapp.User) error {
 }
 
 //自动注册微信用户
-func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (err error) {
-	user, err := u.GetUserByOpenId(newUser.ComId, newUser.Openid)
-	if err == nil {
-		newUser = user
-		glog.Infof("用户已经存在 %+v", newUser)
-		return nil
+func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.User, err error) {
+	data := make(map[string]interface{})
+	data["username"] = newUser.Nickname
+	data["com_id"] = newUser.ComId
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "Marshal")
 	}
+
+	//用户存在更新jwstoken
+	user, err = u.GetUserByOpenId(newUser.ComId, newUser.Openid)
+	if err == nil {
+		glog.Infof("用户已经存在 %+v", user)
+		user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
+		u.UpdateCachedUser(user)
+		return user, nil
+	}
+
+	//用户不存在创建新的用户
+	if err == gorm.ErrRecordNotFound {
+		if err := u.Save(newUser); err != nil {
+			return nil, errors.Wrap(err, "save newUser")
+		}
+		newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
+		if err != nil {
+			return nil, errors.Wrap(err, "createToken")
+		}
+		u.UpdateCachedUser(newUser)
+		return newUser, nil
+	}
+	//更新缓存
+	return nil, errors.Wrap(err, "GetUserByOpenId")
+}
+
+//自动注册微信用户
+func (u *UserService) ChangeUserJwsToken(newUser *echoapp.User) (err error) {
 
 	data := make(map[string]interface{})
 	data["username"] = newUser.Nickname
@@ -379,7 +408,7 @@ func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, er
 			ComId:    comId,
 			Openid:   res.OpenID,
 		}
-		err := u.AutoRegisterWxUser(user)
+		_, err := u.AutoRegisterWxUser(user)
 		if err != nil {
 			return nil, errors.Wrap(err, "微信用户保存失败")
 		}
@@ -396,7 +425,7 @@ func (u *UserService) RegisterWechatUser(comId uint, newUser *echoapp.User) (*ec
 	user, err := u.GetUserByOpenId(comId, newUser.Openid)
 	if err == gorm.ErrRecordNotFound {
 		newUser.ComId = comId
-		err := u.AutoRegisterWxUser(newUser)
+		_, err := u.AutoRegisterWxUser(newUser)
 		if err != nil {
 			return nil, errors.Wrap(err, "微信用户保存失败")
 		}

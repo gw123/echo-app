@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mpoauth2 "github.com/chanxuehong/wechat/mp/oauth2"
 	"github.com/chanxuehong/wechat/oauth2"
+	"github.com/davecgh/go-spew/spew"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/glog"
 	"github.com/iGoogle-ink/gopay"
@@ -16,6 +17,43 @@ import (
 type WechatService struct {
 	authRedirectUrl string
 	comSvr          echoapp.CompanyService
+}
+
+func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
+	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	if err != nil {
+		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
+	}
+
+	var appID string
+	if order.ClientType == "official" {
+		appID = com.WxOfficialAppId
+	} else {
+		appID = com.WxMiniAppId
+	}
+	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
+
+	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
+	client.SetCountry(wechat.China)
+	// 初始化 BodyMap
+	bm := make(gopay.BodyMap)
+	bm.Set("nonce_str", gotil.GetRandomString(32))
+	bm.Set("transaction_id", order.TransactionId)
+	bm.Set("out_trade_no", order.OrderNo)
+	//todo 查询订单接口
+	resp, bmResp, err := client.QueryOrder(bm)
+
+	glog.Infof("%+v", bmResp)
+	glog.Infof("%+v", resp)
+	if err != nil {
+		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
+	}
+
+	if resp.ResultCode == "SUCCESS" {
+		return echoapp.OrderStatusPaid, nil
+	}
+
+	return echoapp.OrderStatusUnpay, nil
 }
 
 func NewWechatService(comSvr echoapp.CompanyService, authUrl string) *WechatService {
@@ -70,7 +108,7 @@ func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code strin
 /***
 
  */
-func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (interface{}, error) {
+func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wechat.UnifiedOrderResponse, error) {
 	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
 	if err != nil {
 		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
@@ -82,6 +120,7 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (inte
 	} else {
 		appID = com.WxMiniAppId
 	}
+	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
 
 	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
 	client.SetCountry(wechat.China)
@@ -112,19 +151,23 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (inte
 
 	// 参数 sign ，可单独生成赋值到BodyMap中；也可不传sign参数，client内部会自动获取
 	// 如需单独赋值 sign 参数，需通过下面方法，最后获取sign值并在最后赋值此参数
-	sign := wechat.GetParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
-	// sign, _ := wechat.GetSanBoxParamSign("wxdaa2ab9ef87b5497", mchId, apiKey, body)
+	//sign := wechat.GetParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
+	//todo 目前是测试阶段
+	sign, _ := wechat.GetSanBoxParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
 	bm.Set("sign", sign)
 	resp, err := client.UnifiedOrder(bm)
 	if err != nil {
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
-	ok, err := wechat.VerifySign(com.WxPaymentKey, wechat.SignType_MD5, resp)
-	if err != nil {
-		return nil, errors.Wrap(err, "UnifiedOrder")
-	}
-	if !ok {
-		return nil, errors.New("下单失败")
-	}
+	glog.Infof("Resp: ")
+	spew.Dump(resp)
+	//todo 线上要补上签名校验
+	//ok, err := wechat.VerifySign(com.WxPaymentKey, wechat.SignType_MD5, resp)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "UnifiedOrder")
+	//}
+	//if !ok {
+	//	return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
+	//}
 	return resp, nil
 }

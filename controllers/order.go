@@ -20,21 +20,6 @@ func NewOrderController(orderSvr echoapp.OrderService) *OrderController {
 	}
 }
 
-func (orderCtrl *OrderController) PlaceOrder(ctx echo.Context) error {
-	params := &echoapp.Order{}
-	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	err := orderCtrl.orderSvc.PlaceOrder(params)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
-		} else {
-			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
-		}
-	}
-	return orderCtrl.Success(ctx, nil)
-}
 func (orderCtrl *OrderController) GetOrdereById(c echo.Context) error {
 	param := &Param{}
 	if err := c.Bind(param); err != nil {
@@ -109,13 +94,22 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 	}
 
 	params.ComId = echoapp_util.GetCtxComId(ctx)
-	if userId, err := echoapp_util.GetCtxtUserId(ctx); err != nil {
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	} else {
-		params.UserId = uint(userId)
+		params.UserId = uint(user.Id)
 	}
 
-	err := orderCtrl.orderSvc.PlaceOrder(params)
+	params.ClientIP = ctx.RealIP()
+	if err := orderCtrl.orderSvc.PreOrder(params); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
+	params.ClientType = clientType
+
+	resp, err := orderCtrl.orderSvc.PlaceOrder(params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
@@ -123,12 +117,29 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 		}
 	}
-	return orderCtrl.Success(ctx, nil)
+	return orderCtrl.Success(ctx, resp)
 }
 
-func (orderCtrl *OrderController) CreateOrder(ctx echo.Context) error {
-
-	return nil
+func (orderCtrl *OrderController) PlaceOrder(ctx echo.Context) error {
+	params := &echoapp.Order{}
+	if err := ctx.Bind(params); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	} else {
+		params.UserId = uint(user.Id)
+	}
+	_, err = orderCtrl.orderSvc.PlaceOrder(params, user)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
+		} else {
+			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
+		}
+	}
+	return orderCtrl.Success(ctx, nil)
 }
 
 func (orderCtrl *OrderController) CancelOrder(ctx echo.Context) error {
@@ -153,16 +164,45 @@ func (orderCtrl *OrderController) CancelOrder(ctx echo.Context) error {
 }
 
 func (orderCtrl *OrderController) Refund(ctx echo.Context) error {
+	if err := orderCtrl.orderSvc.Refund(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (orderCtrl *OrderController) GetOrderDetail(ctx echo.Context) error {
-	return nil
+	orderNo := ctx.QueryParam("order_no")
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	order, err := orderCtrl.orderSvc.GetUserOrderDetial(ctx, uint(user.Id), orderNo)
+	if err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败", err)
+	}
+	return orderCtrl.Success(ctx, order)
+}
+
+type CheckTicketRequest struct {
+	Code string `json:"code"`
+	Num  uint   `json:"num"`
 }
 
 func (orderCtrl *OrderController) CheckTicket(ctx echo.Context) error {
+	request := CheckTicketRequest{}
+	if err := ctx.Bind(&request); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
 
-	return nil
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
+	}
+
+	if err := orderCtrl.orderSvc.CheckTicket(request.Code, request.Num, uint(user.Id)); err != nil {
+		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "门票校验失败", err)
+	}
+	return orderCtrl.Success(ctx, nil)
 }
 
 func (orderCtrl *OrderController) CheckTicketList(ctx echo.Context) error {
@@ -186,22 +226,5 @@ func (orderCtrl *OrderController) CheckTicketByStaff(ctx echo.Context) error {
 }
 
 func (orderCtrl *OrderController) CheckTicketBySelf(ctx echo.Context) error {
-	return nil
-}
-
-//
-func (orderCtrl *OrderController) GetCartGoodsList(ctx echo.Context) error {
-	return nil
-}
-
-func (orderCtrl *OrderController) AddCartGoods(context echo.Context) error {
-	return nil
-}
-
-func (orderCtrl *OrderController) DelCartGoods(context echo.Context) error {
-	return nil
-}
-
-func (orderCtrl *OrderController) UpdateCartGoods(context echo.Context) error {
 	return nil
 }
