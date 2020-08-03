@@ -20,7 +20,7 @@ import (
 	"github.com/qiniu/api.v7/v7/storage"
 )
 
-func DoHttpRequest(url string, method string) ([]byte, error) {
+func DoHttpRequest(url string, method string, datas []byte) ([]byte, error) {
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
@@ -43,7 +43,7 @@ func DoHttpRequest(url string, method string) ([]byte, error) {
 func GetPPTCoverUrl(pptUrl string) ([]string, error) {
 	options := echoapp.ConfigOpts.ResourceOptions.XytUrl
 	url := options + "onlinePreview" + "?url=" + pptUrl
-	data, err := DoHttpRequest(url, "GET")
+	data, err := DoHttpRequest(url, "GET", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "doHttpRequest")
 	}

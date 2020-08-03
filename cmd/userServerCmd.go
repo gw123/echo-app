@@ -67,7 +67,7 @@ func startUserServer() {
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
-		//MockUserId: 58,
+		MockUserId: 58,
 	}
 	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
 	//登录
@@ -110,7 +110,7 @@ func startUserServer() {
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
 	//history
 	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
-	jwsAuth.GET("/getUserHistory", userCtl.GetUserHistoryList)
+	jwsAuth.GET("/getUserHistoryList", userCtl.GetUserHistoryList)
 	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {

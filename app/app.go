@@ -173,7 +173,7 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
 		return App.GoodsSvr, nil
 	}
-	goodsDb, err := GetDb("shop")
+	goodsDb, err := GetDb("goods")
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}

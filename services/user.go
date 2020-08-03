@@ -634,8 +634,13 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
 					continue
 				}
+				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryLockKey).Result()
+				if err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, "RPop:"+delHisVal)
+					continue
+				}
 			}
-			uSvr.redis.Del(RedisUserHistoryLockKey)
+
 		}
 	}
 	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
