@@ -24,6 +24,8 @@ func NewWechatAuthMiddlewares(
 			}
 
 			clientType := echoapp_util.GetClientTypeByUA(c.Request().UserAgent())
+			//todo test
+			return next(c)
 			if clientType != echoapp.ClientWxOfficial {
 				return next(c)
 			}

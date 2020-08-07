@@ -148,4 +148,6 @@ type UserService interface {
 	CreateUserHistory(history *History) error
 	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
 	GetUserByMobile(id uint, mobile string) (*User, error)
+	GetUserCodeAndUpdate(user *User) (string, error)
+	GetUserIdByUserCode(code string) (int64, error)
 }

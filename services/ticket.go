@@ -15,6 +15,8 @@ type TicketService struct {
 	db *gorm.DB
 }
 
+
+
 func NewTicketService(db *gorm.DB) *TicketService {
 	return &TicketService{db: db}
 }
@@ -75,7 +77,7 @@ func (tkSvr TicketService) GetTicketsByOrder(order *echoapp.Order) ([]*echoapp.T
 }
 
 //验票的相关逻辑,因为和事务有关系交给调用着去更新
-func (tkSvr TicketService) CheckTicket(ticket echoapp.Ticket, num uint, staffID uint) error {
+func (tkSvr TicketService) CheckTicket(ticket *echoapp.Ticket, num uint, staffID uint) error {
 	if err := ticket.IsValid(); err != nil {
 		return err
 	}
@@ -94,3 +96,4 @@ func (tkSvr TicketService) CheckTicket(ticket echoapp.Ticket, num uint, staffID 
 	ticket.UsedAt = &now
 	return nil
 }
+

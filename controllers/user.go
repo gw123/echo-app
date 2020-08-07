@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 type UserController struct {
@@ -478,3 +479,22 @@ func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
 	return sCtl.Success(ctx, collectionMap)
 }
 
+func (sCtl *UserController) GetUserCode(ctx echo.Context) error {
+	//comId := echoapp_util.GetCtxComId(ctx)
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	var code string
+	code, err = sCtl.userSvr.GetUserCodeAndUpdate(user)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取用户码失败", err)
+	}
+	expireAt := time.Now().Add(time.Second * 30)
+
+	//前端需要判断30秒后在去请求获取一个新的码
+	return sCtl.Success(ctx, map[string]interface{}{
+		"code":      code,
+		"timestamp": expireAt.Unix(),
+	})
+}

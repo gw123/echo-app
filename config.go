@@ -125,6 +125,8 @@ type DBOption struct {
 
 type Wechat struct {
 	AuthRedirectUrl string `yaml:"auth_redirect_url" mapstructure:"auth_redirect_url"`
+	MessageHost     string `yaml:"message_host" mapstructure:"message_host"`
+	JsHost          string `yaml:"js_host" mapstructure:"js_host"`
 }
 
 func InitConfig(cfgFile string) {

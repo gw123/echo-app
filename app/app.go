@@ -28,6 +28,7 @@ type EchoApp struct {
 	WsSvr           echoapp.WsService
 	TestpaperSvr    echoapp.TestpaperService
 	WechatService   echoapp.WechatService
+	TicketService   echoapp.TicketService
 }
 
 func init() {
@@ -153,7 +154,7 @@ func GetUserService() (echoapp.UserService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetJws")
 	}
-	App.UserSvr = services.NewUserService(userDb, redis, jws)
+	App.UserSvr = services.NewUserService(userDb, redis, jws, echoapp.ConfigOpts.Jws.HashIdsSalt)
 	return App.UserSvr, nil
 }
 
@@ -243,6 +244,7 @@ func MustGetResourceService() echoapp.ResourceService {
 	}
 	return resource
 }
+
 func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
@@ -251,10 +253,6 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "GetRedis")
-	// }
 	App.CommentSvr = services.NewCommentService(commentDb)
 	return App.CommentSvr, nil
 }
@@ -265,6 +263,26 @@ func MustGetCommentService() echoapp.CommentService {
 		panic(errors.Wrap(err, "GetCommentSvr"))
 	}
 	return comment
+}
+
+func GetTicketService() (echoapp.TicketService, error) {
+	if App.TicketService != nil {
+		return App.TicketService, nil
+	}
+	orderDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	App.TicketService = services.NewTicketService(orderDb)
+	return App.TicketService, nil
+}
+
+func MustGetTicketService() echoapp.TicketService {
+	tkSvr, err := GetTicketService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetCommentSvr"))
+	}
+	return tkSvr
 }
 
 func GetOrderService() (echoapp.OrderService, error) {
@@ -283,7 +301,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 	goodsSvr := MustGetGoodsService()
 	actSvr := MustGetActivityService()
 	wechatSvr := MustGetWechatService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr)
+	ticketSvr := MustGetTicketService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr)
 	return App.OrderSvr, nil
 }
 
@@ -325,7 +344,12 @@ func GetWechatService() (echoapp.WechatService, error) {
 		return App.WechatService, nil
 	}
 	com := MustGetCompanyService()
-	App.WechatService = services.NewWechatService(com, echoapp.ConfigOpts.Wechat.AuthRedirectUrl)
+	redis := MustGetRedis("")
+	App.WechatService = services.NewWechatService(
+		com,
+		echoapp.ConfigOpts.Wechat.AuthRedirectUrl,
+		echoapp.ConfigOpts.Wechat.JsHost,
+		redis)
 	return App.WechatService, nil
 }
 

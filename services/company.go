@@ -38,7 +38,7 @@ func (c CompanyService) GetCompanyById(comId uint) (*echoapp.Company, error) {
 	company.SmsChannels = make(map[string]*echoapp.SmsChannel)
 	var channels []echoapp.SmsChannel
 	c.db.Where("com_id = ?", comId).Find(&channels)
-	for  _, sch := range channels  {
+	for _, sch := range channels {
 		company.SmsChannels[sch.Type] = &sch
 	}
 	return company, nil

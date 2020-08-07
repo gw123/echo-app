@@ -27,6 +27,8 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/qiniu/api.v7 v7.2.5+incompatible // indirect
 	github.com/qiniu/api.v7/v7 v7.4.1
+	github.com/silenceper/wechat v1.2.7-0.20200528082022-843ed3fa8ad2 // indirect
+	github.com/silenceper/wechat/v2 v2.0.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/skip2/go-qrcode v0.0.0-20200526175731-7ac0b40b2038
 	github.com/speps/go-hashids v2.0.0+incompatible

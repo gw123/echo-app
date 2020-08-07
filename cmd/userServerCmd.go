@@ -97,6 +97,9 @@ func startUserServer() {
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+	//获取用户vip
+	jwsAuth.GET("/getUserCode", userCtl.GetUserCode)
+
 	//roles
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)

@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
+	"github.com/silenceper/wechat/v2/officialaccount/message"
 	"net/http"
 	"strconv"
 )
@@ -12,14 +15,16 @@ import (
 type SiteController struct {
 	actSvr echoapp.ActivityService
 	comSvr echoapp.CompanyService
+	wxSvr  echoapp.WechatService
 	echoapp.BaseController
 	indexCachePage []byte
 }
 
-func NewSiteController(comSvr echoapp.CompanyService, actSvr echoapp.ActivityService) *SiteController {
+func NewSiteController(comSvr echoapp.CompanyService, actSvr echoapp.ActivityService, svr echoapp.WechatService) *SiteController {
 	return &SiteController{
 		comSvr: comSvr,
 		actSvr: actSvr,
+		wxSvr:  svr,
 	}
 }
 
@@ -90,31 +95,78 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 }
 
 func (sCtl *SiteController) Index(ctx echo.Context) error {
-	echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
-	//if len(sCtl.indexCachePage) == 0 {
-	//	indexFilePath := echoapp.ConfigOpts.Asset.PublicRoot + "/m/index.html"
-	//	var err error
-	//	sCtl.indexCachePage, err = ioutil.ReadFile(indexFilePath)
-	//	if err != nil {
-	//		return ctx.HTML(502, "文件不存在")
-	//	}
-	//}
-	return ctx.Render(http.StatusOK, "index", nil)
+	//echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
+	comID := echoapp_util.GetCtxComId(ctx)
+
+	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
+	response := make(map[string]interface{})
+	response["clientType"] = clientType
+	if clientType == echoapp.ClientWxOfficial {
+		req := ctx.Request()
+		url := fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
+		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
+		if err != nil {
+			echoapp_util.ExtractEntry(ctx).WithError(err)
+		} else {
+			response["wxCfg"] = jsConfig
+		}
+	}
+	return ctx.Render(http.StatusOK, "index", response)
 }
 
 func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
-	if err != nil {
-		return ctx.HTML(502, "授权失败")
-	}
-	data := make(map[string]interface{})
-	glog.Infof("WxAUthCallback UserInfo :+v", user)
-	data["userToken"] = user.JwsToken
-	data["nickname"] = user.Nickname
-	data["avatar"] = user.Avatar
-	data["sex"] = user.Sex
-	data["roles"] = user.Roles
-	data["id"] = user.Id
+	comID := echoapp_util.GetCtxComId(ctx)
 
-	return ctx.Render(http.StatusOK, "index", data)
+	//user, err := echoapp_util.GetCtxtUser(ctx)
+	//if err != nil {
+	//	return ctx.HTML(502, "授权失败")
+	//}
+	//data := make(map[string]interface{})
+	//data["userToken"] = user.JwsToken
+	//data["nickname"] = user.Nickname
+	//data["avatar"] = user.Avatar
+	//data["sex"] = user.Sex
+	//data["roles"] = user.Roles
+	//data["id"] = user.Id
+	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
+	response := make(map[string]interface{})
+	response["clientType"] = clientType
+	//response["user"] = data
+	if clientType == echoapp.ClientWxOfficial {
+		req := ctx.Request()
+		url := ""
+		if req.URL.RawQuery != "" {
+			url = fmt.Sprintf("%s://%s%s?%s", "http", req.Host, req.URL.Path, req.URL.RawQuery)
+		} else {
+			url = fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
+		}
+		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
+		if err != nil {
+			echoapp_util.ExtractEntry(ctx).WithError(err)
+		} else {
+			response["wxCfg"] = jsConfig
+			spew.Dump(jsConfig)
+		}
+	}
+	return ctx.Render(http.StatusOK, "index", response)
+}
+
+func (sCtl *SiteController) WxMessage(ctx echo.Context) error {
+	comID := echoapp_util.GetCtxComId(ctx)
+	server, err := sCtl.wxSvr.GetOfficialServer(ctx, comID)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
+	}
+	server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+		//TODO
+		//回复消息：演示回复用户发送的消息
+		glog.Info(msg.Content)
+		text := message.NewText(msg.Content)
+		return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+	})
+	if err = server.Serve(); err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
+	}
+	server.Send()
+	return nil
 }

@@ -17,12 +17,15 @@ type Company struct {
 	WxOfficialAppId  string `json:"wx_official_app_id"`
 	WxOfficialSecret string `json:"wx_official_secret"`
 
-	WxPaymentAppId string                 `json:"wx_payment_app_id"`
-	WxPaymentMchId string                 `json:"wx_payment_mch_id"`
-	WxPaymentKey   string                 `json:"wx_payment_key"`
-	XcxCover       string                 `json:"xcx_cover"`
-	WechatCover    string                 `json:"wechat_cover"`
-	SmsChannels    map[string]*SmsChannel `json:"sms_channels"`
+	WxPaymentAppId   string `json:"wx_payment_app_id"`
+	WxPaymentMchId   string `json:"wx_payment_mch_id"`
+	WxPaymentKey     string `json:"wx_payment_key"`
+	XcxCover         string `json:"xcx_cover"`
+	WechatCover      string `json:"wechat_cover"`
+	WxToken          string `json:"wx_token"`
+	WxOfficialAesKey string `json:"wx_official_aes_key"`
+
+	SmsChannels map[string]*SmsChannel `json:"sms_channels"`
 }
 
 type Nav struct {

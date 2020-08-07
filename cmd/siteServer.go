@@ -57,7 +57,6 @@ func startSiteServer() {
 	comSvr := app.MustGetCompanyService()
 	actSvr := app.MustGetActivityService()
 	userSvr := app.MustGetUserService()
-	siteCtl := controllers.NewSiteController(comSvr, actSvr)
 	companyCtl := controllers.NewCompanyController(comSvr)
 	mode := echoapp.ConfigOpts.ApiVersion
 	wechatSvr := app.MustGetWechatService()
@@ -74,6 +73,7 @@ func startSiteServer() {
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 
+	siteCtl := controllers.NewSiteController(comSvr, actSvr, wechatSvr)
 	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
@@ -82,6 +82,7 @@ func startSiteServer() {
 
 	normal.Use(companyMiddleware, limitMiddleware, )
 	//首页显示
+	normal.GET("/wxMessage", siteCtl.WxMessage)
 	normal.GET("/getBannerList", siteCtl.GetBannerList)
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
 	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)

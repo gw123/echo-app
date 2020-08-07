@@ -6,17 +6,38 @@ import (
 	mpoauth2 "github.com/chanxuehong/wechat/mp/oauth2"
 	"github.com/chanxuehong/wechat/oauth2"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/glog"
 	"github.com/iGoogle-ink/gopay"
 	"github.com/iGoogle-ink/gopay/wechat"
 	"github.com/iGoogle-ink/gotil"
+	"github.com/labstack/echo"
 	"github.com/pkg/errors"
+	wx "github.com/silenceper/wechat/v2"
+	"github.com/silenceper/wechat/v2/cache"
+	offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
+	"github.com/silenceper/wechat/v2/officialaccount/js"
+	"github.com/silenceper/wechat/v2/officialaccount/server"
 )
 
 type WechatService struct {
 	authRedirectUrl string
 	comSvr          echoapp.CompanyService
+	wx              *wx.Wechat
+	jsHost          string
+	reids           *redis.Client
+}
+
+func NewWechatService(comSvr echoapp.CompanyService, authUrl string, jsHost string, redis *redis.Client) *WechatService {
+	wx := wx.NewWechat()
+	return &WechatService{
+		comSvr:          comSvr,
+		authRedirectUrl: authUrl,
+		jsHost:          jsHost,
+		wx:              wx,
+		reids:           redis,
+	}
 }
 
 func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
@@ -54,13 +75,6 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 	}
 
 	return echoapp.OrderStatusUnpay, nil
-}
-
-func NewWechatService(comSvr echoapp.CompanyService, authUrl string) *WechatService {
-	return &WechatService{
-		authRedirectUrl: authUrl,
-		comSvr:          comSvr,
-	}
 }
 
 func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
@@ -170,4 +184,55 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wec
 	//	return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
 	//}
 	return resp, nil
+}
+
+func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error) {
+	com, err := we.comSvr.GetCompanyById(comID)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetCompanyById")
+	}
+	memory := cache.NewMemory()
+	cfg := &offConfig.Config{
+		AppID:          com.WxOfficialAppId,
+		AppSecret:      com.WxOfficialSecret,
+		Token:          com.WxToken,
+		EncodingAESKey: com.WxOfficialAesKey,
+		Cache:          memory,
+	}
+	return cfg, nil
+}
+func (we *WechatService) GetJsConfig(comID uint, url string) (*js.Config, error) {
+	cfg, err := we.GetComOfficialCfg(comID)
+	if err != nil {
+		return nil, err
+	}
+	wxOfficial := we.wx.GetOfficialAccount(cfg)
+	jsConfig := wxOfficial.GetJs()
+	glog.Infof("GetJsConfig Url: %s", url)
+	config, err := jsConfig.GetConfig(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetJSConfig")
+	}
+	return config, nil
+}
+
+func (we *WechatService) GetOfficialServer(ctx echo.Context, comID uint) (*server.Server, error) {
+	cfg, err := we.GetComOfficialCfg(comID)
+	if err != nil {
+		return nil, err
+	}
+	wxOfficial := we.wx.GetOfficialAccount(cfg)
+	server := wxOfficial.GetServer(ctx.Request(), ctx.Response())
+	////设置接收消息的处理方法
+	//server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+	//	//TODO
+	//	//回复消息：演示回复用户发送的消息
+	//	text := message.NewText(msg.Content)
+	//	return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+	//})
+	//if err = server.Serve(); err != nil {
+	//	return nil, err
+	//}
+	//server.Send()
+	return server, nil
 }
