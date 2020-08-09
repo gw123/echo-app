@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
@@ -116,25 +115,30 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 
 func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
 	comID := echoapp_util.GetCtxComId(ctx)
-
-	//user, err := echoapp_util.GetCtxtUser(ctx)
-	//if err != nil {
-	//	return ctx.HTML(502, "授权失败")
-	//}
-	//data := make(map[string]interface{})
-	//data["userToken"] = user.JwsToken
-	//data["nickname"] = user.Nickname
-	//data["avatar"] = user.Avatar
-	//data["sex"] = user.Sex
-	//data["roles"] = user.Roles
-	//data["id"] = user.Id
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return ctx.HTML(502, "授权失败")
+	}
+	data := make(map[string]interface{})
+	data["userToken"] = user.JwsToken
+	data["nickname"] = user.Nickname
+	data["avatar"] = user.Avatar
+	data["sex"] = user.Sex
+	data["roles"] = user.Roles
+	data["id"] = user.Id
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
-	//response["user"] = data
+	response["user"] = data
+	//response["assetHost"] = "http://192.168.187.1:8889"
+	response["assetHost"] = "http://m.xytschool.com/dev/public"
 	if clientType == echoapp.ClientWxOfficial {
 		req := ctx.Request()
 		url := ""
+		//if req.URL.Scheme == "" {
+		//
+		//}
+		//todo
 		if req.URL.RawQuery != "" {
 			url = fmt.Sprintf("%s://%s%s?%s", "http", req.Host, req.URL.Path, req.URL.RawQuery)
 		} else {
@@ -145,7 +149,6 @@ func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
 			echoapp_util.ExtractEntry(ctx).WithError(err)
 		} else {
 			response["wxCfg"] = jsConfig
-			spew.Dump(jsConfig)
 		}
 	}
 	return ctx.Render(http.StatusOK, "index", response)

@@ -126,7 +126,7 @@ func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
 }
 
 func (oSvr *OrderService) PlaceOrder(order *echoapp.Order, user *echoapp.User) (*wechat.UnifiedOrderResponse, error) {
-	glog.DefaultLogger().Info(oSvr.wechat)
+	glog.DefaultLogger().Infof("user: %+v,openid:%s", user, user.Openid)
 	resp, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")

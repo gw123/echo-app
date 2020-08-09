@@ -34,8 +34,9 @@ type User struct {
 	Mobile     string     `json:"mobile"`
 	Score      int        `json:"score"`
 	Password   string     `gorm:"column:password" json:"-"`
-	Openid     string     `gorm:"xcx_openid" json:"-"`
-	Unionid    string     `gorm:"unionid" json:"-"`
+	MiniOpenid string     `gorm:"xcx_openid" json:"mini_openid"`
+	Openid     string     `gorm:"openid" json:"openid"`
+	Unionid    string     `gorm:"unionid" json:"unionid"`
 	IsStaff    bool       `json:"is_staff"`
 	VipLevel   int16      `json:"vip_level"`
 	JwsToken   string     `gorm:"-" json:"jws_token"`
@@ -43,6 +44,7 @@ type User struct {
 	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
 	Address    []*Address `json:"address" gorm :"ForeignKey:UserID" `
 }
+
 type Address struct {
 	//gorm.Model
 	ID        uint      `json:"id" gorm:"primary_key"`

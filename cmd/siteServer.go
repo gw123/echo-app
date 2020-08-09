@@ -26,6 +26,7 @@ func startSiteServer() {
 	}
 	//前端入口
 	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot+"/m")
+	e.Static("/dev/public", echoapp.ConfigOpts.Asset.PublicRoot+"/m")
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 

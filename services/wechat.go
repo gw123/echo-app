@@ -129,25 +129,25 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wec
 	}
 
 	var appID string
-	if order.ClientType == "official" {
+	if order.ClientType == "wx_official" {
 		appID = com.WxOfficialAppId
 	} else {
 		appID = com.WxMiniAppId
 	}
-	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
+	glog.Infof("clientType: %s , appId: %s ,openId: %s", order.ClientType, appID, openId)
 
 	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
 	client.SetCountry(wechat.China)
-
+	glog.Infof("orderNo : %s, %s", order.OrderNo, order.ClientIP)
 	// 初始化 BodyMap
 	bm := make(gopay.BodyMap)
 	bm.Set("nonce_str", gotil.GetRandomString(32))
-	bm.Set("body", "小程序测试支付")
+	bm.Set("body", "测试支付003")
 	bm.Set("out_trade_no", order.OrderNo)
-	bm.Set("total_fee", 1)
+	bm.Set("total_fee", 100)
 	bm.Set("spbill_create_ip", order.ClientIP)
 	bm.Set("notify_url", "http://www.gopay.ink")
-	bm.Set("trade_type", wechat.TradeType_Mini)
+	bm.Set("trade_type", wechat.TradeType_H5)
 	bm.Set("device_info", "WEB")
 	bm.Set("sign_type", wechat.SignType_MD5)
 	bm.Set("openid", openId)
@@ -165,10 +165,12 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wec
 
 	// 参数 sign ，可单独生成赋值到BodyMap中；也可不传sign参数，client内部会自动获取
 	// 如需单独赋值 sign 参数，需通过下面方法，最后获取sign值并在最后赋值此参数
+	glog.Infof("com : %+v", com)
+	glog.Infof("bm %+v", bm)
 	//sign := wechat.GetParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
 	//todo 目前是测试阶段
-	sign, _ := wechat.GetSanBoxParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
-	bm.Set("sign", sign)
+	//sign, _ := wechat.GetSanBoxParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
+	//bm.Set("sign", sign)
 	resp, err := client.UnifiedOrder(bm)
 	if err != nil {
 		return nil, errors.Wrap(err, "UnifiedOrder")
