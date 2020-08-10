@@ -19,6 +19,7 @@ import (
 	offConfig "github.com/silenceper/wechat/v2/officialaccount/config"
 	"github.com/silenceper/wechat/v2/officialaccount/js"
 	"github.com/silenceper/wechat/v2/officialaccount/server"
+	"net/http"
 )
 
 type WechatService struct {
@@ -40,41 +41,56 @@ func NewWechatService(comSvr echoapp.CompanyService, authUrl string, jsHost stri
 	}
 }
 
-func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
-	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+func (we *WechatService) GetJsConfig(comID uint, url string) (*js.Config, error) {
+	cfg, err := we.GetComOfficialCfg(comID)
 	if err != nil {
-		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
+		return nil, err
 	}
-
-	var appID string
-	if order.ClientType == "official" {
-		appID = com.WxOfficialAppId
-	} else {
-		appID = com.WxMiniAppId
-	}
-	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
-
-	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
-	client.SetCountry(wechat.China)
-	// 初始化 BodyMap
-	bm := make(gopay.BodyMap)
-	bm.Set("nonce_str", gotil.GetRandomString(32))
-	bm.Set("transaction_id", order.TransactionId)
-	bm.Set("out_trade_no", order.OrderNo)
-	//todo 查询订单接口
-	resp, bmResp, err := client.QueryOrder(bm)
-
-	glog.Infof("%+v", bmResp)
-	glog.Infof("%+v", resp)
+	wxOfficial := we.wx.GetOfficialAccount(cfg)
+	jsConfig := wxOfficial.GetJs()
+	glog.Infof("GetJsConfig Url: %s", url)
+	config, err := jsConfig.GetConfig(url)
 	if err != nil {
-		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
+		return nil, errors.Wrap(err, "GetJSConfig")
 	}
+	return config, nil
+}
 
-	if resp.ResultCode == "SUCCESS" {
-		return echoapp.OrderStatusPaid, nil
+func (we *WechatService) GetOfficialServer(ctx echo.Context, comID uint) (*server.Server, error) {
+	cfg, err := we.GetComOfficialCfg(comID)
+	if err != nil {
+		return nil, err
 	}
+	wxOfficial := we.wx.GetOfficialAccount(cfg)
+	server := wxOfficial.GetServer(ctx.Request(), ctx.Response())
+	////设置接收消息的处理方法
+	//server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
+	//	//TODO
+	//	//回复消息：演示回复用户发送的消息
+	//	text := message.NewText(msg.Content)
+	//	return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
+	//})
+	//if err = server.Serve(); err != nil {
+	//	return nil, err
+	//}
+	//server.Send()
+	return server, nil
+}
 
-	return echoapp.OrderStatusUnpay, nil
+func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error) {
+	com, err := we.comSvr.GetCompanyById(comID)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetCompanyById")
+	}
+	memory := cache.NewMemory()
+	cfg := &offConfig.Config{
+		AppID:          com.WxOfficialAppId,
+		AppSecret:      com.WxOfficialSecret,
+		Token:          com.WxToken,
+		EncodingAESKey: com.WxOfficialAesKey,
+		Cache:          memory,
+	}
+	return cfg, nil
 }
 
 func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
@@ -119,9 +135,7 @@ func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code strin
 	return userinfo, nil
 }
 
-/***
-
- */
+/****/
 func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wechat.UnifiedOrderResponse, error) {
 	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
 	if err != nil {
@@ -188,53 +202,152 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*wec
 	return resp, nil
 }
 
-func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error) {
-	com, err := we.comSvr.GetCompanyById(comID)
+/***/
+func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
+	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
 	if err != nil {
-		return nil, errors.Wrap(err, "GetCompanyById")
+		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
 	}
-	memory := cache.NewMemory()
-	cfg := &offConfig.Config{
-		AppID:          com.WxOfficialAppId,
-		AppSecret:      com.WxOfficialSecret,
-		Token:          com.WxToken,
-		EncodingAESKey: com.WxOfficialAesKey,
-		Cache:          memory,
+
+	var appID string
+	if order.ClientType == "official" {
+		appID = com.WxOfficialAppId
+	} else {
+		appID = com.WxMiniAppId
 	}
-	return cfg, nil
-}
-func (we *WechatService) GetJsConfig(comID uint, url string) (*js.Config, error) {
-	cfg, err := we.GetComOfficialCfg(comID)
+	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
+
+	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
+	client.SetCountry(wechat.China)
+	// 初始化 BodyMap
+	bm := make(gopay.BodyMap)
+	bm.Set("nonce_str", gotil.GetRandomString(32))
+	bm.Set("transaction_id", order.TransactionId)
+	bm.Set("out_trade_no", order.OrderNo)
+	//todo 查询订单接口
+	resp, bmResp, err := client.QueryOrder(bm)
+
+	glog.Infof("%+v", bmResp)
+	glog.Infof("%+v", resp)
 	if err != nil {
-		return nil, err
+		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
-	wxOfficial := we.wx.GetOfficialAccount(cfg)
-	jsConfig := wxOfficial.GetJs()
-	glog.Infof("GetJsConfig Url: %s", url)
-	config, err := jsConfig.GetConfig(url)
-	if err != nil {
-		return nil, errors.Wrap(err, "GetJSConfig")
+
+	if resp.ResultCode == "SUCCESS" {
+		return echoapp.OrderStatusPaid, nil
 	}
-	return config, nil
+
+	return echoapp.OrderStatusUnpay, nil
 }
 
-func (we *WechatService) GetOfficialServer(ctx echo.Context, comID uint) (*server.Server, error) {
-	cfg, err := we.GetComOfficialCfg(comID)
+//查询支付结果
+func (we *WechatService) PayCallback(r *http.Request) (*wechat.NotifyRequest, error) {
+	resp, err := wechat.ParseNotify(r)
 	if err != nil {
 		return nil, err
 	}
-	wxOfficial := we.wx.GetOfficialAccount(cfg)
-	server := wxOfficial.GetServer(ctx.Request(), ctx.Response())
-	////设置接收消息的处理方法
-	//server.SetMessageHandler(func(msg message.MixMessage) *message.Reply {
-	//	//TODO
-	//	//回复消息：演示回复用户发送的消息
-	//	text := message.NewText(msg.Content)
-	//	return &message.Reply{MsgType: message.MsgTypeText, MsgData: text}
-	//})
-	//if err = server.Serve(); err != nil {
-	//	return nil, err
-	//}
-	//server.Send()
-	return server, nil
+	if resp.ReturnCode == "SUCCESS" && resp.ResultCode == "SUCCESS" {
+		return resp, nil
+	} else {
+		return nil, errors.Errorf("Code:%s, %s", resp.ErrCode, resp.ErrCodeDes)
+	}
+}
+
+func (we *WechatService) Refund(order *echoapp.Order, openId string) (*wechat.RefundResponse, error) {
+	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	if err != nil {
+		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
+	}
+
+	var appID string
+	if order.ClientType == "wx_official" {
+		appID = com.WxOfficialAppId
+	} else {
+		appID = com.WxMiniAppId
+	}
+	glog.Infof("clientType: %s , appId: %s ,openId: %s", order.ClientType, appID, openId)
+
+	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
+	client.SetCountry(wechat.China)
+	glog.Infof("orderNo : %s, %s", order.OrderNo, order.ClientIP)
+	// 初始化 BodyMap
+	bm := make(gopay.BodyMap)
+	bm.Set("nonce_str", gotil.GetRandomString(32))
+	bm.Set("body", "测试支付003")
+	bm.Set("out_trade_no", order.OrderNo)
+	bm.Set("total_fee", order.RealTotal)
+	bm.Set("spbill_create_ip", order.ClientIP)
+	bm.Set("notify_url", "http://www.gopay.ink")
+	bm.Set("trade_type", wechat.TradeType_H5)
+	bm.Set("device_info", "WEB")
+	bm.Set("sign_type", wechat.SignType_MD5)
+	bm.Set("openid", openId)
+	bm.Set("transaction_id", order.TransactionId)
+	bm.Set("out_refund_no", order.OrderNo)
+	bm.Set("refund_fee", order.RealTotal)
+
+	glog.Infof("com : %+v", com)
+	glog.Infof("bm %+v", bm)
+	//sign := wechat.GetParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
+	//todo 目前是测试阶段
+	//sign, _ := wechat.GetSanBoxParamSign(appID, com.WxPaymentMchId, com.WxPaymentKey, bm)
+	//bm.Set("sign", sign)
+	resp, _, err := client.Refund(bm, "", "", "")
+	if err != nil {
+		return nil, errors.Wrap(err, "UnifiedOrder")
+	}
+	//todo 线上要补上签名校验
+	ok, err := wechat.VerifySign(com.WxPaymentKey, wechat.SignType_MD5, resp)
+	if err != nil {
+		return nil, errors.Wrap(err, "UnifiedOrder")
+	}
+	if !ok {
+		return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
+	}
+	return resp, nil
+}
+
+func (we *WechatService) RefundCallback(r *http.Request) (*wechat.RefundNotify, error) {
+	resp, err := wechat.ParseRefundNotify(r)
+	if err != nil {
+		return nil, errors.Wrap(err, "ParseRefundNotify")
+	}
+	return wechat.DecryptRefundNotifyReqInfo(resp.ReqInfo, "")
+}
+
+func (we *WechatService) QueryRefund(order *echoapp.Order) (string, error) {
+	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	if err != nil {
+		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
+	}
+
+	var appID string
+	if order.ClientType == "official" {
+		appID = com.WxOfficialAppId
+	} else {
+		appID = com.WxMiniAppId
+	}
+	glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
+
+	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, false)
+	client.SetCountry(wechat.China)
+	// 初始化 BodyMap
+	bm := make(gopay.BodyMap)
+	bm.Set("nonce_str", gotil.GetRandomString(32))
+	bm.Set("transaction_id", order.TransactionId)
+	bm.Set("out_trade_no", order.OrderNo)
+	//todo 查询订单接口 校验返回参数
+	resp, bmResp, err := client.QueryRefund(bm)
+	glog.Infof("%+v", bmResp)
+	glog.Infof("%+v", resp)
+
+	if err != nil {
+		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
+	}
+
+	if resp.ResultCode == "SUCCESS" {
+		return echoapp.OrderStatusRefund, nil
+	}
+
+	return echoapp.OrderStatusUnpay, nil
 }

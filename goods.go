@@ -37,6 +37,7 @@ type GoodsBrief struct {
 	CoversStr   string    `json:"-" gorm:"column:covers"`
 	Covers      []string  `gorm:"-" json:"covers"`
 	Desc        string    `json:"desc"`
+	//下面這樣的会影响 goods结果导致goods 为空
 	GoodsType   string    `json:"goods_type" gorm:"goods_type" `
 }
 
@@ -56,7 +57,6 @@ type Goods struct {
 	GoodsBrief
 	Body      string `json:"body"`
 	Infos     string `json:"infos"`
-	GoodsType string `json:"goods_type"`
 }
 
 type GoodsTag struct {

@@ -15,8 +15,6 @@ type TicketService struct {
 	db *gorm.DB
 }
 
-
-
 func NewTicketService(db *gorm.DB) *TicketService {
 	return &TicketService{db: db}
 }
@@ -48,7 +46,7 @@ func (tkSvr *TicketService) GetTicketByCode(code string) (*echoapp.Ticket, error
 }
 
 // 拼装门票数据,为了使用事物 保存ticket应该放到 saveOrder那部分
-func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, username string, goods *echoapp.CartGoodsItem) *echoapp.Ticket {
+func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string, address *echoapp.Address, goods *echoapp.CartGoodsItem) *echoapp.Ticket {
 	r := rand.Int31n(89999999) + 10000000
 	ticket := &echoapp.Ticket{
 		GoodsId:    goods.GoodsId,
@@ -58,12 +56,14 @@ func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, username strin
 		Number:     goods.Num,
 		Status:     echoapp.TicketStatusNormal,
 		UsedNumber: 0,
-		Username:   username,
+		Username:   address.Username,
 		UsedAt:     nil,
 		Cover:      goods.Cover,
 		ComId:      order.ComId,
 		UserId:     order.UserId,
 		Rand:       int64(r),
+		Source:     source,
+		AddressID:  address.ID,
 	}
 	return ticket
 }
@@ -96,4 +96,3 @@ func (tkSvr TicketService) CheckTicket(ticket *echoapp.Ticket, num uint, staffID
 	ticket.UsedAt = &now
 	return nil
 }
-

@@ -64,23 +64,28 @@ func startOrderServer() {
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/order/:com_id")
 	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
-	orderCtl := controllers.NewOrderController(orderSvr)
+	userSvr := app.MustGetUserService()
+	orderCtl := controllers.NewOrderController(orderSvr, userSvr)
 	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
-
+	//微信支付回调
+	normal.POST("/wxPayCallback", orderCtl.WxPayCallback)
+	normal.POST("/wxRefundCallback", orderCtl.WxRefundCallback)
 	jwsAuth := e.Group("/" + mode + "/order/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	})
-	userSvr := app.MustGetUserService()
 	userMiddle := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, userSvr)
-	jwsAuth.Use(jwsMiddleware, userMiddle, limitMiddleware, companyMiddleware )
+	jwsAuth.Use(jwsMiddleware, userMiddle, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
 	jwsAuth.GET("/getOrderDetail", orderCtl.GetOrderDetail)
 	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
 	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
+	jwsAuth.POST("/queryOrder", orderCtl.QueryOrder)
 	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
 	jwsAuth.POST("/refund", orderCtl.Refund)
+	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
+
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
 	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)

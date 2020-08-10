@@ -54,6 +54,7 @@ type Order struct {
 	ClientIP      string        `json:"client_ip"`
 	ClientType    string        `json:"client_type"`
 	Tickets       []*Ticket     `json:"tickets" gorm:"-"`
+	Address       *Address      `json:"address" gorm:"-"`
 	//Score         string           `score` //积分
 }
 
@@ -119,16 +120,21 @@ type GetOrderOptions struct {
 	//Score         string    `score`
 }
 
+type UnifiedOrderResp struct {
+	wechat.UnifiedOrderResponse
+	OrderNo string `json:"order_no"`
+}
+
 type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
 
 	//
-	PlaceOrder(order *Order, user *User) (*wechat.UnifiedOrderResponse, error)
-	//预下单接口
-	PreOrder(order *Order) error
+	UniPreOrder(order *Order, user *User) (*UnifiedOrderResp, error)
+	//预下单校验订单的接口
+	PreCheckOrder(order *Order) error
 
 	//查询订单支付状态
-	QueryOrderAndUpdate(order *Order) (*Order, error)
+	QueryOrderAndUpdate(order *Order, shouldStatus string) (*Order, error)
 
 	GetUserPaymentOrder(c echo.Context, userId uint, from, limit int) ([]*Order, error)
 	//查看资源文件 ，每页有 limit 条数据
@@ -145,5 +151,13 @@ type OrderService interface {
 	//
 	GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*Order, error)
 	//退款
-	Refund() error
+	Refund(order *Order, user *User) error
+
+	GetUserAddress(addrId uint) (*Address, error)
+
+	WxPayCallback(ctx echo.Context) error
+
+	WxRefundCallback(ctx echo.Context) error
+
+	QueryRefundOrderAndUpdate(order *Order) (*Order, error)
 }
