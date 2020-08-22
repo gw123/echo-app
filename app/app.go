@@ -7,6 +7,7 @@ import (
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
 	"github.com/jinzhu/gorm"
+	es7 "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
 )
 
@@ -184,7 +185,12 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
 
-	App.GoodsSvr = services.NewGoodsService(goodsDb, redis)
+	//es, err := GetEs()
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "GetEs")
+	//}
+
+	App.GoodsSvr = services.NewGoodsService(goodsDb, redis, nil)
 	return App.GoodsSvr, nil
 }
 
@@ -384,4 +390,19 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
+}
+
+func GetEs() (*es7.Client, error) {
+	esOption := echoapp.ConfigOpts.Es
+	var clientOptions []es7.ClientOptionFunc
+	clientOptions = append(clientOptions, es7.SetURL(esOption.URLs...))
+	if esOption.Username != "" {
+		clientOptions = append(clientOptions, es7.SetBasicAuth(esOption.Username, esOption.Password))
+	}
+	if !esOption.Sniff {
+		clientOptions = append(clientOptions, es7.SetSniff(false))
+	}
+	clientOptions = append(clientOptions, es7.SetScheme("http"))
+	clientOptions = append(clientOptions, es7.SetHealthcheck(false))
+	return es7.NewClient(clientOptions...)
 }

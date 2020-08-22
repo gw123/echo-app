@@ -2,20 +2,19 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
-
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
 )
 
 func startSiteServer() {
@@ -73,8 +72,7 @@ func startSiteServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-
-	siteCtl := controllers.NewSiteController(comSvr, actSvr, wechatSvr)
+	siteCtl := controllers.NewSiteController(comSvr, actSvr, wechatSvr, echoapp.ConfigOpts.Asset)
 	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
@@ -123,3 +121,4 @@ var siteServerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(siteServerCmd)
 }
+

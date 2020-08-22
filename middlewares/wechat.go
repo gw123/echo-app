@@ -77,6 +77,8 @@ func NewWechatAuthMiddlewares(
 				} else {
 					echoapp_util.SetCtxUser(c, newUser)
 					echoapp_util.ExtractEntry(c).Infof("自动登录用户-> %+v", newUser)
+					//token := fmt.Sprintf("?token=%s", newUser.JwsToken)
+					//return c.Redirect(http.StatusMovedPermanently, strings.Replace(path, "/wxAuthCallBack", token, -1))
 				}
 				return next(c)
 			}

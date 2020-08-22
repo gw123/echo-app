@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gw123/glog"
+	"github.com/olivere/elastic/v7"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -25,12 +26,14 @@ type GoodsService struct {
 	db    *gorm.DB
 	redis *redis.Client
 	jws   *components.JwsHelper
+	es    *elastic.Client
 }
 
-func NewGoodsService(db *gorm.DB, redis *redis.Client) *GoodsService {
+func NewGoodsService(db *gorm.DB, redis *redis.Client, es *elastic.Client) *GoodsService {
 	return &GoodsService{
 		db:    db,
 		redis: redis,
+		es:    es,
 	}
 }
 
@@ -89,7 +92,7 @@ func (gSvr *GoodsService) AddGoodsPv(goodsId int) error {
 	glog.Infof("AddGoodsPv %d", goodsId)
 	goods := echoapp.Goods{}
 	if err := gSvr.db.Debug().Model(&goods).Where("id = ?", goodsId).
-		Update("pv",gorm.Expr("pv+1")).Error; err != nil {
+		Update("pv", gorm.Expr("pv+1")).Error; err != nil {
 		return errors.Wrap(err, "AddGoodsPv")
 	}
 	return nil
@@ -143,6 +146,14 @@ func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) (
 		return nil, errors.Wrap(err, "db err")
 	}
 	return goodsList, nil
+}
+
+func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
+	goods := &echoapp.Goods{}
+	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
+		return nil, err
+	}
+	return goods, nil
 }
 
 func (gSvr *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) {
@@ -210,14 +221,6 @@ func (gSvr *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
 	res := gSvr.db.Where("name=?", name).Find(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetTagsByName")
-	}
-	return goods, nil
-}
-
-func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
-	goods := &echoapp.Goods{}
-	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
-		return nil, err
 	}
 	return goods, nil
 }
@@ -305,21 +308,47 @@ func (gSvr *GoodsService) UpdateCartGoods(comID uint, userID uint, goodsItem *ec
 }
 
 func (gSvr *GoodsService) IsValidCartGoods(item *echoapp.CartGoodsItem) error {
-	goods, err := gSvr.GetGoodsById(item.GoodsId)
-	if err != nil {
-		return errors.Wrap(err, "获取商品失败")
-	}
-	if item.Name != goods.Name {
-		return errors.New(item.Name + "商品名称发生变动")
-	}
-	if item.Price != goods.Price {
-		return errors.New(goods.Name + "原价对比失败")
-	}
-	if item.RealPrice != goods.RealPrice {
-		return errors.New(goods.Name + "商品价格发生变动")
-	}
-	if uint(goods.Num) < item.Num {
-		return errors.New(goods.Name + "商品数量不足")
+	//todo sku商品
+	if item.SkuID == 0 {
+		goods, err := gSvr.GetGoodsById(item.GoodsId)
+		if err != nil {
+			return errors.Wrapf(err, "获取商品失败 %d", item.GoodsId)
+		}
+		if item.Name != goods.Name {
+			return errors.New(item.Name + "商品名称发生变动")
+		}
+		if item.Price != goods.Price {
+			return errors.New(goods.Name + "原价对比失败")
+		}
+		if item.RealPrice != goods.RealPrice {
+			return errors.New(goods.Name + "商品价格发生变动")
+		}
+		if uint(goods.Num) < item.Num {
+			return errors.New(goods.Name + "商品数量不足")
+		}
+	} else {
+		if len(item.LabelCombine) == 0 {
+			return errors.New("请选择商品属性后下单")
+		}
+
+		goods, err := gSvr.GetSkuById(item.GoodsId, item.LabelCombine)
+
+		if err != nil {
+			return errors.Wrap(err, "获取商品失败")
+		}
+
+		if item.SkuName != goods.SkuName {
+			return errors.New(item.Name + "商品名称发生变动")
+		}
+
+		if item.RealPrice != goods.RealPrice {
+			glog.Errorf("cart price:%f, realPrice:%f", item.RealPrice, goods.RealPrice)
+			return errors.New(item.SkuName + "商品价格发生变动")
+		}
+
+		if uint(goods.Num) < item.Num {
+			return errors.New(goods.SkuName + "商品数量不足")
+		}
 	}
 	return nil
 }
@@ -345,4 +374,22 @@ func (gSvr *GoodsService) ClearCart(comID uint, userID uint) error {
 		return errors.Wrap(err, "delete")
 	}
 	return nil
+}
+
+func (gSvr *GoodsService) GetSkuById(goodsId uint, labelCombine map[string]string) (*echoapp.Sku, error) {
+	goods, err := gSvr.GetGoodsById(goodsId)
+	if err != nil {
+		return nil, err
+	}
+
+	if goods.Status != echoapp.GoodsStatusPublish {
+		return nil, errors.New("商品已经下架")
+	}
+
+	for _, sku := range goods.Skus {
+		if sku.IsLabelCombine(labelCombine) {
+			return sku, nil
+		}
+	}
+	return nil, errors.New("not found")
 }

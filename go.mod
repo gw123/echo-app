@@ -22,6 +22,8 @@ require (
 	github.com/lib/pq v1.7.0 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/medivhzhan/weapp v1.5.1
+	github.com/olivere/elastic v2.0.24-0.20190630115438-89a71b892680+incompatible // indirect
+	github.com/olivere/elastic/v7 v7.0.19
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
 	github.com/prometheus/common v0.10.0

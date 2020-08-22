@@ -48,6 +48,7 @@ func (we *WechatService) GetJsConfig(comID uint, url string) (*js.Config, error)
 	}
 	wxOfficial := we.wx.GetOfficialAccount(cfg)
 	jsConfig := wxOfficial.GetJs()
+
 	glog.Infof("GetJsConfig Url: %s", url)
 	config, err := jsConfig.GetConfig(url)
 	if err != nil {

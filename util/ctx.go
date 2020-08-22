@@ -1,12 +1,12 @@
 package echoapp_util
 
 import (
-	"strconv"
-
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"strconv"
+	"strings"
 )
 
 type ctxLogger struct {
@@ -237,4 +237,15 @@ func ExtractEntry(ctx echo.Context) *logrus.Entry {
 		fields[ctxRequestIdKey] = requestId
 	}
 	return l.logger.WithFields(fields)
+}
+
+// 选择一个最合适的静态资源前缀 如果是内网访问直接走内网地址 ,如果是外网访问直接走线上的环境
+func GetOptimalPublicHost(ctx echo.Context, asset echoapp.Asset) string {
+	ip := ctx.RealIP()
+	for _, ipPrefix := range asset.InnerIpPrefix {
+		if strings.HasPrefix(ip, ipPrefix) {
+			return asset.PublicHostInner
+		}
+	}
+	return asset.PublicHost
 }

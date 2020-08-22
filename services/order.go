@@ -248,7 +248,7 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 		totalGoodsAmount  float32 = 0
 	)
 	for _, goods := range order.GoodsList {
-		totalGoodsAmount += goods.RealPrice
+		totalGoodsAmount += goods.RealPrice * float32(goods.Num)
 	}
 	glog.JsonLogger().Info("校验优惠券")
 	for _, coupon := range order.Coupons {
@@ -270,9 +270,9 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 		}
 		totalCouponAmount += realCoupon.Amount
 	}
-
-	if totalGoodsAmount-totalCouponAmount != order.RealTotal {
-		glog.JsonLogger().Info("订单金额校验失败")
+	realTotal := totalGoodsAmount - totalCouponAmount
+	if realTotal != order.RealTotal {
+		glog.JsonLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
 		return errors.New("订单金额校验失败")
 	}
 

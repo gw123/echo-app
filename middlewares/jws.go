@@ -1,6 +1,7 @@
 package echoapp_middlewares
 
 import (
+	"github.com/gw123/glog"
 	"net/http"
 
 	"github.com/gw123/echo-app/components"
@@ -33,6 +34,12 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			}
 
 			token := c.QueryParam("token")
+			tokenCookie, err := c.Cookie("token")
+			if err == nil {
+				token = tokenCookie.Value
+				glog.Info("read token from Cookie: " + token)
+			}
+
 			auth := req.Header.Get(echo.HeaderAuthorization)
 			if token == "" && len(auth) == 0 && opt.IgnoreAuth {
 				return next(c)

@@ -9,6 +9,7 @@ import (
 	"github.com/silenceper/wechat/v2/officialaccount/message"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type SiteController struct {
@@ -16,14 +17,20 @@ type SiteController struct {
 	comSvr echoapp.CompanyService
 	wxSvr  echoapp.WechatService
 	echoapp.BaseController
+	asset          echoapp.Asset
 	indexCachePage []byte
 }
 
-func NewSiteController(comSvr echoapp.CompanyService, actSvr echoapp.ActivityService, svr echoapp.WechatService) *SiteController {
+func NewSiteController(comSvr echoapp.CompanyService,
+	actSvr echoapp.ActivityService,
+	svr echoapp.WechatService,
+	asset echoapp.Asset,
+) *SiteController {
 	return &SiteController{
 		comSvr: comSvr,
 		actSvr: actSvr,
 		wxSvr:  svr,
+		asset:  asset,
 	}
 }
 
@@ -96,49 +103,13 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 func (sCtl *SiteController) Index(ctx echo.Context) error {
 	//echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
 	comID := echoapp_util.GetCtxComId(ctx)
-
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
+	response["assetHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.asset)
 	if clientType == echoapp.ClientWxOfficial {
 		req := ctx.Request()
-		url := fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
-		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
-		if err != nil {
-			echoapp_util.ExtractEntry(ctx).WithError(err)
-		} else {
-			response["wxCfg"] = jsConfig
-		}
-	}
-	return ctx.Render(http.StatusOK, "index", response)
-}
-
-func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
-	comID := echoapp_util.GetCtxComId(ctx)
-	user, err := echoapp_util.GetCtxtUser(ctx)
-	if err != nil {
-		return ctx.HTML(502, "授权失败")
-	}
-	data := make(map[string]interface{})
-	data["userToken"] = user.JwsToken
-	data["nickname"] = user.Nickname
-	data["avatar"] = user.Avatar
-	data["sex"] = user.Sex
-	data["roles"] = user.Roles
-	data["id"] = user.Id
-	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
-	response := make(map[string]interface{})
-	response["clientType"] = clientType
-	response["user"] = data
-	//response["assetHost"] = "http://192.168.187.1:8889"
-	response["assetHost"] = "http://m.xytschool.com/dev/public"
-	if clientType == echoapp.ClientWxOfficial {
-		req := ctx.Request()
-		url := ""
-		//if req.URL.Scheme == "" {
-		//
-		//}
-		//todo
+		var url string
 		if req.URL.RawQuery != "" {
 			url = fmt.Sprintf("%s://%s%s?%s", "http", req.Host, req.URL.Path, req.URL.RawQuery)
 		} else {
@@ -146,12 +117,38 @@ func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
 		}
 		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 		if err != nil {
-			echoapp_util.ExtractEntry(ctx).WithError(err)
+			echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
 		} else {
 			response["wxCfg"] = jsConfig
 		}
+
+		user, err := echoapp_util.GetCtxtUser(ctx)
+		if err == nil {
+			data := make(map[string]interface{})
+			data["userToken"] = user.JwsToken
+			data["nickname"] = user.Nickname
+			data["avatar"] = user.Avatar
+			data["sex"] = user.Sex
+			data["roles"] = user.Roles
+			data["id"] = user.Id
+			response["user"] = data
+		}
 	}
 	return ctx.Render(http.StatusOK, "index", response)
+}
+
+//todo 这里有302无限循环的风险
+func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return ctx.HTML(502, "授权失败")
+	}
+	ctx.SetCookie(&http.Cookie{
+		Name:    "token",
+		Value:   user.JwsToken,
+		Expires: time.Now().Add(time.Hour * 24 * 30),
+	})
+	return ctx.Render(http.StatusOK, "callback", nil)
 }
 
 func (sCtl *SiteController) WxMessage(ctx echo.Context) error {

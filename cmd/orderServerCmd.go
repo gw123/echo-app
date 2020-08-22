@@ -69,6 +69,7 @@ func startOrderServer() {
 	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
 	//微信支付回调
 	normal.POST("/wxPayCallback", orderCtl.WxPayCallback)
+	//微信退款回调
 	normal.POST("/wxRefundCallback", orderCtl.WxRefundCallback)
 	jwsAuth := e.Group("/" + mode + "/order/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
@@ -82,9 +83,9 @@ func startOrderServer() {
 	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
 	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
 	jwsAuth.POST("/queryOrder", orderCtl.QueryOrder)
-	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
 	jwsAuth.POST("/refund", orderCtl.Refund)
 	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
+	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
 
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)

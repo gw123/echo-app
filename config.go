@@ -35,7 +35,16 @@ type ConfigOptions struct {
 	RecommendOptions  *RecommendOptions             `yaml:"recommend_options" mapstructure:"recommend_options"`
 	ApiVersion        string                        `yaml:"api_version" mapstructure:"api_version"`
 	Wechat            *Wechat                       `yaml:"wechat" mapstructure:"wechat"`
+	Es                *EsOptions                    `yaml:"es" mapstructure:"es"`
 	Redis             *redis.Options
+}
+
+type EsOptions struct {
+	Scheme   string   `yaml:"scheme" mapstructure:"scheme"`
+	Username string   `yaml:"username" mapstructure:"username"`
+	Password string   `yaml:"password" mapstructure:"password"`
+	Sniff    bool     `yaml:"sniff" mapstructure:"sniff"`
+	URLs     []string `yaml:"urls" mapstructure:"urls"`
 }
 
 type RecommendOptions struct {
@@ -75,13 +84,15 @@ type JwsHelperOpt struct {
 }
 
 type Asset struct {
-	PublicRoot   string `yaml:"public_root" mapstructure:"public_root"`
-	ResourceRoot string `yaml:"resource_root" mapstructure:"resource_root"`
-	StorageRoot  string `yaml:"storage_root" mapstructure:"storage_root"`
-	AreaRoot     string `yaml:"area_root" mapstructure:"area_root"`
-	ViewRoot     string `yaml:"view_root" mapstructure:"view_root"`
-	Version      string `yaml:"version" mapstructure:"version"`
-	PublicHost   string `yaml:"public_host" mapstructure:"public_host"`
+	PublicRoot      string   `yaml:"public_root" mapstructure:"public_root"`
+	ResourceRoot    string   `yaml:"resource_root" mapstructure:"resource_root"`
+	StorageRoot     string   `yaml:"storage_root" mapstructure:"storage_root"`
+	AreaRoot        string   `yaml:"area_root" mapstructure:"area_root"`
+	ViewRoot        string   `yaml:"view_root" mapstructure:"view_root"`
+	Version         string   `yaml:"version" mapstructure:"version"`
+	PublicHost      string   `yaml:"public_host" mapstructure:"public_host"`
+	InnerIpPrefix   []string `yaml:"inner_ip_prefix" mapstructure:"inner_ip_prefix"`
+	PublicHostInner string   `yaml:"public_host_inner" mapstructure:"public_host_inner"`
 }
 
 type SmsOption struct {
