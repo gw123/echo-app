@@ -56,6 +56,7 @@ func startSiteServer() {
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	comSvr := app.MustGetCompanyService()
 	actSvr := app.MustGetActivityService()
+	siteSvr := app.MustGetSiteService()
 	userSvr := app.MustGetUserService()
 	companyCtl := controllers.NewCompanyController(comSvr)
 	mode := echoapp.ConfigOpts.ApiVersion
@@ -72,7 +73,7 @@ func startSiteServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	siteCtl := controllers.NewSiteController(comSvr, actSvr, wechatSvr, echoapp.ConfigOpts.Asset)
+	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, echoapp.ConfigOpts.Asset)
 	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
@@ -121,4 +122,3 @@ var siteServerCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(siteServerCmd)
 }
-

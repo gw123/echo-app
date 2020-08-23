@@ -63,31 +63,6 @@ func (gSvr *GoodsService) GetGoodsTags(comID uint) ([]*echoapp.GoodsTag, error) 
 	return goodsTags, nil
 }
 
-func (gSvr *GoodsService) GetIndexBanner(comId int) ([]*echoapp.BannerBrief, error) {
-	banners := []*echoapp.BannerBrief{}
-	if err := gSvr.db.Where("com_id = ? and status ='online'", comId).Find(&banners).Error; err != nil {
-		return nil, errors.Wrap(err, "getIndexBanner")
-	}
-	return banners, nil
-}
-
-func (gSvr *GoodsService) GetActivityById(id int) (*echoapp.Banner, error) {
-	banner := echoapp.Banner{}
-	if err := gSvr.db.Where("id = ?", id).Find(&banner).Error; err != nil {
-		return nil, errors.Wrap(err, "getIndexBanner")
-	}
-	return &banner, nil
-}
-
-func (gSvr *GoodsService) AddActivityPv(activityId int) error {
-	banner := echoapp.Banner{}
-	if err := gSvr.db.Model(&banner).Where("id = ?", activityId).
-		Update("set visit=visit+1").Error; err != nil {
-		return errors.Wrap(err, "getIndexBanner")
-	}
-	return nil
-}
-
 func (gSvr *GoodsService) AddGoodsPv(goodsId int) error {
 	glog.Infof("AddGoodsPv %d", goodsId)
 	goods := echoapp.Goods{}

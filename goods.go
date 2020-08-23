@@ -101,6 +101,7 @@ type Goods struct {
 	SkuLabels    []*GoodsLabel `json:"sku_labels" gorm:"column:-"`
 	Body         string        `json:"body"`
 	Infos        string        `json:"infos"`
+	Service      string        `json:"service"`
 }
 
 func (goods *Goods) AfterFind() error {

@@ -13,9 +13,10 @@ import (
 )
 
 type SiteController struct {
-	actSvr echoapp.ActivityService
-	comSvr echoapp.CompanyService
-	wxSvr  echoapp.WechatService
+	actSvr    echoapp.ActivityService
+	bannerSvr echoapp.SiteService
+	comSvr    echoapp.CompanyService
+	wxSvr     echoapp.WechatService
 	echoapp.BaseController
 	asset          echoapp.Asset
 	indexCachePage []byte
@@ -23,14 +24,16 @@ type SiteController struct {
 
 func NewSiteController(comSvr echoapp.CompanyService,
 	actSvr echoapp.ActivityService,
+	bannerSvr echoapp.SiteService,
 	svr echoapp.WechatService,
 	asset echoapp.Asset,
 ) *SiteController {
 	return &SiteController{
-		comSvr: comSvr,
-		actSvr: actSvr,
-		wxSvr:  svr,
-		asset:  asset,
+		comSvr:    comSvr,
+		actSvr:    actSvr,
+		bannerSvr: bannerSvr,
+		wxSvr:     svr,
+		asset:     asset,
 	}
 }
 
@@ -39,7 +42,7 @@ func (sCtl *SiteController) GetNotifyList(ctx echo.Context) error {
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	notifyList, err := sCtl.actSvr.GetNotifyList(company.Id, 0, 6)
+	notifyList, err := sCtl.bannerSvr.GetNotifyList(company.Id, 0, 6)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
@@ -51,7 +54,7 @@ func (sCtl *SiteController) GetNotifyDetail(ctx echo.Context) error {
 	if id <= 0 {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", echoapp.ErrArgument)
 	}
-	notify, err := sCtl.actSvr.GetNotifyDetail(id)
+	notify, err := sCtl.bannerSvr.GetNotifyDetail(id)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
@@ -61,7 +64,7 @@ func (sCtl *SiteController) GetNotifyDetail(ctx echo.Context) error {
 func (sCtl *SiteController) GetBannerList(ctx echo.Context) error {
 	position := ctx.QueryParam("position")
 	comId := echoapp_util.GetCtxComId(ctx)
-	banner, err := sCtl.actSvr.GetBannerList(comId, position, 8)
+	banner, err := sCtl.bannerSvr.GetBannerList(comId, position, 8)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}

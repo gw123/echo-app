@@ -32,7 +32,7 @@ func (aSvr ActivityService) GetActivityList(comId uint, lastId uint, limit int) 
 		limit = 6
 	}
 	var activityList []*echoapp.Activity
-	if err := aSvr.db.Where("com_id = ? and status ='online'", comId).
+	if err := aSvr.db.Where("com_id = ? and status ='publish'", comId).
 		Where("id < ?", lastId).
 		Limit(limit).Find(&activityList).Error; err != nil {
 		return nil, errors.Wrap(err, "getIndexBanner")
@@ -42,7 +42,7 @@ func (aSvr ActivityService) GetActivityList(comId uint, lastId uint, limit int) 
 
 func (aSvr ActivityService) GetActivityDetail(id uint) (*echoapp.Activity, error) {
 	var activity echoapp.Activity
-	if err := aSvr.db.Where("id = ? and status ='online'", id).First(&activity).Error; err != nil {
+	if err := aSvr.db.Where("id = ? and status ='publish'", id).First(&activity).Error; err != nil {
 		return nil, errors.Wrap(err, "getActivityDetail")
 	}
 	return &activity, nil
@@ -58,7 +58,7 @@ func (aSvr ActivityService) GetBannerList(comId uint, position string, limit int
 	var bannerList []*echoapp.Banner
 	var banners []*echoapp.BannerBrief
 
-	if err := aSvr.db.Where("com_id = ? and status ='online'", comId).
+	if err := aSvr.db.Where("com_id = ? and status ='publish'", comId).
 		Where("type in ('goods','activity')").
 		Where("position = ?", position).
 		Limit(limit).Find(&bannerList).Error; err != nil {
@@ -120,6 +120,31 @@ func (aSvr ActivityService) GetIndexBanner(comId uint) ([]*echoapp.BannerBrief, 
 
 func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 	panic("implement me")
+}
+
+//获取商品详情页 某个商品的关联活动
+func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+	var activity echoapp.Activity
+	var err error
+	//优先获取单独给这个商品配置的活动
+	err = aSvr.db.Where("com_id = ? and goods_id = ? and status ='publish'", comId, goodsId).
+		First(&activity).Error
+	if err != nil && !gorm.IsRecordNotFoundError(err) {
+		return nil, errors.Wrap(err, "GetGoodsActivity")
+	}
+
+	if gorm.IsRecordNotFoundError(err) {
+		//获取一个全局的 商品位置的活动
+		err = aSvr.db.Where("com_id = ? and position = 'goods' and status ='publish'", comId).
+			First(&activity).Error
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, "GetGoodsActivity")
+		}
+	}
+	return &activity, nil
 }
 
 func (aSvr ActivityService) GetNotifyDetail(id int) (*echoapp.Notify, error) {

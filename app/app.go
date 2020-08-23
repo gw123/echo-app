@@ -30,6 +30,7 @@ type EchoApp struct {
 	TestpaperSvr    echoapp.TestpaperService
 	WechatService   echoapp.WechatService
 	TicketService   echoapp.TicketService
+	SiteSvr     echoapp.SiteService
 }
 
 func init() {
@@ -339,6 +340,31 @@ func GetActivityService() (echoapp.ActivityService, error) {
 
 func MustGetActivityService() echoapp.ActivityService {
 	svr, err := GetActivityService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
+func GetSiteService() (echoapp.SiteService, error) {
+	if App.SiteSvr != nil {
+		return App.SiteSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	lock := MustGetRedLock("")
+	App.SiteSvr = services.NewSiteService(shopDb, redis, lock)
+	return App.SiteSvr, nil
+}
+
+func MustGetSiteService() echoapp.SiteService {
+	svr, err := GetSiteService()
 	if err != nil {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}

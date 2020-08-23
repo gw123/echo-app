@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-func FormatBannerListRedisKey(comId uint, position string) string {
-	return fmt.Sprintf(RedisBannerListKey, comId, position)
-}
-
 func FormatActivityRedisKey(id uint) string {
 	return fmt.Sprintf(RedisActivityKey, id)
 }
@@ -31,38 +27,6 @@ func (a *Activity) TableName() string {
 	return "activies"
 }
 
-type Notify struct {
-	Id        int       `json:"id"`
-	Title     string    `json:"title"`
-	Body      string    `json:"body"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
-func (Notify *Notify) TableName() string {
-	return "activies"
-}
-
-type Banner struct {
-	BannerBrief
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `sql:"index"`
-	Title     string     `json:"title"`
-	Visit     int        `json:"visit"`
-	EndAt     time.Time  `json:"end_at"`
-	GoodsId   int        `json:"goods_id"`
-	ComId     uint       `json:"com_id"`
-}
-
-func (b *Banner) AfterFind() error {
-	if b.Type == "goods" {
-		b.Href = fmt.Sprintf("/pages/product/product?id=%d&com_id=%d", b.GoodsId, b.ComId)
-	} else if b.Type == "activity" {
-		b.Href = fmt.Sprintf("/pages/activity/detail?id=%d&com_id=%d", b.Id, b.ComId)
-	}
-	return nil
-}
-
 //活动优惠券
 type ActivityCoupon struct {
 	Id         uint `gorm:"primary_key" json:"id"`
@@ -75,33 +39,11 @@ func (*ActivityCoupon) TableName() string {
 	return "activity_coupons"
 }
 
-
-
 func (*UserCoupon) TableName() string {
 	return "user_coupons"
 }
 
-type BannerBrief struct {
-	Id    uint   `gorm:"primary_key" json:"id"`
-	Cover string `json:"cover"`
-	Href  string `json:"href"`
-	Type  string `json:"type"`
-	//背景颜色
-	Background string `json:"background"`
-}
-
-func (*BannerBrief) TableName() string {
-	return "activies"
-}
-
 type ActivityService interface {
-	GetNotifyList(comId uint, lastId, limit int) ([]*Notify, error)
-	GetNotifyDetail(id int) (*Notify, error)
-	//
-	GetBannerList(comId uint, position string, limit int) ([]*BannerBrief, error)
-	UpdateCachedBannerList(comId uint, position string) error
-	GetCachedBannerList(comId uint, position string) ([]*BannerBrief, error)
-	GetIndexBanner(comId uint) ([]*BannerBrief, error)
 	//GetActivityById(id int) (*Banner, error)
 	AddActivityPv(goodsId uint) error
 	GetActivityList(comId uint, lastId uint, limit int) ([]*Activity, error)
@@ -125,4 +67,6 @@ type ActivityService interface {
 	CreateUserCoupon(comId uint, userId uint, couponId uint) error
 	UpdateCachedCouponsByComId(comId uint, lastId uint) ([]*Coupon, error)
 	GetUserCouponById(comId, userId, couponId uint) (*Coupon, error)
+	//获取商品页面关联商品的一个活动
+	GetGoodsActivity(comID uint, goodsID uint) (*Activity, error)
 }
