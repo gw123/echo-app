@@ -100,6 +100,7 @@ func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
 		return "", errors.Wrap(err, "WxLogin 获取com失败")
 	}
 	url = fmt.Sprintf("%s/%d/wxAuthCallBack", we.authRedirectUrl, comId)
+	glog.Info("rawUrl:" + url)
 	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "")
 	return
 }

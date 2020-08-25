@@ -70,7 +70,7 @@ func SetCtxUserId(ctx echo.Context, userId int64) {
 
 func GetCtxtUserId(ctx echo.Context) (int64, error) {
 	userId, ok := ctx.Get(ctxUserIdKey).(int64)
-	if !ok {
+	if !ok || userId == 0 {
 		return 0, errors.New("get ctxUserId flied")
 	}
 	return userId, nil
@@ -244,6 +244,7 @@ func GetOptimalPublicHost(ctx echo.Context, asset echoapp.Asset) string {
 	ip := ctx.RealIP()
 	for _, ipPrefix := range asset.InnerIpPrefix {
 		if strings.HasPrefix(ip, ipPrefix) {
+			ExtractEntry(ctx).Info("内网请求 使用内网地址加速")
 			return asset.PublicHostInner
 		}
 	}

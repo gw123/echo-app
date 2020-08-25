@@ -23,23 +23,23 @@ type LoginParam struct {
 }
 
 type User struct {
-	Id         int64      `json:"id"`
-	ComId      uint       `json:"com_id"`
-	Name       string     `json:"name"`
-	Nickname   string     `json:"nickname"`
-	Avatar     string     `json:"avatar"`
-	Sex        string     `json:"sex"`
-	City       string     `json:"city"`
-	Email      string     `json:"email"`
-	Mobile     string     `json:"mobile"`
-	Score      int        `json:"score"`
-	Password   string     `gorm:"column:password" json:"-"`
-	MiniOpenid string     `gorm:"xcx_openid" json:"mini_openid"`
+	Id       int64  `json:"id"`
+	ComId    uint   `json:"com_id"`
+	Name     string `json:"name"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+	Sex      string `json:"sex"`
+	City     string `json:"city"`
+	Email    string `json:"email"`
+	Mobile   string `json:"mobile"`
+	Score    int    `json:"score"`
+	Password string `gorm:"column:password" json:"-"`
+	//MiniOpenid string     `gorm:"xcx_openid" json:"mini_openid"`
 	Openid     string     `gorm:"openid" json:"openid"`
 	Unionid    string     `gorm:"unionid" json:"unionid"`
 	IsStaff    bool       `json:"is_staff"`
 	VipLevel   int16      `json:"vip_level"`
-	JwsToken   string     `gorm:"-" json:"jws_token"`
+	JwsToken   string     `gorm:"jws_token" json:"jws_token"`
 	SessionKey string     `gorm:"session_key" json:"-"`
 	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
 	Address    []*Address `json:"address" gorm :"ForeignKey:UserID" `

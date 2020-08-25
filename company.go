@@ -32,7 +32,7 @@ type Nav struct {
 	Id    int    `json:"id"`
 	Name  string `json:"name"`
 	Icon  string `json:"icon"`
-	Link  string `json:"href"`
+	Href  string `json:"href"`
 	Type  string `json:"type"`
 	RefId string `json:"ref_id"`
 }

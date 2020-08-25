@@ -5,10 +5,12 @@ import (
 	"fmt"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func NewWechatAuthMiddlewares(
@@ -22,22 +24,40 @@ func NewWechatAuthMiddlewares(
 			if skipper(c) {
 				return next(c)
 			}
-
 			clientType := echoapp_util.GetClientTypeByUA(c.Request().UserAgent())
 
+			//echoapp_util.ExtractEntry(c).Info("Client Type:" + clientType)
 			if clientType != echoapp.ClientWxOfficial {
 				return next(c)
 			}
 
-			_, err := echoapp_util.GetCtxtUserId(c)
-			if err == nil {
-				return next(c)
+			userId, err := echoapp_util.GetCtxtUserId(c)
+			//echoapp_util.ExtractEntry(c).Infof("User err: %+v, user: %+v", err, userId)
+			if err == nil && userId != 0 {
+				// 如果用户已经登陆的逻辑
+				// 补偿机制当没有调用user中间件时候 主动获取用户
+				user, err := echoapp_util.GetCtxtUser(c)
+				if err == nil {
+					return next(c)
+				} else {
+					if user, err = userSvr.GetUserById(userId); err == nil {
+						echoapp_util.SetCtxUser(c, user)
+						return next(c)
+					} else {
+						echoapp_util.ExtractEntry(c).WithError(err).Errorf("获取用户信息失败UserId:%d", userId)
+					}
+				}
 			}
 
 			comId := echoapp_util.GetCtxComId(c)
-			//glog.Info(c.Request().URL.Path)
 			//授权回调处理
-			path := fmt.Sprintf("/index-dev/%d/wxAuthCallBack", comId)
+			var path string
+			if strings.HasPrefix(c.Request().URL.Path, "/index-dev") {
+				path = fmt.Sprintf("/index-dev/%d/wxAuthCallBack", comId)
+			} else {
+				path = fmt.Sprintf("/index/%d/wxAuthCallBack", comId)
+			}
+
 			if c.Request().URL.Path == path {
 				queryValues, err := url.ParseQuery(c.Request().URL.RawQuery)
 				if err != nil {
@@ -81,19 +101,16 @@ func NewWechatAuthMiddlewares(
 					//return c.Redirect(http.StatusMovedPermanently, strings.Replace(path, "/wxAuthCallBack", token, -1))
 				}
 				return next(c)
-			}
-
-			_, err = echoapp_util.GetCtxtUserId(c)
-			if err != nil {
+			} else {
 				//如果authtoken不存在或者校验失败， 认为用户未登录跳转到微信授权登录
 				authUrl, err := wechat.GetAuthCodeUrl(comId)
+				glog.Info(authUrl)
 				if err != nil {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
 					return c.String(http.StatusInternalServerError, "系统错误请重试")
 				}
 				return c.Redirect(http.StatusFound, authUrl)
 			}
-			return next(c)
 		}
 	}
 }

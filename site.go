@@ -25,16 +25,16 @@ type BannerBrief struct {
 	Cover      string `json:"cover"`
 	Href       string `json:"href"`
 	Type       string `json:"type"`
-	GoodsId    int    `json:"-"`
+	TargetId   int    `json:"-"`
 	ComId      uint   `json:"-"`
 	Background string `json:"background"` //背景颜色
 }
 
 func (b *BannerBrief) AfterFind() error {
 	if b.Type == "goods" {
-		b.Href = fmt.Sprintf("/pages/product/product?id=%d&com_id=%d", b.GoodsId, b.ComId)
+		b.Href = fmt.Sprintf("/pages/product/product?id=%d&com_id=%d", b.TargetId, b.ComId)
 	} else if b.Type == "activity" {
-		b.Href = fmt.Sprintf("/pages/activity/detail?id=%d&com_id=%d", b.Id, b.ComId)
+		b.Href = fmt.Sprintf("/pages/activity/detail?id=%d&com_id=%d", b.TargetId, b.ComId)
 	}
 	return nil
 }

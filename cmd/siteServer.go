@@ -74,8 +74,9 @@ func startSiteServer() {
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, echoapp.ConfigOpts.Asset)
-	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
-	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
+	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle,  weChatMiddle)
+	e.GET("/index/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle,  weChatMiddle)
 	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
 
 	normal := e.Group("/" + mode + "/site/:com_id")

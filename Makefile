@@ -11,36 +11,44 @@ ifeq "$(BUILD_TAG)" ""
 	BUILD_TAG = $(DEFAULT_BUILD_TAG)
 endif
 
+upload-all: upload-user upload-file upload-comment upload-goods upload-order upload-site
+
 upload-user:
-	@scp -r resources/views/ root@sh2:/data/apps/user/resources/views &&\
+	@scp  config.prod.yaml root@sh2:/data/apps/user/config.yaml\ &&\
+	 scp  upload  util/scripes/user.sh root@sh2:/data/apps/user\ &&\
      scp  upload util/scripes/user.sh root@sh2:/data/apps/user/
-     #scp -r resources/public root@sh2:/data/apps/user/resources/public &&\
-     #scp -r resources/storage/keys/  root@sh2:/data/apps/user/resources/storage
-upload-user-config:
-	scp  config.prod.yaml root@sh2:/data/apps/user/
 
 upload-file: file-dir
-	@scp  config.prod.yaml upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
+	@scp  config.prod.yaml root@sh2:/data/apps/file/config.yaml\ &&\
+	 scp  upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/file/resources/storage
 
 upload-order: order-dir
-	@scp  config.prod.yaml upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
+	@scp  config.prod.yaml root@sh2:/data/apps/order/config.yaml\ &&\
+	 scp upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/order/resources/storage
 
 upload-comment: comment-dir
-	@scp  config.prod.yaml upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
+	@scp  config.prod.yaml root@sh2:/data/apps/comment/config.yaml\ &&\
+	 scp upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
 upload-site: site-dir
-	@scp  config.prod.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage
+	@scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
+	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
+     scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
+     scp -r resources/views/ root@sh2:/data/apps/site/resources/views
 
 upload-goods: goods-dir
-	@scp  config.prod.yaml upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
+	@scp  config.prod.yaml root@sh2:/data/apps/goods/config.yaml\ &&\
+	 scp upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/goods/resources/storage
 
 restart:
-	ssh root@sh2 supervisorctl restart user
+	ssh root@sh2 supervisorctl reload
+
+upload-user-config:
+	scp  config.prod.yaml root@sh2:/data/apps/user/
 
 file-dir:
 	ssh root@sh2 mkdir -p /data/apps/file

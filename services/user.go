@@ -345,24 +345,29 @@ func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.U
 		return nil, errors.Wrap(err, "Marshal")
 	}
 
-	//用户存在更新jwstoken
 	user, err = u.GetUserByOpenId(newUser.ComId, newUser.Openid)
 	if err == nil {
+		//用户存在更新jwstoken
 		glog.Infof("用户已经存在 %+v", user)
 		user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
-		u.UpdateCachedUser(user)
-		return user, nil
-	}
-
-	//用户不存在创建新的用户
-	if err == gorm.ErrRecordNotFound {
-		if err := u.Save(newUser); err != nil {
+		if err != nil {
+			return nil, errors.Wrap(err, "createToken")
+		}
+		if err := u.Save(user); err != nil {
 			return nil, errors.Wrap(err, "save newUser")
 		}
+		u.UpdateCachedUser(user)
+		return user, nil
+	} else if err == gorm.ErrRecordNotFound {
+		//用户不存在创建新的用户
 		newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
 		if err != nil {
 			return nil, errors.Wrap(err, "createToken")
 		}
+		if err := u.Save(newUser); err != nil {
+			return nil, errors.Wrap(err, "save newUser")
+		}
+
 		u.UpdateCachedUser(newUser)
 		return newUser, nil
 	}
@@ -838,5 +843,3 @@ func (u *UserService) GetUserIdByUserCode(code string) (int64, error) {
 
 	return userId, nil
 }
-
-
