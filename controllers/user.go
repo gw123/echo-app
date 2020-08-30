@@ -10,20 +10,28 @@ import (
 	"github.com/labstack/echo"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 type UserController struct {
 	userSvr echoapp.UserService
 	smsSvr  echoapp.SmsService
 	goodSvr echoapp.GoodsService
+	wechat  echoapp.WechatService
 	echoapp.BaseController
 }
 
-func NewUserController(usrSvr echoapp.UserService, goodsSvr echoapp.GoodsService, smsSvr echoapp.SmsService) *UserController {
+func NewUserController(
+	usrSvr echoapp.UserService,
+	goodsSvr echoapp.GoodsService,
+	smsSvr echoapp.SmsService,
+	wechat echoapp.WechatService,
+) *UserController {
 	return &UserController{
 		userSvr: usrSvr,
 		goodSvr: goodsSvr,
 		smsSvr:  smsSvr,
+		wechat:  wechat,
 	}
 }
 
@@ -45,6 +53,7 @@ func (sCtl *UserController) AddUserScore(ctx echo.Context) error {
 		}
 	}
 	sCtl.userSvr.AddScore(ctx, user, params.Score)
+	ctx.Request()
 	return sCtl.Success(ctx, nil)
 }
 
@@ -57,7 +66,7 @@ func (sCtl *UserController) Login(ctx echo.Context) error {
 	var err error
 	user, err = sCtl.userSvr.Login(ctx, param)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败," + err.Error(), err)
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "登录失败,"+err.Error(), err)
 	}
 	return sCtl.Success(ctx, user)
 }
@@ -88,7 +97,7 @@ func (sCtl *UserController) SendVerifyCodeSms(ctx echo.Context) error {
 	comID := util.GetCtxComId(ctx)
 	code := rand.Int31n(900000) + 100000
 	if err := sCtl.smsSvr.SendVerifyCodeSms(comID, params.Mobile, strconv.Itoa(int(code))); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeInnerError, "发送失败," + err.Error(), err)
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "发送失败,"+err.Error(), err)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -468,4 +477,24 @@ func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
 	collectionMap["Type"] = targetType
 	collectionMap["target"] = goodslist
 	return sCtl.Success(ctx, collectionMap)
+}
+
+func (sCtl *UserController) GetUserCode(ctx echo.Context) error {
+	//comId := echoapp_util.GetCtxComId(ctx)
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	var code string
+	code, err = sCtl.userSvr.GetUserCodeAndUpdate(user)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取用户码失败", err)
+	}
+	expireAt := time.Now().Add(time.Second * 30)
+
+	//前端需要判断30秒后在去请求获取一个新的码
+	return sCtl.Success(ctx, map[string]interface{}{
+		"code":      code,
+		"timestamp": expireAt.Unix(),
+	})
 }

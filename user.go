@@ -23,26 +23,28 @@ type LoginParam struct {
 }
 
 type User struct {
-	Id         int64      `json:"id"`
-	ComId      uint       `json:"com_id"`
-	Name       string     `json:"name"`
-	Nickname   string     `json:"nickname"`
-	Avatar     string     `json:"avatar"`
-	Sex        string     `json:"sex"`
-	City       string     `json:"city"`
-	Email      string     `json:"email"`
-	Mobile     string     `json:"mobile"`
-	Score      int        `json:"score"`
-	Password   string     `gorm:"column:password" json:"-"`
-	Openid     string     `gorm:"xcx_openid" json:"-"`
-	Unionid    string     `gorm:"unionid" json:"-"`
+	Id       int64  `json:"id"`
+	ComId    uint   `json:"com_id"`
+	Name     string `json:"name"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+	Sex      string `json:"sex"`
+	City     string `json:"city"`
+	Email    string `json:"email"`
+	Mobile   string `json:"mobile"`
+	Score    int    `json:"score"`
+	Password string `gorm:"column:password" json:"-"`
+	//MiniOpenid string     `gorm:"xcx_openid" json:"mini_openid"`
+	Openid     string     `gorm:"openid" json:"openid"`
+	Unionid    string     `gorm:"unionid" json:"unionid"`
 	IsStaff    bool       `json:"is_staff"`
 	VipLevel   int16      `json:"vip_level"`
-	JwsToken   string     `gorm:"-" json:"jws_token"`
+	JwsToken   string     `gorm:"jws_token" json:"jws_token"`
 	SessionKey string     `gorm:"session_key" json:"-"`
 	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
 	Address    []*Address `json:"address" gorm :"ForeignKey:UserID" `
 }
+
 type Address struct {
 	//gorm.Model
 	ID        uint      `json:"id" gorm:"primary_key"`
@@ -137,7 +139,9 @@ type UserService interface {
 	UpdateJwsToken(user *User) error
 	UpdateCachedUser(user *User) (err error)
 	Jscode2session(comId uint, code string) (*User, error)
-	AutoRegisterWxUser(user *User) (err error)
+	AutoRegisterWxUser(user *User) (u *User, err error)
+	ChangeUserJwsToken(newUser *User) (err error)
+
 	//Jscode2session(comId int, code string) (*User, error)
 	GetUserAddressList(userId int64) ([]*Address, error)
 	CreateUserAddress(address *Address) error
@@ -153,11 +157,13 @@ type UserService interface {
 	//GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
 	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
-	//History
+	// History 用户历史记录
 	UpdateCacheUserHistory(history *History) (err error)
 	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
 	GetCacheUserHistoryList(len uint) ([]string, error)
 	CreateUserHistory(history *History) error
 	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
 	GetUserByMobile(id uint, mobile string) (*User, error)
+	GetUserCodeAndUpdate(user *User) (string, error)
+	GetUserIdByUserCode(code string) (int64, error)
 }

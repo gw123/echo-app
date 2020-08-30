@@ -7,6 +7,7 @@ import (
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
 	"github.com/jinzhu/gorm"
+	es7 "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
 )
 
@@ -27,6 +28,9 @@ type EchoApp struct {
 	ActivitySvr     echoapp.ActivityService
 	WsSvr           echoapp.WsService
 	TestpaperSvr    echoapp.TestpaperService
+	WechatService   echoapp.WechatService
+	TicketService   echoapp.TicketService
+	SiteSvr     echoapp.SiteService
 }
 
 func init() {
@@ -152,7 +156,7 @@ func GetUserService() (echoapp.UserService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetJws")
 	}
-	App.UserSvr = services.NewUserService(userDb, redis, jws)
+	App.UserSvr = services.NewUserService(userDb, redis, jws, echoapp.ConfigOpts.Jws.HashIdsSalt)
 	return App.UserSvr, nil
 }
 
@@ -182,7 +186,12 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
 
-	App.GoodsSvr = services.NewGoodsService(goodsDb, redis)
+	//es, err := GetEs()
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "GetEs")
+	//}
+
+	App.GoodsSvr = services.NewGoodsService(goodsDb, redis, nil)
 	return App.GoodsSvr, nil
 }
 
@@ -242,6 +251,7 @@ func MustGetResourceService() echoapp.ResourceService {
 	}
 	return resource
 }
+
 func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
@@ -250,10 +260,6 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "GetRedis")
-	// }
 	App.CommentSvr = services.NewCommentService(commentDb)
 	return App.CommentSvr, nil
 }
@@ -264,6 +270,26 @@ func MustGetCommentService() echoapp.CommentService {
 		panic(errors.Wrap(err, "GetCommentSvr"))
 	}
 	return comment
+}
+
+func GetTicketService() (echoapp.TicketService, error) {
+	if App.TicketService != nil {
+		return App.TicketService, nil
+	}
+	orderDb, err := GetDb("goods")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	App.TicketService = services.NewTicketService(orderDb)
+	return App.TicketService, nil
+}
+
+func MustGetTicketService() echoapp.TicketService {
+	tkSvr, err := GetTicketService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetCommentSvr"))
+	}
+	return tkSvr
 }
 
 func GetOrderService() (echoapp.OrderService, error) {
@@ -281,7 +307,9 @@ func GetOrderService() (echoapp.OrderService, error) {
 
 	goodsSvr := MustGetGoodsService()
 	actSvr := MustGetActivityService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr)
+	wechatSvr := MustGetWechatService()
+	ticketSvr := MustGetTicketService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr)
 	return App.OrderSvr, nil
 }
 
@@ -317,6 +345,54 @@ func MustGetActivityService() echoapp.ActivityService {
 	}
 	return svr
 }
+
+func GetSiteService() (echoapp.SiteService, error) {
+	if App.SiteSvr != nil {
+		return App.SiteSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	lock := MustGetRedLock("")
+	App.SiteSvr = services.NewSiteService(shopDb, redis, lock)
+	return App.SiteSvr, nil
+}
+
+func MustGetSiteService() echoapp.SiteService {
+	svr, err := GetSiteService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
+func GetWechatService() (echoapp.WechatService, error) {
+	if App.WechatService != nil {
+		return App.WechatService, nil
+	}
+	com := MustGetCompanyService()
+	redis := MustGetRedis("")
+	App.WechatService = services.NewWechatService(
+		com,
+		echoapp.ConfigOpts.Wechat.AuthRedirectUrl,
+		echoapp.ConfigOpts.Wechat.JsHost,
+		redis)
+	return App.WechatService, nil
+}
+
+func MustGetWechatService() echoapp.WechatService {
+	svr, err := GetWechatService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
 func GetTestpaperService() (echoapp.TestpaperService, error) {
 	if App.TestpaperSvr != nil {
 		return App.TestpaperSvr, nil
@@ -340,4 +416,19 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
+}
+
+func GetEs() (*es7.Client, error) {
+	esOption := echoapp.ConfigOpts.Es
+	var clientOptions []es7.ClientOptionFunc
+	clientOptions = append(clientOptions, es7.SetURL(esOption.URLs...))
+	if esOption.Username != "" {
+		clientOptions = append(clientOptions, es7.SetBasicAuth(esOption.Username, esOption.Password))
+	}
+	if !esOption.Sniff {
+		clientOptions = append(clientOptions, es7.SetSniff(false))
+	}
+	clientOptions = append(clientOptions, es7.SetScheme("http"))
+	clientOptions = append(clientOptions, es7.SetHealthcheck(false))
+	return es7.NewClient(clientOptions...)
 }

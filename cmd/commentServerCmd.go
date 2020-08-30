@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +47,7 @@ func startCommentServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{

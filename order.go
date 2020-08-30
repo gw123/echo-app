@@ -2,10 +2,9 @@ package echoapp
 
 import (
 	"encoding/json"
+	"github.com/iGoogle-ink/gopay/wechat"
 	"time"
-
 	"github.com/gw123/glog"
-
 	"github.com/labstack/echo"
 )
 
@@ -17,6 +16,10 @@ const (
 	OrderStatusSigned    = "signed"
 	OrderStatusCancel    = "cancel"
 	OrderStatusCommented = "commented"
+
+	OrderPayStatusUnpay  = "unpay"
+	OrderPayStatusPaid   = "paid"
+	OrderPayStatusRefund = "refund"
 )
 
 type Order struct {
@@ -47,6 +50,10 @@ type Order struct {
 	TransactionId string        `json:"transaction_id"`
 	Note          string        `json:"note"`
 	Info          string        `json:"info"`
+	ClientIP      string        `json:"client_ip"`
+	ClientType    string        `json:"client_type"`
+	Tickets       []*Ticket     `json:"tickets" gorm:"-"`
+	Address       *Address      `json:"address" gorm:"-"`
 	//Score         string           `score` //积分
 }
 
@@ -137,21 +144,48 @@ func (*GoodsSalesSatistic) TableName() string {
 	return "goods_sales "
 }
 
+type UnifiedOrderResp struct {
+	wechat.UnifiedOrderResponse
+	OrderNo string `json:"order_no"`
+}
+
 type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
-	//保存上传的资源到数据库
-	PlaceOrder(order *Order) error
-	//通过资源ID查找资源
-	GetOrderById(id uint) (*Order, error)
-	GetOrderByOrderNo(orderNo string) (*Order, error)
 
-	ModifyOrder(order *Order) error
+	//
+	UniPreOrder(order *Order, user *User) (*UnifiedOrderResp, error)
+	//预下单校验订单的接口
+	PreCheckOrder(order *Order) error
+
+	//查询订单支付状态
+	QueryOrderAndUpdate(order *Order, shouldStatus string) (*Order, error)
 
 	GetUserPaymentOrder(c echo.Context, userId uint, from, limit int) ([]*Order, error)
 	//查看资源文件 ，每页有 limit 条数据
-	GetOrderList(c echo.Context, from, limit int) ([]*GetOrderOptions, error)
 	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*Order, error)
-	CancelOrder(o *Order) error
+
+	//取消订单
+	CancelOrder(order *Order) error
+	//验票
+	CheckTicket(code string, num uint, staffID uint) error
+	//通过资源ID查找资源
+	GetOrderById(id uint) (*Order, error)
+	//
+	GetOrderByOrderNo(orderNo string) (*Order, error)
+	//
+	GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+	//退款
+	Refund(order *Order, user *User) error
+
+	GetUserAddress(addrId uint) (*Address, error)
+
+	WxPayCallback(ctx echo.Context) error
+
+	WxRefundCallback(ctx echo.Context) error
+
+	QueryRefundOrderAndUpdate(order *Order) (*Order, error)
+
 	// StatisticComGoodsSalesByDate(start, end string, comId uint) (*GoodsSalesSatistic, error)
+
 	// StatisticCompanySalesByDate(start, end string) (*CompanySalesSatistic, error)
 }

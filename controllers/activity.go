@@ -121,8 +121,10 @@ func (sCtl *ActivityController) CreateUserCoupon(ctx echo.Context) error {
 	comId := echoapp_util.GetCtxComId(ctx)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+
+		return sCtl.AppErr(ctx, echoapp.AppErrNotLogin.WithInner(err))
 	}
+
 	params := &CreateUserCouponParams{}
 	if err := ctx.Bind(params); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
@@ -131,4 +133,19 @@ func (sCtl *ActivityController) CreateUserCoupon(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
 	return sCtl.Success(ctx, nil)
+}
+
+//获取商品页面关联商品的一个活动
+func (sCtl *ActivityController) GetActivityByGoodsId(ctx echo.Context) error {
+	comId := echoapp_util.GetCtxComId(ctx)
+	goodsId, err := strconv.Atoi(ctx.QueryParam("goods_id"))
+	if goodsId == 0 {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+
+	act, err := sCtl.actSvr.GetGoodsActivity(comId, uint(goodsId))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	return sCtl.Success(ctx, act)
 }

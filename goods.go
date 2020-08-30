@@ -15,6 +15,9 @@ const (
 	GoodsTypeCombine = "combine"
 	//订单中多种商品混合可能出现
 	GoodsTypeMix = "mix"
+
+	GoodsStatusPublish = "publish"
+	GoodsStatusOffline = "offline"
 )
 
 type GoodsBrief struct {
@@ -37,7 +40,8 @@ type GoodsBrief struct {
 	CoversStr   string    `json:"-" gorm:"column:covers"`
 	Covers      []string  `gorm:"-" json:"covers"`
 	Desc        string    `json:"desc"`
-	GoodsType   string    `json:"goods_type" gorm:"goods_type" `
+	//下面這樣的会影响 goods结果导致goods 为空
+	GoodsType string `json:"goods_type" gorm:"goods_type" `
 }
 
 func (g *GoodsBrief) AfterFind() error {
@@ -52,11 +56,69 @@ func (*GoodsBrief) TableName() string {
 	return "goods"
 }
 
+//子商品
+type Sku struct {
+	ID           uint              `json:"id"`
+	SkuName      string            `json:"sku_name"`
+	Price        float32           `json:"price"`
+	RealPrice    float32           `json:"real_price"`
+	Cover        string            `json:"cover"`
+	Num          uint              `json:"num"`
+	LabelCombine map[string]string `json:"label_combine"` //sku组合 通过组合确定sku j
+}
+
+//判断组合的属性和当前商品是否匹配
+func (sku *Sku) IsLabelCombine(labels map[string]string) bool {
+	var count, num = 0, len(sku.LabelCombine)
+	for key, val := range labels {
+		if skuVal, ok := sku.LabelCombine[key]; ok && val == skuVal {
+			count++
+			continue
+		} else {
+			return false
+		}
+	}
+	if num != count {
+		return false
+	}
+	return true
+}
+
+//子商品同一个属性列表, 商品展示选择属性时候使用
+type GoodsLabel struct {
+	Label   string   `json:"label"`
+	Type    string   `json:"type"`
+	Options []string `json:"options"`
+}
+
+type GoodsLabels []GoodsLabel
+
 type Goods struct {
 	GoodsBrief
-	Body      string `json:"body"`
-	Infos     string `json:"infos"`
-	GoodsType string `json:"goods_type"`
+	SkusStr      string        `gorm:"column:skus" json:"-"`
+	SkuLabelsStr string        `json:"-" gorm:"column:sku_labels"`
+	Skus         []*Sku        `gorm:"column:-" json:"skus"`
+	SkuLabels    []*GoodsLabel `json:"sku_labels" gorm:"column:-"`
+	Body         string        `json:"body"`
+	Infos        string        `json:"infos"`
+	Service      string        `json:"service"`
+}
+
+func (goods *Goods) AfterFind() error {
+	if goods.SkuLabelsStr != "" {
+		if err := json.Unmarshal([]byte(goods.SkuLabelsStr), &goods.SkuLabels)
+			err != nil {
+			glog.Error(goods.SkuLabelsStr + "skuiLabel str---" + err.Error())
+			return err
+		}
+	}
+	if goods.SkusStr != "" {
+		if err := json.Unmarshal([]byte(goods.SkusStr), &goods.Skus); err != nil {
+			glog.Error(goods.SkusStr + "---" + err.Error())
+			return err
+		}
+	}
+	return goods.GoodsBrief.AfterFind()
 }
 
 type GoodsTag struct {
@@ -69,17 +131,7 @@ type GoodsTag struct {
 	DeletedAt *time.Time `sql:"index"`
 }
 
-// type BannerBrief struct {
-// 	ID        uint       `gorm:"primary_key" json:"id"`
-// 	CreatedAt time.Time  `json:"created_at"`
-// 	UpdatedAt time.Time  `json:"updated_at"`
-// 	DeletedAt *time.Time `sql:"index"`
-// }
-
-//type Banner struct {
-//	Body string `json:"body"`
-//}
-
+// Cart
 type Cart struct {
 	gorm.Model
 	ComId      uint             `json:"com_id"`
@@ -111,16 +163,15 @@ func (c *Cart) BeforeSave() error {
 }
 
 type CartGoodsItem struct {
-	GoodsId   uint     `json:"goods_id"`
-	Name      string   `json:"name"`
-	SkuID     uint     `json:"sku_id"`
-	SkuName   string   `json:"sku_name"`
-	SkuLabel  string   `json:"sku_label"`
-	Num       uint     `json:"num"`
-	Options   []string `json:"options"`
-	Price     float32  `json:"price"`
-	RealPrice float32  `json:"real_price"`
-	Cover     string   `json:"cover"`
+	GoodsId      uint              `json:"goods_id"`
+	Name         string            `json:"name"`
+	SkuName      string            `json:"sku_name"`
+	SkuID        uint              `json:"sku_id"`
+	Num          uint              `json:"num"`
+	Price        float32           `json:"price"`
+	RealPrice    float32           `json:"real_price"`
+	Cover        string            `json:"cover"`
+	LabelCombine map[string]string `json:"label_combine"`
 }
 
 type GoodsService interface {

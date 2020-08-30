@@ -70,6 +70,9 @@ func startActivityServer() {
 	normal.POST("/createUserCoupon", actCtl.CreateUserCoupon)
 	normal.GET("/getUserCoupons", actCtl.GetUserCoupons)
 
+	//获取商品页面关联商品的一个活动
+	normal.GET("/getActivityByGoodsId", actCtl.GetActivityByGoodsId)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.ActivityServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

@@ -52,6 +52,7 @@ func RequestIDWithConfig(config ContextConfig) echo.MiddlewareFunc {
 			}
 
 			req := c.Request()
+
 			rid := req.Header.Get(echo.HeaderXRequestID)
 			if rid == "" {
 				rid = config.Generator()

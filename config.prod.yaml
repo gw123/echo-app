@@ -2,7 +2,7 @@ server:
   addr: "0.0.0.0:8082"
   mode: development
 
-api_version: dev
+api_version: v1
 user_server:
   addr: "0.0.0.0:8881"
   mode: development
@@ -101,15 +101,35 @@ message_server:
     - http://localhost:8081
     - http://localhost:8889
     - http://m.xytschool.com
+
+activity_server:
+  addr: "0.0.0.0:8891"
+  mode: development
+  origins:
+    - http://shop.laravelschool.xyt
+    - https://mobile.xytschool.com
+    - http://127.0.0.1:8081
+    - http://127.0.0.1:8080
+    - http://localhost:8080
+    - http://localhost:8081
+    - http://localhost:8889
+    - http://m.xytschool.com
 etcd:
   namespace: "echoapp/"
   endpoints:
     - "127.0.0.1:2379"
   username: gw
   password: gao123456xyt!
+
 asset:
   version: "dev"
-  public_root: "./resources/public"
+  inner_ip_prefix:  #前缀为
+    - "192.168.1."
+
+  public_host_inner:  "http://192.168.187.1:8889" ##内网加速地址
+  ##public_host:  "http://m.xytschool.com/dev/public" ##资源在CDN加速上的根路径
+  public_host:  "http://data.xytschool.com/m/v1" ##资源在CDN加速上的根路径
+  public_root: "./resources/public" ##资源在服务内部根路径
   storage_root: "./resources/storage/upload"
   view_root: "./resources/views"
   area_root: "./resources/storage/areas"
@@ -122,16 +142,16 @@ logging:
 database:
   resource:
     driver: mysql
-    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laravelschool?timeout=3s&charset=utf8&parseTime=True&loc=Local"
+    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laravelschool?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
   shop:
     driver: mysql
-    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laraveltest?timeout=3s&charset=utf8&parseTime=True&loc=Local"
+    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laraveltest?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
   goods:
     driver: mysql
-    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laraveltest?timeout=3s&charset=utf8&parseTime=True&loc=Local"
+    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/laraveltest?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
   user:
     driver: mysql
-    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/user?timeout=3s&charset=utf8&parseTime=True&loc=Local"
+    dsn: "root:20200520gao!butyou@tcp(sh2:13306)/user?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
 
 database-bj:
   resource:
@@ -221,3 +241,18 @@ resource:
   callback_url: "http://goods.api.xytschool.com/v1/goods-api/uploadCallback"
   access_key: "BMEpw0S-VbwPTAYEiZFmVXRutAJFSNH68UTI92jI"
   secret_key: "KJp_bcCaURH-EIa9qzOWG-7OGKDEcgkMiI7_ndHV"
+
+wechat:
+  auth_redirect_url: "http://m.xytschool.com/index"
+  js_host: "m.xytschool.com"
+  message_host: "http://m.xytschool.com/dev/site/wx_message"
+
+es:
+  addresses:
+    - "http://127.0.0.1:9200"
+  #  username: ""
+  #  password: ""
+  sniff: false
+  debug: true
+  scheme: "http"
+
