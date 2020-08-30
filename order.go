@@ -2,8 +2,9 @@ package echoapp
 
 import (
 	"encoding/json"
-	"github.com/gw123/glog"
 	"time"
+
+	"github.com/gw123/glog"
 
 	"github.com/labstack/echo"
 )
@@ -110,6 +111,31 @@ type GetOrderOptions struct {
 	PaidAt        time.Time `json:"paid_at"`
 	//Score         string    `score`
 }
+type CompanySalesSatistic struct {
+	ID            uint    `gorm:"primary_key"`
+	AllSalesTotal float64 `json:"all_sales_total"`
+	Date          string  `json:"date"`
+	ComId         uint    `json:"com_id"`
+	//GoodsSalesTotal int64  `json:"goods_sales"`
+	//GoodsId         int    `json:"goods_id"`
+	//Status string `json:"status"`
+}
+type GoodsSalesSatistic struct {
+	ID uint `gorm:"primary_key"`
+	//AllSalesTotal   int64  `json:"company_sales"`
+	Date            string  `json:"date"`
+	ComId           uint    `json:"com_id"`
+	GoodsSalesTotal float64 `json:"goods_sales" gorm:"column:goods_sales"`
+	GoodsId         int     `json:"goods_id"`
+	//Status          string `json:"status"`
+}
+
+func (*CompanySalesSatistic) TableName() string {
+	return "company_sales"
+}
+func (*GoodsSalesSatistic) TableName() string {
+	return "goods_sales "
+}
 
 type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
@@ -126,4 +152,6 @@ type OrderService interface {
 	GetOrderList(c echo.Context, from, limit int) ([]*GetOrderOptions, error)
 	GetUserOrderList(c echo.Context, userId uint, status string, lastId uint, limit int) ([]*Order, error)
 	CancelOrder(o *Order) error
+	// StatisticComGoodsSalesByDate(start, end string, comId uint) (*GoodsSalesSatistic, error)
+	// StatisticCompanySalesByDate(start, end string) (*CompanySalesSatistic, error)
 }

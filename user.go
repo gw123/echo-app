@@ -109,6 +109,20 @@ func (*History) TableName() string {
 	return "user_history"
 }
 
+type Statistics struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Date      string `json:"date"`
+	TargetId  int    `json:"target_id"`
+	Total     int64  `json:"total"`
+	Type      string `json:"type"`
+}
+
+func (*Statistics) TableName() string {
+	return "Statistic1s"
+}
+
 type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error

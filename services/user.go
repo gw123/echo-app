@@ -627,11 +627,17 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 			for _, val := range targetArr {
 				var resHistory = &echoapp.History{}
 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 					continue
 				}
 				if err := uSvr.db.Create(resHistory).Error; err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+					continue
+				}
+				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
+				fmt.Println(delHisVal)
+				if err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
 					continue
 				}
 			}
