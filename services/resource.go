@@ -35,8 +35,8 @@ func (rsv *ResourceService) SaveFile(file *echoapp.File) error {
 }
 
 func (rsv *ResourceService) SaveResource(resource *echoapp.Resource) error {
-	rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Resource{})
-	return rsv.db.Create(resource).Error
+	//rsv.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Resource{})
+	return rsv.db.Save(resource).Error
 }
 func (rsv *ResourceService) GetResourceById(c echo.Context, id int64) (*echoapp.Resource, error) {
 	resource := &echoapp.Resource{}
@@ -107,7 +107,14 @@ func (rsv *ResourceService) GetResourceByMd5Path(c echo.Context, path string) (*
 	}
 	return resource, nil
 }
-
+func (rsv *ResourceService) GetFileByMd5(md5 string) (*echoapp.File, error) {
+	resource := &echoapp.File{}
+	res := rsv.db.Where("md5=?", md5).Find(resource)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "Servicec->GetResourceByMd5")
+	}
+	return resource, nil
+}
 func tryMakeDir(fullDir string) error {
 	stat, err := os.Stat(fullDir)
 	if err != nil {
@@ -152,7 +159,7 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadRootPath 
 
 	file, err := c.FormFile(formname)
 	if err != nil {
-		return nil, errors.Wrap(err,"c.FormFile formname" + formname)
+		return nil, errors.Wrap(err, "c.FormFile formname"+formname)
 	}
 	src, err := file.Open()
 	if err != nil {
@@ -173,14 +180,18 @@ func (rsv *ResourceService) UploadFile(c echo.Context, formname, uploadRootPath 
 	if err != nil {
 		return nil, errors.Wrap(err, "Md5SumFile")
 	}
+	if _, err := rsv.GetFileByMd5(md5fileStr32); err == nil {
+		return nil, errors.New("file is exit")
+	}
+
 	md5dir := uploadRootPath + "/" + md5fileStr32[:2]
 	err = tryMakeDir(md5dir)
 	if err != nil {
 		return nil, errors.Wrap(err, "tryMakeDir")
 	}
 
-	md5path := md5fileStr32[:2] + "/" + md5fileStr32 + "." + filetype
-	err = echoapp_util.Copy(uploadRootPath+"/"+md5path, fullPath)
+	md5path := md5dir + "/" + md5fileStr32 + "." + filetype
+	err = echoapp_util.Copy(md5path, fullPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Copy")
 	}

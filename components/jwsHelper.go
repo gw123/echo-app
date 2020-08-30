@@ -34,7 +34,7 @@ func NewJwsHelper(opt echoapp.JwsHelperOpt) (*JwsHelper, error) {
 		var err error
 		jwsHelper.publicKey, err = jwt.ParseRSAPublicKeyFromPEM(keyData)
 		if err != nil {
-			return nil, errors.Wrap(err, "ParseRSAPrivateKeyFromPEM")
+			return nil, errors.Wrap(err, "ParseRSAPublicKeyFromPEM")
 		}
 	}
 	return jwsHelper, nil

@@ -86,13 +86,44 @@ func updateCompanyCache() {
 		}
 
 		for _, company := range list {
-			companyDetail ,err := companySvr.GetCompanyById(company.Id)
-			if err != nil{
+			companyDetail, err := companySvr.GetCompanyById(company.Id)
+			if err != nil {
 				glog.Error(err.Error())
 				continue
 			}
 			if err := companySvr.UpdateCachedCompany(companyDetail); err != nil {
 				echoapp_util.DefaultJsonLogger().WithError(err).Error("更新用户缓存失败")
+			}
+			currentMaxId = company.Id
+		}
+		time.Sleep(time.Second * 2)
+	}
+
+}
+
+func updateCouponCache() {
+	echoapp_util.DefaultLogger().Info("开启更新coupon缓存")
+	companySvr := app.MustGetCompanyService()
+	actSvr := app.MustGetActivityService()
+	var currentMaxId uint = 0
+	var limit uint = 100
+
+	for {
+		echoapp_util.DefaultJsonLogger().Errorf("更新缓存 from %d to %d", currentMaxId, currentMaxId+limit)
+		list, err := companySvr.GetCompanyList(currentMaxId, int(limit))
+		if err != nil {
+			echoapp_util.DefaultJsonLogger().WithError(err).Errorf("GetCompnayList:%s", err.Error())
+		}
+
+		if len(list) == 0 {
+			echoapp_util.DefaultJsonLogger().Info("更新结束")
+			break
+		}
+
+		for _, company := range list {
+			_, err := actSvr.UpdateCachedCouponsByComId(company.Id, 0)
+			if err != nil {
+				echoapp_util.DefaultJsonLogger().WithError(err).Errorf("UpdateCachedCouponsByComId:%s", err.Error())
 			}
 			currentMaxId = company.Id
 		}
@@ -170,6 +201,7 @@ var updateCacheCmd = &cobra.Command{
 		case "once":
 			go func() {
 				updateCompanyCache()
+				updateCouponCache()
 				updateUserCache()
 				quit <- os.Interrupt
 			}()

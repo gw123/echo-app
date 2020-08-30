@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gw123/glog"
@@ -32,10 +33,17 @@ const (
 	//登录方式
 	LoginMethodPassword = "password"
 	LoginMethodSms      = "sms"
+
+	RedisUserCodeField = "UserCode:%s"
+	RedisUserCodeKey   = "UserCode"
 )
 
 func FormatUserRedisKey(userId int64) string {
 	return fmt.Sprintf(RedisUserKey, userId)
+}
+
+func FormatUserCodeRedisKey(code string) string {
+	return fmt.Sprintf(RedisUserCodeKey, code)
 }
 
 func FormatOpenidRedisKey(userId int64) string {
@@ -53,20 +61,22 @@ func FormatUserHistoryHotKey(comId uint, targetType string) string {
 }
 
 type UserService struct {
-	db    *gorm.DB
-	redis *redis.Client
-	jws   *components.JwsHelper
+	db          *gorm.DB
+	redis       *redis.Client
+	jws         *components.JwsHelper
+	hashIdsSalt string
 }
 
 func (u *UserService) GetUserByToken(token string) (*echoapp.User, error) {
 	panic("implement me")
 }
 
-func NewUserService(db *gorm.DB, redis *redis.Client, jws *components.JwsHelper) *UserService {
+func NewUserService(db *gorm.DB, redis *redis.Client, jws *components.JwsHelper, salt string) *UserService {
 	return &UserService{
-		db:    db,
-		redis: redis,
-		jws:   jws,
+		db:          db,
+		redis:       redis,
+		jws:         jws,
+		hashIdsSalt: salt,
 	}
 }
 
@@ -87,7 +97,7 @@ func (u *UserService) UpdateJwsToken(user *echoapp.User) (err error) {
 func (u *UserService) GetUserByOpenId(comId uint, openId string) (*echoapp.User, error) {
 	user := &echoapp.User{}
 	if err := u.db.Where("com_id = ? and openid = ? ", comId, openId).First(user).Error; err != nil {
-		return nil, errors.Wrap(err, "db error")
+		return nil, err
 	}
 	if user.IsStaff {
 		u.db.
@@ -326,14 +336,63 @@ func (u *UserService) Save(user *echoapp.User) error {
 }
 
 //自动注册微信用户
-func (u *UserService) AutoRegisterWxUser(user *echoapp.User) (err error) {
-	user.JwsToken, err = u.jws.CreateToken(user.Id, "")
+func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.User, err error) {
+	data := make(map[string]interface{})
+	data["username"] = newUser.Nickname
+	data["com_id"] = newUser.ComId
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.Wrap(err, "Marshal")
+	}
+
+	user, err = u.GetUserByOpenId(newUser.ComId, newUser.Openid)
+	if err == nil {
+		//用户存在更新jwstoken
+		glog.Infof("用户已经存在 %+v", user)
+		user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
+		if err != nil {
+			return nil, errors.Wrap(err, "createToken")
+		}
+		if err := u.Save(user); err != nil {
+			return nil, errors.Wrap(err, "save newUser")
+		}
+		u.UpdateCachedUser(user)
+		return user, nil
+	} else if err == gorm.ErrRecordNotFound {
+		//用户不存在创建新的用户
+		newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
+		if err != nil {
+			return nil, errors.Wrap(err, "createToken")
+		}
+		if err := u.Save(newUser); err != nil {
+			return nil, errors.Wrap(err, "save newUser")
+		}
+
+		u.UpdateCachedUser(newUser)
+		return newUser, nil
+	}
+	//更新缓存
+	return nil, errors.Wrap(err, "GetUserByOpenId")
+}
+
+//自动注册微信用户
+func (u *UserService) ChangeUserJwsToken(newUser *echoapp.User) (err error) {
+
+	data := make(map[string]interface{})
+	data["username"] = newUser.Nickname
+	data["com_id"] = newUser.ComId
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "Marshal")
+	}
+
+	newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
 	if err != nil {
 		return errors.Wrap(err, "createToken")
 	}
 
-	if err := u.Save(user); err != nil {
-		return errors.Wrap(err, "save user")
+	if err := u.Save(newUser); err != nil {
+		return errors.Wrap(err, "save newUser")
 	}
 	//更新缓存
 	return nil
@@ -364,10 +423,28 @@ func (u *UserService) Jscode2session(comId uint, code string) (*echoapp.User, er
 			ComId:    comId,
 			Openid:   res.OpenID,
 		}
-		err := u.AutoRegisterWxUser(user)
+		_, err := u.AutoRegisterWxUser(user)
 		if err != nil {
 			return nil, errors.Wrap(err, "微信用户保存失败")
 		}
+	} else if err != nil {
+		return nil, errors.Wrapf(err, "查找失败请重试")
+	}
+
+	return user, nil
+}
+
+//解析当前用户，如果用户未注册自动注册
+func (u *UserService) RegisterWechatUser(comId uint, newUser *echoapp.User) (*echoapp.User, error) {
+	//fmt.Printf("返回结果: %#v", res)
+	user, err := u.GetUserByOpenId(comId, newUser.Openid)
+	if err == gorm.ErrRecordNotFound {
+		newUser.ComId = comId
+		_, err := u.AutoRegisterWxUser(newUser)
+		if err != nil {
+			return nil, errors.Wrap(err, "微信用户保存失败")
+		}
+		user = newUser
 	} else if err != nil {
 		return nil, errors.Wrapf(err, "查找失败请重试")
 	}
@@ -627,11 +704,17 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 			for _, val := range targetArr {
 				var resHistory = &echoapp.History{}
 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 					continue
 				}
 				if err := uSvr.db.Create(resHistory).Error; err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryLockKey, val)
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+					continue
+				}
+				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
+				fmt.Println(delHisVal)
+				if err != nil {
+					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
 					continue
 				}
 			}
@@ -655,6 +738,7 @@ func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
 	}
 	return dataArr, nil
 }
+
 func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) ([]string, error) {
 	setLen, err := u.redis.ZCard(FormatUserHistoryHotKey(comId, targetType)).Result()
 	//fmt.Println(setLen)
@@ -664,6 +748,7 @@ func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) 
 	dataArr, err := u.redis.ZRevRange(FormatUserHistoryHotKey(comId, targetType), 0, setLen-1).Result()
 	return dataArr, err
 }
+
 func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
 	if err := u.db.
@@ -689,6 +774,7 @@ func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err erro
 	}
 	return err
 }
+
 func (u *UserService) UpdateCacheUserHistoryHot(history *echoapp.History) (err error) {
 	member := strconv.Itoa(int(history.TargetId))
 	err = u.redis.ZIncrBy(FormatUserHistoryHotKey(history.ComId, history.Type), 1, member).Err()
@@ -696,4 +782,70 @@ func (u *UserService) UpdateCacheUserHistoryHot(history *echoapp.History) (err e
 		return errors.Wrap(err, "redis set")
 	}
 	return err
+}
+
+/***
+GetUserCodeAndUpdate 更新并且获取UserCode
+*/
+func (u *UserService) GetUserCodeAndUpdate(user *echoapp.User) (string, error) {
+	hash, rand, err := echoapp_util.MakeUserCode(user.Id, u.hashIdsSalt)
+	if err != nil {
+		return "", errors.Wrap(err, "GetUserCodeAndUpdate")
+	}
+
+	ttl, err := u.redis.TTL(FormatUserCodeRedisKey(hash)).Result()
+	if err != nil {
+		return "", errors.Wrap(err, "GetUserCodeAndUpdate")
+	}
+
+	if ttl.Seconds() > 0 {
+		//todo 循环解决冲突
+		return "", errors.Wrap(err, "key is exist")
+	}
+
+	val := fmt.Sprintf("%d::%d", user.Id, rand)
+	if err := u.redis.Set(FormatUserCodeRedisKey(hash), val, time.Second*30).Err();
+		err != nil {
+		return "", errors.Wrap(err, "GetUserCodeAndUpdate.")
+	}
+	return hash, nil
+}
+
+/***
+GetUserByUserCode 通过userCode获取User
+*/
+func (u *UserService) GetUserIdByUserCode(code string) (int64, error) {
+	val, err := u.redis.Get(FormatUserCodeRedisKey(code)).Result()
+	if err != nil {
+		return 0, errors.Wrap(err, "GetUserCodeAndUpdate.")
+	}
+	arr := strings.Split(val, "::")
+	if len(arr) != 2 {
+		return 0, errors.New("GetUserByUserCode len != 2")
+	}
+	if len(arr) != 2 {
+		return 0, errors.Wrap(err, "userId err")
+	}
+
+	userId, err := strconv.ParseInt(arr[0], 10, 64)
+	if err != nil {
+		return 0, errors.Wrap(err, "GetUserByUserCode ParseInt.")
+	}
+
+	randId, err := strconv.ParseInt(arr[1], 10, 64)
+	if err != nil {
+		return 0, errors.Wrap(err, "GetUserByUserCode ParseInt.")
+	}
+
+	value, err := echoapp_util.DecodeInt64(code, u.hashIdsSalt)
+	if err != nil {
+		return 0, errors.Wrap(err, "GetUserByUserCode DecodeInt64 err")
+	}
+
+	uId := value - randId
+	if uId != userId {
+		return 0, errors.New("usercode校验失败")
+	}
+
+	return userId, nil
 }

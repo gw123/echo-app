@@ -38,7 +38,7 @@ func (c CompanyService) GetCompanyById(comId uint) (*echoapp.Company, error) {
 	company.SmsChannels = make(map[string]*echoapp.SmsChannel)
 	var channels []echoapp.SmsChannel
 	c.db.Where("com_id = ?", comId).Find(&channels)
-	for  _, sch := range channels  {
+	for _, sch := range channels {
 		company.SmsChannels[sch.Type] = &sch
 	}
 	return company, nil
@@ -80,7 +80,7 @@ func (c CompanyService) UpdateCachedCompany(company *echoapp.Company) (err error
 
 func (c *CompanyService) GetQuickNav(comId uint) ([]*echoapp.Nav, error) {
 	var navs []*echoapp.Nav
-	if err := c.db.Where("com_id = ?", comId).Find(&navs).Error; err != nil {
+	if err := c.db.Debug().Where("com_id = ?", comId).Find(&navs).Error; err != nil {
 		return nil, errors.Wrap(err, "query nav")
 	}
 	return navs, nil

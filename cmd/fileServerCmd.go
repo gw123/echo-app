@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -60,6 +61,7 @@ func startFileServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -105,7 +107,7 @@ func startFileServer() {
 	//jwsAuth.POST("/saveReource", resourceCtl.SaveResource)
 	jwsAuth.GET("/getResourceById", resourceCtl.GetResourceById)
 	jwsAuth.GET("/getResourcesByTagId", resourceCtl.GetResourcesByTagId)
-	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
+	//jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	jwsAuth.POST("/uploadResource", resourceCtl.UploadResource)
 
 	jwsAuth.GET("/getResourceList", resourceCtl.GetResourceList)

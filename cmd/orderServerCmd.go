@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -42,6 +43,7 @@ func startOrderServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -61,23 +63,30 @@ func startOrderServer() {
 	})
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/order/:com_id")
-	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
-	orderCtl := controllers.NewOrderController(orderSvr)
+	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	userSvr := app.MustGetUserService()
+	orderCtl := controllers.NewOrderController(orderSvr, userSvr)
 	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
-
+	//微信支付回调
+	normal.POST("/wxPayCallback", orderCtl.WxPayCallback)
+	//微信退款回调
+	normal.POST("/wxRefundCallback", orderCtl.WxRefundCallback)
 	jwsAuth := e.Group("/" + mode + "/order/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	})
-	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
+	userMiddle := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, userSvr)
+	jwsAuth.Use(jwsMiddleware, userMiddle, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
 	jwsAuth.GET("/getOrderDetail", orderCtl.GetOrderDetail)
 	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
 	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
-	jwsAuth.POST("/createOrder", orderCtl.CreateOrder)
-	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
+	jwsAuth.POST("/queryOrder", orderCtl.QueryOrder)
 	jwsAuth.POST("/refund", orderCtl.Refund)
+	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
+	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
+
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
 	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)
@@ -85,7 +94,6 @@ func startOrderServer() {
 	jwsAuth.GET("/getTicketList", orderCtl.GetTicketList)
 	jwsAuth.GET("/getTicketDetail", orderCtl.GetTicketDetail)
 	jwsAuth.GET("/fetchThirdTicket", orderCtl.FetchThirdTicket)
-
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +47,7 @@ func startUserServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -60,14 +62,15 @@ func startUserServer() {
 	usrSvr := app.MustGetUserService()
 	goodsSvr := app.MustGetGoodsService()
 	smsSvr := app.MustGetSmsService()
-	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr)
+	wechatSvr := app.MustGetWechatService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr, wechatSvr)
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
-		//MockUserId: 58,
+		MockUserId: 58,
 	}
 	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
 	//登录
@@ -85,8 +88,8 @@ func startUserServer() {
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
-		MockUserId: 58,
+		//IgnoreAuth: true,
+		//MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
@@ -94,6 +97,9 @@ func startUserServer() {
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+	//获取用户vip
+	jwsAuth.GET("/getUserCode", userCtl.GetUserCode)
+
 	//roles
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
@@ -110,7 +116,7 @@ func startUserServer() {
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
 	//history
 	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
-	jwsAuth.GET("/getUserHistory", userCtl.GetUserHistoryList)
+	jwsAuth.GET("/getUserHistoryList", userCtl.GetUserHistoryList)
 	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {

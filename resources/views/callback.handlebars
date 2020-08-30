@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang=zh-CN>
+<head>
+
+</head>
+<body>
+<noscript><strong>Please enable JavaScript to continue.</strong></noscript>
+<div id=app></div>
+<script>
+    var url = window.location.href.replace(window.location.search, '')
+    url = url.replace('/wxAuthCallBack', '')
+    window.location.replace(url)
+</script>
+</body>
+</html>
