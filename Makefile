@@ -35,6 +35,7 @@ upload-comment: comment-dir
 
 upload-site: site-dir
 	@scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
+     scp -r resources/public root@sh2:/data/apps/site/resources/public &&\
 	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
      scp -r resources/views/ root@sh2:/data/apps/site/resources/views
@@ -43,6 +44,11 @@ upload-goods: goods-dir
 	@scp  config.prod.yaml root@sh2:/data/apps/goods/config.yaml\ &&\
 	 scp upload  util/scripes/goods.sh root@sh2:/data/apps/goods\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/goods/resources/storage
+
+upload-activity: activity-dir
+	@scp  config.prod.yaml root@sh2:/data/apps/activity/config.yaml\ &&\
+	 scp upload  util/scripes/activity.sh root@sh2:/data/apps/activity\ &&\
+     scp -r resources/storage/keys/  root@sh2:/data/apps/activity/resources/storage
 
 restart:
 	ssh root@sh2 supervisorctl reload
@@ -53,6 +59,10 @@ upload-user-config:
 file-dir:
 	ssh root@sh2 mkdir -p /data/apps/file
 	ssh root@sh2 mkdir -p /data/apps/file/resources/storage
+
+activity-dir:
+	ssh root@sh2 mkdir -p /data/apps/activity
+	ssh root@sh2 mkdir -p /data/apps/activity/resources/storage
 
 user-dir:
 	ssh root@sh2 mkdir -p /data/apps/user
@@ -74,7 +84,7 @@ goods-dir:
 	ssh root@sh2 mkdir -p /data/apps/goods
 	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
 build:
-	go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
 	upx -9 -f -o upload ./echoapp
 
 build-alpine:

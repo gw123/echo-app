@@ -114,9 +114,6 @@ func (aSvr *ActivityService) UpdateCachedBannerList(comId uint, position string)
 	return nil
 }
 
-func (aSvr ActivityService) GetIndexBanner(comId uint) ([]*echoapp.BannerBrief, error) {
-	panic("implement me")
-}
 
 func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 	panic("implement me")

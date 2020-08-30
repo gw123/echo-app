@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"github.com/pkg/errors"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -34,4 +35,16 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 	ctx.JSON(http.StatusOK, response)
 
 	return innerErr
+}
+
+func (b *BaseController)  AppErr(ctx echo.Context, appError AppError) error {
+	response := Response{
+		ErrorCode: appError.GetCode(),
+		Msg:       appError.GetOuter(),
+	}
+	ctx.JSON(http.StatusOK, response)
+	if appError.GetInner().Error() == appError.GetOuter() {
+		return appError.GetInner()
+	}
+	return errors.Wrap(appError.GetInner(), appError.GetOuter())
 }

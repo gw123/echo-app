@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
@@ -119,16 +118,16 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 		} else {
 			url = fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
 		}
+
 		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 		if err != nil {
 			echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
+			return ctx.HTML(http.StatusNotImplemented,"服务暂时不可用 001")
 		} else {
 			response["wxCfg"] = jsConfig
 		}
 
 		user, err := echoapp_util.GetCtxtUser(ctx)
-
-
 		if err == nil {
 			data := make(map[string]interface{})
 			data["userToken"] = user.JwsToken
@@ -140,7 +139,6 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			response["user"] = data
 		}
 	}
-	spew.Dump(response)
 	return ctx.Render(http.StatusOK, "index", response)
 }
 

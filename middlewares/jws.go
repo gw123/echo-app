@@ -54,7 +54,6 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 				}
 				token = auth[l+1:]
 			}
-			glog.Info(token)
 			userId, payload, err := opt.Jws.ParseToken(token)
 			if err != nil {
 				if opt.IgnoreAuth {
@@ -65,7 +64,7 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 				}
 			}
 
-			glog.Infof("userId:%d", userId)
+			//glog.Infof("userId:%d", userId)
 			echoapp_util.SetCtxUserId(c, userId)
 			echoapp_util.SetCtxJwsPayload(c, payload)
 			return next(c)

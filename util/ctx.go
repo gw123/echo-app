@@ -71,7 +71,7 @@ func SetCtxUserId(ctx echo.Context, userId int64) {
 func GetCtxtUserId(ctx echo.Context) (int64, error) {
 	userId, ok := ctx.Get(ctxUserIdKey).(int64)
 	if !ok || userId == 0 {
-		return 0, errors.New("get ctxUserId flied")
+		return 0, echoapp.ErrNotLogin
 	}
 	return userId, nil
 }
@@ -95,7 +95,7 @@ func SetCtxUser(ctx echo.Context, user *echoapp.User) {
 func GetCtxtUser(ctx echo.Context) (*echoapp.User, error) {
 	user, ok := ctx.Get(ctxUserKey).(*echoapp.User)
 	if !ok {
-		return nil, errors.New("get ctxUser flied")
+		return nil , echoapp.ErrNotLogin
 	}
 	return user, nil
 }

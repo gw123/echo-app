@@ -121,8 +121,10 @@ func (sCtl *ActivityController) CreateUserCoupon(ctx echo.Context) error {
 	comId := echoapp_util.GetCtxComId(ctx)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+
+		return sCtl.AppErr(ctx, echoapp.AppErrNotLogin.WithInner(err))
 	}
+
 	params := &CreateUserCouponParams{}
 	if err := ctx.Bind(params); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)

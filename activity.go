@@ -53,10 +53,12 @@ type ActivityService interface {
 	GetCachedCouponById(couponId uint) (*Coupon, error)
 	GetCachedCouponsByIds(couponIds []uint) ([]*Coupon, error)
 
-	//获取当前商品可以领取的优惠券列表
-	GetCouponsByGoodsId(comId uint, goodsId uint) ([]*Coupon, error)
+
 	//获取当前位置可以领取的优惠券, 首页,支付页面,购物车
 	GetCouponsByPosition(ComId uint, position string) ([]*Coupon, error)
+	//获取当前商品可以领取的优惠券列表
+	GetCouponsByGoodsId(comId uint, goodsId uint) ([]*Coupon, error)
+
 	//获取活动可以领取优惠券
 	GetCouponsByActivity(ComId uint, activityId uint) ([]*Coupon, error)
 	//获取当前订单可以使用的优惠券

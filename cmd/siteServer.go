@@ -24,8 +24,8 @@ func startSiteServer() {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
 	//前端入口
-	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot+"/m")
-	e.Static("/dev/public", echoapp.ConfigOpts.Asset.PublicRoot+"/m")
+	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
+	e.Static("/dev/public", echoapp.ConfigOpts.Asset.PublicRoot)
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 

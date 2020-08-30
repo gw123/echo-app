@@ -96,11 +96,10 @@ func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error
 
 func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
 	com, err := we.comSvr.GetCachedCompanyById(comId)
-	if err != nil {
-		return "", errors.Wrap(err, "WxLogin 获取com失败")
+	if err != nil || com.WxOfficialAppId == "" {
+		return "", errors.Wrapf(err, "WxLogin 获取com.WxOfficialAppId失败: %d",comId)
 	}
 	url = fmt.Sprintf("%s/%d/wxAuthCallBack", we.authRedirectUrl, comId)
-	glog.Info("rawUrl:" + url)
 	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "")
 	return
 }
@@ -108,7 +107,7 @@ func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
 func (we *WechatService) GetEndPoint(comId uint) (*mpoauth2.Endpoint, error) {
 	com, err := we.comSvr.GetCachedCompanyById(comId)
 	if err != nil {
-		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", comId)
+		return nil, errors.Wrapf(err, "GetEndPoint 获取com.WxOfficialAppId失败：%d", comId)
 	}
 	oauth2Endpoint := mpoauth2.NewEndpoint(com.WxOfficialAppId, com.WxOfficialSecret)
 	return oauth2Endpoint, nil

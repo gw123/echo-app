@@ -2,6 +2,9 @@
 <html lang=zh-CN>
 <head>
     <meta charset=utf-8>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta http-equiv=X-UA-Compatible content="IE=edge">
     <title></title>
     <!--    <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>-->
@@ -10,12 +13,12 @@
     })
     var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') || CSS.supports('top: constant(a)'))
     document.write('<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' + (coverSupport ? ', viewport-fit=cover' : '') + '" />')</script>
-    <link rel=stylesheet href={{staticassetHost}}/static/index.5ca1c9cc.css>
+    <link rel=stylesheet href={{assetHost}}/static/index.1b8708b7.css>
 </head>
 <body>
-<noscript><strong>Please enable JavaScript to continue.</strong></noscript>
-<div id=app></div>
+
 <script>
+    console.log('clientType','{{clientType}}')
         {{#equal clientType "wx_official"}}
         window.userInfo = {
             jws_token: '{{user.userToken}}',
@@ -26,36 +29,15 @@
             id: '{{user.id}}',
         }
         var wx_config = {
-            debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+            debug: true,
             appId: '{{wxCfg.appID}}', // 必填，公众号的唯一标识
-            timestamp: {{wxCfg.timestamp}}, // 必填，生成签名的时间戳
+            timestamp: '{{wxCfg.timestamp}}', // 必填，生成签名的时间戳
             nonceStr: '{{wxCfg.nonceStr}}', // 必填，生成签名的随机串
             signature: '{{wxCfg.signature}}',// 必填，签名
             jsApiList: [
                 'checkJsApi',
-                'onMenuShareTimeline',
-                'onMenuShareAppMessage',
-                'onMenuShareQQ',
-                'onMenuShareWeibo',
-                'onMenuShareQZone',
-                'hideMenuItems',
-                'showMenuItems',
-                'hideAllNonBaseMenuItem',
-                'showAllNonBaseMenuItem',
-                'translateVoice',
-                'startRecord',
-                'stopRecord',
-                'onVoiceRecordEnd',
-                'playVoice',
-                'onVoicePlayEnd',
-                'pauseVoice',
-                'stopVoice',
-                'uploadVoice',
-                'downloadVoice',
                 'chooseImage',
                 'previewImage',
-                'uploadImage',
-                'downloadImage',
                 'getNetworkType',
                 'openLocation',
                 'getLocation',
@@ -64,12 +46,9 @@
                 'closeWindow',
                 'scanQRCode',
                 'chooseWXPay',
-                'openProductSpecificView',
-                'addCard',
-                'chooseCard',
-                'openCard',
                 'updateAppMessageShareData',
-                'updateTimelineShareData'
+                'updateTimelineShareData',
+                    'onMenuShareTimeline','onMenuShareAppMessage'
             ], // 必填，需要使用的JS接口列表
             openTagList: [
                 'wx-open-launch-weapp'
@@ -77,11 +56,14 @@
         }
         //wx.config(config);
         window.wx_config = wx_config
+        //console.log('set wx_config',wx_config)
         {{/equal}}
-
 </script>
+
+<noscript><strong>Please enable JavaScript to continue.</strong></noscript>
+<div id=app></div>
+</body>
 
 <script src={{assetHost}}/static/js/chunk-vendors.js></script>
 <script src="{{assetHost}}/static/js/index.js" ></script>
-</body>
 </html>

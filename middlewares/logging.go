@@ -57,8 +57,8 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 				rid = config.Generator()
 				req.Header.Set(echo.HeaderXRequestID, rid)
 			}
-
-			echoapp_util.AddRequestId(c, rid)
+			//日志太多了暂时屏蔽掉 requestid
+			//echoapp_util.AddRequestId(c, rid)
 			echoapp_util.ToContext(c, config.Logger)
 
 			fields := logrus.Fields{
@@ -70,7 +70,7 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 				//"UserAgent": req.UserAgent(),
 			}
 			logger := echoapp_util.ExtractEntry(c).
-				WithField("app", config.Name).
+				//WithField("app", config.Name).
 				WithFields(fields)
 			echoapp_util.ToContext(c, logger)
 			err := next(c)
