@@ -1,6 +1,7 @@
 package echoapp_util
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"fmt"
@@ -20,8 +21,8 @@ import (
 	"github.com/qiniu/api.v7/v7/storage"
 )
 
-func DoHttpRequest(url string, method string, datas []byte) ([]byte, error) {
-	req, err := http.NewRequest(method, url, nil)
+func DoHttpRequest(url string, method string, data []byte) ([]byte, error) {
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(data))
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
 	}
@@ -30,14 +31,14 @@ func DoHttpRequest(url string, method string, datas []byte) ([]byte, error) {
 		return nil, errors.Wrap(err, "DoRequest->Do")
 	}
 	defer res.Body.Close()
-	data, err := ioutil.ReadAll(res.Body)
+	datas, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->ReadAll")
 	}
 	if res.StatusCode == http.StatusOK {
-		return data, errors.Wrapf(err, "StatusCode:%d", res.StatusCode)
+		return datas, errors.Wrapf(err, "StatusCode:%d", res.StatusCode)
 	}
-	return data, nil
+	return datas, nil
 }
 
 func GetPPTCoverUrl(pptUrl string) ([]string, error) {
@@ -164,7 +165,7 @@ func UploadFile(c echo.Context, formname, uploadpath string, maxfilesize int64) 
 		return nil, err
 	}
 	defer dst.Close()
-	size, err := io.Copy(dst, src)
+	size, err := io.Copy(dst, src) // 文件已经上传了，在判断，无意义， 采用一个临时文件夹存放，满足要求再Copy到服务器storgeRoot
 	if err != nil {
 		return nil, err
 	}
