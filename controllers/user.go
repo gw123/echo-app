@@ -188,17 +188,7 @@ func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
 	addrParam.UserID = userId
-	//addrId, _ := echoapp_util.GetCtxtAddrId(ctx)
-	//addrParam.AddrId = addrId
 
-	// addr, err := sCtl.userSvr.GetUserAddrById(addrParam.AddrId)
-	// if err != nil {
-	// 	return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	// }
-	// addr.Username = addrParam.Username
-	// addr.Mobile = addrParam.Mobile
-	// addr.Address = addrParam.Address
-	// addr.Checked = addrParam.Checked
 	if err := sCtl.userSvr.UpdateUserAddress(addrParam); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, echoapp.ErrDb.Error(), err)
 	}
@@ -222,20 +212,6 @@ func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
 	return sCtl.Success(ctx, nil)
 }
 
-// func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
-// 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
-// 	// limit := ctx.QueryParam("limit")
-// 	// limitint, _ := strconv.Atoi(limit)
-// 	userId, err := echoapp_util.GetCtxtUserId(ctx)
-// 	if err != nil {
-// 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
-// 	}
-// 	addressList, err := sCtl.userSvr.GetUserCollectionList(userId, lastId, limitint)
-// 	if err != nil {
-// 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-// 	}
-// 	return sCtl.Success(ctx, addressList)
-// }
 type CollectParams struct {
 	TargetId uint   `json:"target_id"`
 	Type     string `json:"type"`
@@ -258,6 +234,7 @@ func (sCtl *UserController) IsCollect(ctx echo.Context) error {
 	}
 	return sCtl.Success(ctx, res)
 }
+
 func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 	targetType := ctx.QueryParam("targetType")
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
@@ -304,6 +281,7 @@ func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
 	collectionMap["target"] = goodslist
 	return sCtl.Success(ctx, collectionMap)
 }
+
 func (sCtl *UserController) AddUserCollection(ctx echo.Context) error {
 	addr := &echoapp.Collection{}
 	if err := ctx.Bind(addr); err != nil {
@@ -352,25 +330,25 @@ func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) AddUserHistory(ctx echo.Context) error {
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
 	his := &echoapp.History{}
 	if err := ctx.Bind(his); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	userId, err := echoapp_util.GetCtxtUserId(ctx)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	//comID := echoapp_util.GetCtxComId(ctx)
-	// comId := ctx.QueryParam("com_id")
-	// comID, _ := strconv.Atoi(comId)
+	comId := util.GetCtxComId(ctx)
 	his.UserID = userId
-	//his.ComId = uint(comID)
+	his.ComId = comId
 	if err := sCtl.userSvr.CreateUserHistory(his); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
 	return sCtl.Success(ctx, his)
 }
+
 func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
