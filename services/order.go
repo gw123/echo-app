@@ -2,6 +2,11 @@ package services
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -9,10 +14,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
-	"math/rand"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type OrderService struct {
@@ -283,8 +284,7 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 		glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
 		if err := tx.Model(&userCoupon).
 			Where("id = ?", coupon.Id).
-			Update("used_at", time.Now()).Error;
-			err != nil {
+			Update("used_at", time.Now()).Error; err != nil {
 			tx.Rollback()
 			return errors.Wrap(err, "优惠券核销失败")
 		}
@@ -467,4 +467,35 @@ func (oSvr *OrderService) WxRefundCallback(ctx echo.Context) error {
 
 func (oSvr *OrderService) QueryRefundOrderAndUpdate(order *echoapp.Order) (*echoapp.Order, error) {
 	return oSvr.QueryOrderAndUpdate(order, echoapp.OrderPayStatusRefund)
+}
+
+func (oSvr *OrderService) StatisticCompanySalesByDate(start, end string) (*echoapp.CompanySalesSatistic, error) {
+	salesStatistic := &echoapp.CompanySalesSatistic{}
+	if err := oSvr.db.Table("orders").
+		Where("created_at>=? and created_at<=?", start, end).
+		Select("com_id,sum(total) as company_sales").Group("com_id").
+		Find(&salesStatistic).Error; err != nil {
+		return nil, errors.Wrap(err, "query")
+	}
+	salesStatistic.Date = fmt.Sprintf("%s--%s", start, end)
+	if err := oSvr.db.Create(salesStatistic).Error; err != nil {
+		return nil, errors.Wrap(err, "Create")
+	}
+	return salesStatistic, nil
+}
+
+func (oSvr *OrderService) StatisticComGoodsSalesByDate(start, end string, comId uint) (*echoapp.GoodsSalesSatistic, error) {
+	salesStatistic := &echoapp.GoodsSalesSatistic{}
+	if err := oSvr.db.Table("orders").Where("com_id=?", comId).
+		Where("created_at>=? and created_at<=?", start, end).
+		Select("goods_id,sum(total) as goods_sales").Group("goods_id").
+		Find(&salesStatistic).Error; err != nil {
+		return nil, errors.Wrap(err, "query")
+	}
+	salesStatistic.Date = fmt.Sprintf("%s--%s", start, end)
+	salesStatistic.ComId = comId
+	if err := oSvr.db.Create(salesStatistic).Error; err != nil {
+		return nil, errors.Wrap(err, "Create")
+	}
+	return salesStatistic, nil
 }

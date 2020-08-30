@@ -1,11 +1,18 @@
 package echoapp
 
 type CompanyBrief struct {
-	Id    uint   `json:"id"`
-	Name  string `json:"name"`
-	Desc  string `json:"desc"`
-	Addr  string `json:"addr"`
-	Phone string `json:"phone"`
+	Id        uint   `json:"id"`
+	Name      string `json:"name"`
+	Desc      string `json:"desc"`
+	Addr      string `json:"addr"`
+	AddrBrief Addr   `json:"address" gorm:"-"`
+	Phone     string `json:"phone"`
+}
+
+type Addr struct {
+	CityId     int64 `json:"city_id"`
+	DistrictId int64 `json:"district_id"`
+	ProvinceId int64 `json:"province_id"`
 }
 
 type Company struct {

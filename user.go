@@ -111,6 +111,20 @@ func (*History) TableName() string {
 	return "user_history"
 }
 
+type Statistics struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Date      string `json:"date"`
+	TargetId  int    `json:"target_id"`
+	Total     int64  `json:"total"`
+	Type      string `json:"type"`
+}
+
+func (*Statistics) TableName() string {
+	return "Statistic1s"
+}
+
 type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
 	SubScore(ctx echo.Context, user *User, amount int) error
@@ -143,7 +157,7 @@ type UserService interface {
 	//GetUserCollectionById(userId int64, targetType string, targetId uint) (*Collection, error)
 	IsCollect(userId int64, targetId uint, targetType string) (bool, error)
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
-	//History
+	// History 用户历史记录
 	UpdateCacheUserHistory(history *History) (err error)
 	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
 	GetCacheUserHistoryList(len uint) ([]string, error)

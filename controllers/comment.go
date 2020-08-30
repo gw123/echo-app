@@ -45,18 +45,18 @@ func (cmtCtrl *CommentController) SaveComment(ctx echo.Context) error {
 		if !flag {
 			return cmtCtrl.Fail(ctx, echoapp.CodeArgument, "订单不存在", errors.New("订单不存在"))
 		}
+
+		health := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Health))
+		good := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Goods))
+		staff := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Staff))
+		//express := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Express))
+
+		comment.UserComprehensiveScore, _ = echoapp_util.WFGHM(1.0,
+			2.0, []float64{health, good, staff}, []float64{0.3, 0.5, 0.2})
 	}
 
 	userId, _ := echoapp_util.GetCtxtUserId(ctx)
 	comment.UserId = userId
-
-	health := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Health))
-	good := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Goods))
-	staff := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Staff))
-	//express := echoapp_util.TFSToFS(echoapp_util.LinguisticToTFS(comment.Express))
-
-	comment.UserComprehensiveScore, _ = echoapp_util.WFGHM(1.0,
-		2.0, []float64{health, good, staff}, []float64{0.3, 0.5, 0.2})
 
 	if err := cmtCtrl.commentSvc.CreateComment(comment); err != nil {
 		return cmtCtrl.Fail(ctx, echoapp.CodeNotFound, echoapp.ErrDb.Error(), err)

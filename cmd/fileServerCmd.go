@@ -107,7 +107,7 @@ func startFileServer() {
 	//jwsAuth.POST("/saveReource", resourceCtl.SaveResource)
 	jwsAuth.GET("/getResourceById", resourceCtl.GetResourceById)
 	jwsAuth.GET("/getResourcesByTagId", resourceCtl.GetResourcesByTagId)
-	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
+	//jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	jwsAuth.POST("/uploadResource", resourceCtl.UploadResource)
 
 	jwsAuth.GET("/getResourceList", resourceCtl.GetResourceList)
