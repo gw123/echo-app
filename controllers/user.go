@@ -188,9 +188,8 @@ func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
 	addrParam.UserID = userId
-
 	if err := sCtl.userSvr.UpdateUserAddress(addrParam); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, echoapp.ErrDb.Error(), err)
+		return sCtl.AppErr(ctx, echoapp.NewAppError(echoapp.CodeInnerError, err.Error() ,err))
 	}
 	return sCtl.Success(ctx, addrParam)
 }
@@ -361,9 +360,10 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	}
 	type GoodsInfo struct {
 		//BrowsTime string
+		ID         uint    `json:"id"`
 		Price      float32 `json:"price"`
 		Name       string  `json:"name"`
-		SmallCover string  `json:"small_cover"`
+		SmallCover string  `json:"cover"`
 		GoodsType  string  `json:"goods_type" `
 	}
 	hisResMap := make(map[string][]*GoodsInfo)
@@ -391,11 +391,12 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 			glog.Info("sCtl.goodSvr.GetGoodsById")
 			continue
 		}
+		tempGoods.ID =  goods.ID
 		tempGoods.Name = goods.Name
 		tempGoods.Price = goods.Price
 		tempGoods.GoodsType = goods.GoodsType
 		tempGoods.SmallCover = goods.SmallCover
-		//}
+		//}s
 		curTime := hisList[i].CreatedAt.Format("2006-01-02")
 		if curTime == browseTime {
 			goodslist = append(goodslist, tempGoods)

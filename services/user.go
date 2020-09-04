@@ -426,6 +426,15 @@ func (uSvr *UserService) GetUserAddressList(userId int64) ([]*echoapp.Address, e
 }
 
 func (uSvr *UserService) CreateUserAddress(address *echoapp.Address) error {
+	if address.ProvinceId == 0 {
+		return errors.New("请选择省份")
+	}
+	if address.CityId == 0 {
+		return errors.New("请选择城市")
+	}
+	if address.DistrictId == 0 {
+		return errors.New("请选择区县")
+	}
 	if len(address.Mobile) != 11 {
 		return errors.New("请输入11位正确手机号")
 	}
@@ -465,6 +474,15 @@ func (uSvr *UserService) GetUserAddrById(addrId int64) (*echoapp.Address, error)
 }
 
 func (uSvr *UserService) UpdateUserAddress(address *echoapp.Address) error {
+	if address.ProvinceId == 0 {
+		return errors.New("请选择省份")
+	}
+	if address.CityId == 0 {
+		return errors.New("请选择城市")
+	}
+	if address.DistrictId == 0 {
+		return errors.New("请选择区县")
+	}
 	if len(address.Mobile) != 11 {
 		return errors.New("请输入11位正确手机号")
 	}
@@ -657,7 +675,7 @@ func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) 
 
 func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
-	if err := u.db.
+	if err := u.db.Debug().
 		Table("user_history").
 		Where("user_id=? AND id>?", userId, lastId).
 		Limit(limit).
