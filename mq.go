@@ -9,6 +9,7 @@ type BaseMqMsg struct {
 	MessageId string `json:"message_id"`
 	TraceId   string `json:"trace_id"`
 	Sender    string `json:"sender"`
+	ComId     string `json:"com_id"`
 	//Payload   string
 }
 

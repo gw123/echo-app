@@ -34,7 +34,8 @@ upload-comment: comment-dir
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
 upload-site: site-dir
-	@scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
+	@ssh root@sh2 cp /data/apps/site/config.yaml /data/apps/site/config.yaml.back\ &&\
+	 scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
      scp -r resources/public root@sh2:/data/apps/site/resources/public &&\
 	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
