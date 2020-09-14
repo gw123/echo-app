@@ -13,10 +13,13 @@ endif
 
 upload-all: upload-user upload-file upload-comment upload-goods upload-order upload-site
 
+upload-qys:
+	@scp  config.qys.yaml ubuntu@qys:/data/jobs/config.yaml\ &&\
+	 scp  upload ubuntu@qys:/data/jobs
+
 upload-user:
 	@scp  config.prod.yaml root@sh2:/data/apps/user/config.yaml\ &&\
-	 scp  upload  util/scripes/user.sh root@sh2:/data/apps/user\ &&\
-     scp  upload util/scripes/user.sh root@sh2:/data/apps/user/
+	 scp  upload  util/scripes/user.sh root@sh2:/data/apps/user
 
 upload-file: file-dir
 	@scp  config.prod.yaml root@sh2:/data/apps/file/config.yaml\ &&\
@@ -36,7 +39,7 @@ upload-comment: comment-dir
 upload-site: site-dir
 	@ssh root@sh2 cp /data/apps/site/config.yaml /data/apps/site/config.yaml.back\ &&\
 	 scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
-     scp -r resources/public root@sh2:/data/apps/site/resources/public &&\
+     scp -r resources/public root@sh2:/data/apps/site/resources/ &&\
 	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
      scp -r resources/views/ root@sh2:/data/apps/site/resources/views

@@ -36,7 +36,7 @@ func doCheckTicketWorker() {
 	echoapp_util.DefaultLogger().Info(echoapp.ConfigOpts.TongchengConfig)
 	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	msgs, err := ch.Consume(
-		"check-ticket", // queue
+		"ticket-check", // queue
 		"",             // consumer
 		false,          // auto-ack
 		false,          // exclusive
@@ -46,7 +46,7 @@ func doCheckTicketWorker() {
 	)
 
 	for msg := range msgs {
-		echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+		echoapp_util.DefaultLogger().Infof("Received a ticket-check message: %s", string(msg.Body))
 		job := &echoapp.CheckTicketJob{}
 		if err := json.Unmarshal(msg.Body, job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
@@ -73,7 +73,7 @@ func doSyncPartnerCodeWorker() {
 	echoapp_util.DefaultLogger().Info(echoapp.ConfigOpts.TongchengConfig)
 	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	msgs, err := ch.Consume(
-		"sync-partner-code", // queue
+		"ticket-sync-code", // queue
 		"",             // consumer
 		false,          // auto-ack
 		false,          // exclusive
@@ -83,7 +83,7 @@ func doSyncPartnerCodeWorker() {
 	)
 
 	for msg := range msgs {
-		echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+		echoapp_util.DefaultLogger().Infof("Received a ticket-sync-code message: %s", string(msg.Body))
 		job := &echoapp.SyncPartnerCodeJob{}
 		if err := json.Unmarshal(msg.Body, job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())

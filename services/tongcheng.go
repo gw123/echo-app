@@ -32,7 +32,7 @@ func NewTongchengService(config echoapp.TongchengConfig) *TongchengService {
 }
 
 func (mSvr TongchengService) SyncPartnerCode(info *echoapp.SyncPartnerCodeJob) error {
-	_,err := mSvr.TongchengRequest(info.ComId,"ConsumeNotice", info.SyncPartnerCodeRequestBody)
+	_,err := mSvr.TongchengRequest(info.ComId,"RetCodeNotice", info.SyncPartnerCodeRequestBody)
 	if err != nil{
 		return err
 	}
@@ -40,7 +40,7 @@ func (mSvr TongchengService) SyncPartnerCode(info *echoapp.SyncPartnerCodeJob) e
 }
 
 func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
-	_,err := mSvr.TongchengRequest(info.ComId,"RetCodeNotice", info.CheckTicketRequestBody)
+	_,err := mSvr.TongchengRequest(info.ComId,"ConsumeNotice", info.CheckTicketRequestBody)
 	if err != nil{
 		return err
 	}
