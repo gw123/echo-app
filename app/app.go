@@ -1,11 +1,14 @@
 package app
 
 import (
+	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
+	"github.com/gw123/glog"
+	"github.com/gw123/gworker"
 	"github.com/jinzhu/gorm"
 	es7 "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
@@ -15,6 +18,7 @@ var App *EchoApp
 
 type EchoApp struct {
 	IsHealth        bool
+	JobPusher       gworker.Producer
 	areaSvc         echoapp.AreaService
 	smsSvc          echoapp.SmsService
 	UserSvr         echoapp.UserService
@@ -37,6 +41,40 @@ func init() {
 	App = &EchoApp{
 		IsHealth: true,
 	}
+
+}
+
+func GetJobPusher() (gworker.Producer, error) {
+	if App.JobPusher != nil {
+		return App.JobPusher, nil
+	}
+	opt := echoapp.ConfigOpts.Job
+	cfg := &config.Config{
+		Broker:        opt.Broker,
+		DefaultQueue:  opt.DefaultQueue,
+		ResultBackend: opt.ResultBackend,
+		AMQP: &config.AMQPConfig{
+			Exchange:      opt.AMQP.Exchange,
+			ExchangeType:  opt.AMQP.ExchangeType,
+			PrefetchCount: opt.AMQP.PrefetchCount,
+			AutoDelete:    opt.AMQP.AutoDelete,
+		},
+	}
+	var err error
+	App.JobPusher, err = gworker.NewPorducerManager(cfg)
+	if err != nil {
+		glog.Errorf("NewTaskManager : %s", err.Error())
+		return nil, err
+	}
+	return App.JobPusher, nil
+}
+
+func MustGetJopPusherService() gworker.Producer {
+	psuher, err := GetJobPusher()
+	if err != nil {
+		panic(err)
+	}
+	return psuher
 }
 
 func GetAreaService() (echoapp.AreaService, error) {
@@ -309,7 +347,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 	actSvr := MustGetActivityService()
 	wechatSvr := MustGetWechatService()
 	ticketSvr := MustGetTicketService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr)
+	pusher := MustGetJopPusherService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher)
 	return App.OrderSvr, nil
 }
 
@@ -412,10 +451,6 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
-}
-
-func GetEvent() {
-
 }
 
 func GetEs() (*es7.Client, error) {

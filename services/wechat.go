@@ -273,16 +273,22 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
 
-	glog.Info(resp.ResultCode + resp.ReturnCode + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal*100)))
-	if resp.ResultCode == "SUCCESS" || resp.ResultCode == "OK" {
-		if resp.TotalFee == strconv.Itoa(int(order.RealTotal*100)) {
-			return echoapp.OrderPayStatusPaid, nil
+	glog.Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal*100)))
+	if resp.ResultCode == "SUCCESS" {
+		if resp.TradeState == "SUCCESS" {
+			if resp.TotalFee == strconv.Itoa(int(order.RealTotal*100)) {
+				return echoapp.OrderPayStatusPaid, nil
+			} else {
+				glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal*100)))
+				return echoapp.OrderPayStatusUnpay, errors.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal*100)))
+			}
+		} else if resp.TradeState == "REFUND" {
+			return echoapp.OrderPayStatusRefund, nil
 		} else {
-			glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal*100)))
 			return echoapp.OrderPayStatusUnpay, nil
 		}
 	}
-	return echoapp.OrderPayStatusUnpay, nil
+	return echoapp.OrderPayStatusUnpay, errors.New(resp.ReturnMsg)
 }
 
 //查询支付结果

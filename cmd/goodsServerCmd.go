@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -65,7 +66,7 @@ func startGoodsServer() {
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	mode := echoapp.ConfigOpts.ApiVersion
 	normal := e.Group("/" + mode + "/goods/:com_id")
-	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
 
 	goodsCtl := controllers.NewGoodsController(goodsSvr)
 
@@ -117,5 +118,5 @@ var goodsServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(goodsServerCmd)
+	RootCmd.AddCommand(goodsServerCmd)
 }

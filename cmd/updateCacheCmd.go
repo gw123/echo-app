@@ -16,15 +16,16 @@ package cmd
 
 import (
 	"encoding/json"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
-	"os"
-	"os/signal"
-	"time"
 )
 
 var updateMethod = ""
@@ -215,5 +216,5 @@ var updateCacheCmd = &cobra.Command{
 
 func init() {
 	updateCacheCmd.PersistentFlags().StringVarP(&updateMethod, "method", "m", "once", "访问方法")
-	rootCmd.AddCommand(updateCacheCmd)
+	RootCmd.AddCommand(updateCacheCmd)
 }

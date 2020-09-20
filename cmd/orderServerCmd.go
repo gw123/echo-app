@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -124,5 +125,5 @@ var orderServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(orderServerCmd)
+	RootCmd.AddCommand(orderServerCmd)
 }

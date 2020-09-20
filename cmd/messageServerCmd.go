@@ -16,11 +16,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -85,7 +86,6 @@ func startLocalHttp() {
 	normal.Use(loggerMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt), limitMiddleware)
 	normal.GET("/newClient", wsCtl.CreateWsClient)
 
-
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.MessageServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
@@ -115,5 +115,5 @@ var localServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(localServerCmd)
+	RootCmd.AddCommand(localServerCmd)
 }

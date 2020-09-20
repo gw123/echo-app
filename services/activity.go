@@ -3,9 +3,10 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/bsm/redislock"
 	"github.com/gw123/glog"
-	"time"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -113,7 +114,6 @@ func (aSvr *ActivityService) UpdateCachedBannerList(comId uint, position string)
 	}
 	return nil
 }
-
 
 func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 	panic("implement me")
@@ -345,8 +345,7 @@ func (aSvr ActivityService) UpdateCouponCache(coupon *echoapp.Coupon) error {
 	if err != nil {
 		return errors.Wrapf(err, "优惠券缓存更新失败:%d ,marshal", coupon.Id)
 	}
-	if err := aSvr.redis.Set(echoapp.FormatCoupon(coupon.Id), string(couponData), 0).Err();
-		err != nil {
+	if err := aSvr.redis.Set(echoapp.FormatCoupon(coupon.Id), string(couponData), 0).Err(); err != nil {
 		return errors.Wrapf(err, "优惠券缓存更新失败:%d", coupon.Id)
 	}
 	return nil
@@ -376,6 +375,9 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 			Metadata:      "my data",
 			Context:       nil,
 		})
+		if err != nil {
+			return nil, err
+		}
 		defer lock.Release()
 		if err == redislock.ErrNotObtained {
 			return nil, errors.Wrap(err, "获取锁失败")
@@ -470,8 +472,7 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 		}
 
 		if err := tx.Model(&echoapp.Coupon{}).
-			Update("used_total", gorm.Expr("used_total + 1")).Error;
-			err != nil {
+			Update("used_total", gorm.Expr("used_total + 1")).Error; err != nil {
 			tx.Rollback()
 			return errors.Wrap(err, "update err")
 		}

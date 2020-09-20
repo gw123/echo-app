@@ -279,5 +279,5 @@ var reportTicketCmd = &cobra.Command{
 
 func init() {
 	reportTicketCmd.PersistentFlags().StringVarP(&reportWay, "method", "m", "daily", "访问方法")
-	rootCmd.AddCommand(reportTicketCmd)
+	RootCmd.AddCommand(reportTicketCmd)
 }

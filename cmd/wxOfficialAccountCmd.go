@@ -88,5 +88,5 @@ var wxServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(wxServerCmd)
+	RootCmd.AddCommand(wxServerCmd)
 }

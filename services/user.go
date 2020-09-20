@@ -417,6 +417,19 @@ func (uSvr *UserService) SubScore(ctx echo.Context, user *echoapp.User, amount i
 	return uSvr.Save(user)
 }
 
+func (uSvr *UserService) AddScoreByUserId(comID, userID uint, score int, source string, detail string, note string) error {
+	user, err := uSvr.GetUserById(int64(userID))
+	if err != nil {
+		return err
+	}
+	if user.ComId != comID {
+		return errors.New("comID userID not match")
+	}
+
+	user.Score += score
+	return uSvr.Save(user)
+}
+
 func (uSvr *UserService) GetUserAddressList(userId int64) ([]*echoapp.Address, error) {
 	var addrList []*echoapp.Address
 	if err := uSvr.db.Table("user_address").Where("user_id=?", userId).Order("updated_at DESC").Find(&addrList).Error; err != nil {
@@ -641,7 +654,7 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 				}
 			}
 			uSvr.redis.Del(RedisUserHistoryLockKey)
-		}else {
+		} else {
 			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
 		}
 	}
@@ -728,8 +741,7 @@ func (u *UserService) GetUserCodeAndUpdate(user *echoapp.User) (string, error) {
 	}
 
 	val := fmt.Sprintf("%d::%d", user.Id, rand)
-	if err := u.redis.Set(FormatUserCodeRedisKey(hash), val, time.Second*30).Err();
-		err != nil {
+	if err := u.redis.Set(FormatUserCodeRedisKey(hash), val, time.Second*30).Err(); err != nil {
 		return "", errors.Wrap(err, "GetUserCodeAndUpdate.")
 	}
 	return hash, nil

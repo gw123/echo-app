@@ -16,13 +16,14 @@ package cmd
 
 import (
 	"encoding/json"
+	"os"
+	"os/signal"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/services"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
-	"os"
-	"os/signal"
 )
 
 func doCheckTicketWorker() {
@@ -74,12 +75,12 @@ func doSyncPartnerCodeWorker() {
 	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	msgs, err := ch.Consume(
 		"ticket-sync-code", // queue
-		"",             // consumer
-		false,          // auto-ack
-		false,          // exclusive
-		false,          // no-local
-		false,          // no-wait
-		nil,            // args
+		"",                 // consumer
+		false,              // auto-ack
+		false,              // exclusive
+		false,              // no-local
+		false,              // no-wait
+		nil,                // args
 	)
 
 	for msg := range msgs {
@@ -135,6 +136,6 @@ var syncPartnerCodeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(checkTicketDaemonCmd)
-	rootCmd.AddCommand(syncPartnerCodeCmd)
+	RootCmd.AddCommand(checkTicketDaemonCmd)
+	RootCmd.AddCommand(syncPartnerCodeCmd)
 }

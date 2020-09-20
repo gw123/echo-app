@@ -3,17 +3,19 @@ module github.com/gw123/echo-app
 go 1.14
 
 require (
+	github.com/RichardKnop/machinery v1.8.6
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.246
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/bsm/redislock v0.5.0
 	github.com/chanxuehong/wechat v0.0.0-20200409104612-0a1fd76d7a3a
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/forgoer/openssl v0.0.0-20200331032942-ad9f8d57d8b1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gw123/glog v1.1.3-0.20200725040035-6af5ed4b7f47
+	github.com/gw123/gworker v1.4.4
 	github.com/iGoogle-ink/gopay v1.5.16-0.20200714134502-68dab747848e
 	github.com/iGoogle-ink/gotil v1.0.3
 	github.com/jinzhu/gorm v1.9.14

@@ -94,7 +94,7 @@ func (o *Order) AfterFind() error {
 			o.Status = OrderStatusCommented
 		}
 	default:
-		glog.Warn("unknow pay_status")
+		glog.Warn("unknow pay_status:" + o.PayStatus)
 	}
 
 	o.GoodsList = make([]*CartGoodsItem, 0)

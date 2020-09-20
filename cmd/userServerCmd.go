@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -86,8 +87,8 @@ func startUserServer() {
 	//jwsAuth := e.Group("/v1/user")
 	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
 		//IgnoreAuth: true,
 		//MockUserId: 58,
 	}
@@ -147,5 +148,5 @@ var userServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(userServerCmd)
+	RootCmd.AddCommand(userServerCmd)
 }

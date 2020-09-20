@@ -1,29 +1,36 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/bsm/redislock"
+
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/jobs"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
+	"github.com/gw123/gworker"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
 type OrderService struct {
-	db      *gorm.DB
-	mu      sync.Mutex
-	redis   *redis.Client
-	goodSvr echoapp.GoodsService
-	actSvr  echoapp.ActivityService
-	wechat  echoapp.WechatService
-	tkSvr   echoapp.TicketService
+	db        *gorm.DB
+	mu        sync.Mutex
+	redis     *redis.Client
+	goodSvr   echoapp.GoodsService
+	actSvr    echoapp.ActivityService
+	wechat    echoapp.WechatService
+	tkSvr     echoapp.TicketService
+	jobPusher gworker.Producer
+	lock      *redislock.Client
 }
 
 func NewOrderService(db *gorm.DB,
@@ -32,14 +39,18 @@ func NewOrderService(db *gorm.DB,
 	actSvr echoapp.ActivityService,
 	wechat echoapp.WechatService,
 	tkSvr echoapp.TicketService,
+	jobPusher gworker.Producer,
 ) *OrderService {
+	lock := redislock.New(redis)
 	help := &OrderService{
-		db:      db,
-		redis:   redis,
-		goodSvr: goodsSvr,
-		actSvr:  actSvr,
-		wechat:  wechat,
-		tkSvr:   tkSvr,
+		db:        db,
+		redis:     redis,
+		goodSvr:   goodsSvr,
+		actSvr:    actSvr,
+		wechat:    wechat,
+		tkSvr:     tkSvr,
+		jobPusher: jobPusher,
+		lock:      lock,
 	}
 	return help
 }
@@ -130,7 +141,8 @@ func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) 
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")
 	}
-
+	job := &jobs.OrderCreate{Order: order}
+	oSvr.jobPusher.PostJob(context.Background(), job)
 	return &echoapp.UnifiedOrderResp{
 		WxPreOrderResponse: *resp,
 		OrderNo:            order.OrderNo,
@@ -174,14 +186,29 @@ func (oSvr *OrderService) RefundOrderTickets(order *echoapp.Order, tx *gorm.DB) 
 }
 
 func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus string) (*echoapp.Order, error) {
-	orderBeferStatuss := order.Status
-	if order.Status == echoapp.OrderStatusPaid || order.Status == echoapp.OrderStatusRefund {
+	// 给订单查询前加锁 防止一个订单多次修改
+	lock, err := oSvr.lock.Obtain("create_order:"+order.OrderNo, time.Second*5, &redislock.Options{
+		RetryStrategy: redislock.LimitRetry(redislock.LinearBackoff(time.Millisecond*500), 10),
+		Metadata:      "my data",
+		Context:       nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	defer lock.Release()
+	// 获取锁后在查询一次防止订单状态在获取锁前修改
+	orderStatus, err := oSvr.GetOrderPayStatusByOrderNo(order.OrderNo)
+	if err != nil {
+		return nil, err
+	}
+
+	if orderStatus == echoapp.OrderStatusPaid || orderStatus == echoapp.OrderStatusRefund {
 		//订单已经是最终的状态
 		return order, nil
 	}
 
 	var currentStatus string
-	var err error
 	switch order.ClientType {
 	case echoapp.ClientWxOfficial, echoapp.ClientWxMiniApp:
 		if shouldStatus == echoapp.OrderPayStatusPaid {
@@ -189,48 +216,60 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 		} else if shouldStatus == echoapp.OrderStatusRefund {
 			currentStatus, err = oSvr.wechat.QueryRefund(order)
 		}
-		if err != nil {
-			return nil, err
-		}
 	default:
 		return nil, errors.New("暂时不支持该支付方式")
 	}
 
+	if err != nil {
+		return nil, err
+	}
 	if currentStatus == echoapp.OrderPayStatusUnpay {
 		return order, nil
 	}
 
+	order.PayStatus = currentStatus
 	//从未支付到支付成功
-	if orderBeferStatuss == echoapp.OrderStatusUnpay && currentStatus == echoapp.OrderStatusPaid {
-		order.Status = echoapp.OrderPayStatusPaid
+	if currentStatus == echoapp.OrderStatusPaid {
 		tx := oSvr.db.Begin()
-		//创建票
+		// 创建票
 		err := oSvr.CreateOrderTickets(order, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "create ticket")
 		}
-
-		if err := tx.Model(order).UpdateColumn("status", order.Status).Error; err != nil {
+		// update order status
+		if err := tx.Model(order).UpdateColumn("status", order.PayStatus).Error; err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
 		tx.Commit()
-		//发送通知
+
+		// 发送通知
+		scoreJob := &jobs.UserScoreChange{
+			ComId:        order.ComId,
+			UserId:       order.UserId,
+			Score:        int(order.RealTotal * 100),
+			Source:       "order",
+			SourceDetail: "pay",
+		}
+		orderPaid := &jobs.OrderPaid{
+			order,
+		}
+		glog.Info("send orderPaid job")
+		oSvr.jobPusher.PostJob(context.Background(), orderPaid)
+		oSvr.jobPusher.PostJob(context.Background(), scoreJob)
 	} else if currentStatus == echoapp.OrderPayStatusRefund {
-		order.Status = echoapp.OrderStatusRefund
 		tx := oSvr.db.Begin()
 		_, err := oSvr.RefundOrderTickets(order, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "refund ticket")
 		}
-		if err := tx.Model(order).UpdateColumn("status", order.Status).Error; err != nil {
+		if err := tx.Model(order).UpdateColumn("status", order.PayStatus).Error; err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
 		tx.Commit()
-
 	}
 	return order, nil
 }
@@ -510,4 +549,12 @@ func (oSvr *OrderService) StatisticComGoodsSalesByDate(start, end string, comId 
 		return nil, errors.Wrap(err, "Create")
 	}
 	return salesStatistic, nil
+}
+
+func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, error) {
+	order := &echoapp.Order{}
+	if err := oSvr.db.Where("order_no = ?", orderNo).First(order).Error; err != nil {
+		return "", errors.Wrap(err, "GetOrderPayStatusByOrderNo")
+	}
+	return order.Status, nil
 }

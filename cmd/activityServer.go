@@ -102,5 +102,5 @@ var activityServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(activityServerCmd)
+	RootCmd.AddCommand(activityServerCmd)
 }
