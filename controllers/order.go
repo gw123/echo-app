@@ -132,6 +132,7 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
+	params.ExpressStatus = echoapp.OrderStatusToShip
 	resp, err := orderCtrl.orderSvc.UniPreOrder(params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

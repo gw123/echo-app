@@ -13,6 +13,7 @@ const (
 	OrderStatusPaid      = "paid"
 	OrderStatusRefund    = "refund"
 	OrderStatusShipping  = "shipping"
+	OrderStatusToShip    = "unship"
 	OrderStatusSigned    = "signed"
 	OrderStatusCancel    = "cancel"
 	OrderStatusCommented = "commented"

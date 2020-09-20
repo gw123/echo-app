@@ -141,6 +141,7 @@ func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) 
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")
 	}
+	// 拉取订单支付状态
 	job := &jobs.OrderCreate{Order: order}
 	oSvr.jobPusher.PostJob(context.Background(), job)
 	return &echoapp.UnifiedOrderResp{
@@ -393,7 +394,7 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	case echoapp.OrderStatusCommented:
 		query = query.Where("status = ?", status)
 	case echoapp.OrderStatusShipping:
-		fallthrough
+		query = query.Where("status= ?", echoapp.OrderStatusPaid)
 	case echoapp.OrderStatusSigned:
 		query = query.Where("status= ? and express_status=?", echoapp.OrderStatusPaid, status)
 	default:
