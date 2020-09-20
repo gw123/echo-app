@@ -3,6 +3,7 @@ package controllers
 import (
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -108,7 +109,23 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 	}
 	params.Address = addr
 
+	if params.InviterId == uint(user.Id) {
+		// 自己邀请自己不算
+		params.InviterId = 0
+	}
+
+	if params.InviterId != 0 {
+		glog.Infof("inviterId :%d ", params.InviterId)
+	}
+
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
+	switch clientType {
+	case echoapp.ClientWxOfficial:
+		params.Source = "公众号"
+	case echoapp.ClientWxMiniApp:
+		params.Source = "小程序"
+	}
+
 	params.ClientType = clientType
 	params.ClientIP = ctx.RealIP()
 	if err := orderCtrl.orderSvc.PreCheckOrder(params); err != nil {
@@ -127,7 +144,7 @@ func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
 }
 
 /***
-查询订单的支付结果
+  查询订单的支付结果
 */
 func (orderCtrl *OrderController) QueryOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}

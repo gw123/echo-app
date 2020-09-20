@@ -81,8 +81,9 @@ func startSiteServer() {
 
 	normal := e.Group("/" + mode + "/site/:com_id")
 
-	normal.Use(companyMiddleware, limitMiddleware, )
+	normal.Use(companyMiddleware, limitMiddleware)
 	//首页显示
+	normal.GET("/getWxConfig", siteCtl.GetWxConfig, tryJwsMiddle)
 	normal.GET("/wxMessage", siteCtl.WxMessage)
 	normal.GET("/getBannerList", siteCtl.GetBannerList)
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)

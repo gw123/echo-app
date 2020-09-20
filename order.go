@@ -2,8 +2,8 @@ package echoapp
 
 import (
 	"encoding/json"
-	"github.com/iGoogle-ink/gopay/wechat"
 	"time"
+
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 )
@@ -145,7 +145,7 @@ func (*GoodsSalesSatistic) TableName() string {
 }
 
 type UnifiedOrderResp struct {
-	wechat.UnifiedOrderResponse
+	WxPreOrderResponse
 	OrderNo string `json:"order_no"`
 }
 
