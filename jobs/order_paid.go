@@ -7,7 +7,7 @@ import (
 )
 
 type OrderPaid struct {
-	*echoapp.Order
+	Order *echoapp.Order
 }
 
 func (s *OrderPaid) Trace() []string {

@@ -24,19 +24,20 @@ const (
 )
 
 type Order struct {
-	ID            uint             `json:"id" gorm:"primary_key"`
-	CreatedAt     time.Time        `json:"created_at"`
-	UpdatedAt     time.Time        `json:"updated_at"`
-	PaidAt        time.Time        `json:"paid_at"`
-	Source        string           `json:"source"`
-	PayMethod     string           `json:"pay_method"`
-	ComId         uint             `json:"com_id"`
-	ShopId        uint             `json:"shop_id"`
-	OrderNo       string           `json:"order_no"`
-	UserId        uint             `json:"user_id"`
-	SellerId      uint             `json:"seller_id"`
-	InviterId     uint             `json:"inviter_id"`
-	PayStatus     string           `json:"pay_status" gorm:"column:status"`
+	ID        uint      `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	PaidAt    time.Time `json:"paid_at"`
+	Source    string    `json:"source"`
+	PayMethod string    `json:"pay_method"`
+	ComId     uint      `json:"com_id"`
+	ShopId    uint      `json:"shop_id"`
+	OrderNo   string    `json:"order_no"`
+	UserId    uint      `json:"user_id"`
+	SellerId  uint      `json:"seller_id"`
+	InviterId uint      `json:"inviter_id"`
+	PayStatus string    `json:"pay_status" gorm:"column:status"`
+	// Status 是一个根据pay_status和express_status计算出来的字段
 	Status        string           `json:"status" gorm:"-"`
 	ExpressStatus string           `json:"express_status"`
 	AddressId     uint             `json:"address_id"`

@@ -11,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/silenceper/wechat/v2/officialaccount/message"
+
+	"github.com/silenceper/wechat/v2/officialaccount"
+
 	mpoauth2 "github.com/chanxuehong/wechat/mp/oauth2"
 	"github.com/chanxuehong/wechat/oauth2"
 	"github.com/go-redis/redis/v7"
@@ -29,15 +33,17 @@ import (
 )
 
 type WechatService struct {
-	authRedirectUrl string
-	comSvr          echoapp.CompanyService
-	wx              *wx.Wechat
-	jsHost          string
-	reids           *redis.Client
+	authRedirectUrl  string
+	comSvr           echoapp.CompanyService
+	wx               *wx.Wechat
+	jsHost           string
+	reids            *redis.Client
+	officialAccounts map[uint]*officialaccount.OfficialAccount
 }
 
 func NewWechatService(comSvr echoapp.CompanyService, authUrl string, jsHost string, redis *redis.Client) *WechatService {
 	wx := wx.NewWechat()
+
 	return &WechatService{
 		comSvr:          comSvr,
 		authRedirectUrl: authUrl,
@@ -117,6 +123,15 @@ func (we *WechatService) GetEndPoint(comId uint) (*mpoauth2.Endpoint, error) {
 	return oauth2Endpoint, nil
 }
 
+func (we *WechatService) GetClient(comId uint) (*mpoauth2.Endpoint, error) {
+	com, err := we.comSvr.GetCachedCompanyById(comId)
+	if err != nil {
+		return nil, errors.Wrapf(err, "GetEndPoint 获取com.WxOfficialAppId失败：%d", comId)
+	}
+	oauth2Endpoint := mpoauth2.NewEndpoint(com.WxOfficialAppId, com.WxOfficialSecret)
+	return oauth2Endpoint, nil
+}
+
 func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code string) (*mpoauth2.UserInfo, error) {
 	endPoint, err := we.GetEndPoint(comId)
 	if err != nil {
@@ -140,7 +155,94 @@ func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code strin
 	return userinfo, nil
 }
 
-func (we *WechatService) UnifiedOrderv1(order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
+func (we *WechatService) GetAccessToken(comID uint) (string, error) {
+	officialaccount, err := we.GetOfficialByComID(comID)
+	if err != nil {
+		return "", err
+	}
+	return officialaccount.GetAccessToken()
+}
+
+func (we *WechatService) GetOfficialByComID(comID uint) (*officialaccount.OfficialAccount, error) {
+	officialAccount, ok := we.officialAccounts[comID]
+	if !ok {
+		cfg, err := we.GetComOfficialCfg(comID)
+		if err != nil {
+			return nil, err
+		}
+		officialAccount = we.wx.GetOfficialAccount(cfg)
+	}
+	return officialAccount, nil
+}
+
+// SendTplMessage 发送模板消息跳转到公众号网页
+func (we *WechatService) SendTplMessageRaw(ctx context.Context, comID uint, openid, templateID, URL string, items echoapp.TemplateDataItemMap) (int64, error) {
+	account, err := we.GetOfficialByComID(comID)
+	if err != nil {
+		return 0, err
+	}
+
+	data := make(map[string]*message.TemplateDataItem)
+	for key, item := range items {
+		data[key] = &message.TemplateDataItem{
+			Value: item.Value,
+			Color: item.Color,
+		}
+	}
+
+	return account.GetTemplate().Send(&message.TemplateMessage{
+		ToUser:     openid,
+		TemplateID: templateID,
+		URL:        URL,
+		Color:      "",
+		Data:       data,
+	})
+}
+
+// SendTplMessage 发送模板消息跳转到公众号网页
+func (we *WechatService) SendTplMessage(ctx context.Context, msg echoapp.TemplateMessage) (int64, error) {
+	com, err := we.comSvr.GetCompanyById(msg.GetComID())
+	if err != nil {
+		return 0, errors.Wrap(err, "GetCompanyById")
+	}
+
+	wxTemplateType := com.GetTemplateType(msg.GetMsgType())
+	if wxTemplateType == nil {
+		return 0, errors.New("unset template type : " + msg.GetMsgType())
+	}
+
+	data := make(map[string]*message.TemplateDataItem)
+	for key, val := range msg.GetItems() {
+		data[key] = &message.TemplateDataItem{
+			Value: val.Value,
+		}
+
+		if color := wxTemplateType.GetKeywordColor(key); color != "" {
+			data[key].Color = color
+		}
+	}
+
+	account, err := we.GetOfficialByComID(msg.GetComID())
+	if err != nil {
+		return 0, err
+	}
+
+	return account.GetTemplate().Send(&message.TemplateMessage{
+		TemplateID: wxTemplateType.TemplateID,
+		ToUser:     msg.GetOpenid(),
+		URL:        msg.GetUrl(),
+		Data:       data,
+		MiniProgram: struct {
+			AppID    string `json:"appid"`
+			PagePath string `json:"pagepath"`
+		}{
+			AppID:    msg.GetMiniAppID(),
+			PagePath: msg.GetUrl(),
+		},
+	})
+}
+
+func (we *WechatService) UnifiedOrderByPHP(order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
 	params := make(map[string]string)
 	params["openid"] = openId
 	params["comID"] = strconv.Itoa(int(order.ComId))

@@ -203,7 +203,7 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 	if err != nil {
 		return nil, err
 	}
-
+	glog.Info("current order status : " + orderStatus)
 	if orderStatus == echoapp.OrderStatusPaid || orderStatus == echoapp.OrderStatusRefund {
 		//订单已经是最终的状态
 		return order, nil
@@ -254,7 +254,7 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 			SourceDetail: "pay",
 		}
 		orderPaid := &jobs.OrderPaid{
-			order,
+			Order: order,
 		}
 		glog.Info("send orderPaid job")
 		oSvr.jobPusher.PostJob(context.Background(), orderPaid)
@@ -557,5 +557,5 @@ func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, er
 	if err := oSvr.db.Where("order_no = ?", orderNo).First(order).Error; err != nil {
 		return "", errors.Wrap(err, "GetOrderPayStatusByOrderNo")
 	}
-	return order.Status, nil
+	return order.PayStatus, nil
 }

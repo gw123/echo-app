@@ -8,7 +8,7 @@ require (
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/bsm/redislock v0.5.0
 	github.com/chanxuehong/wechat v0.0.0-20200409104612-0a1fd76d7a3a
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/forgoer/openssl v0.0.0-20200331032942-ad9f8d57d8b1
 	github.com/fsnotify/fsnotify v1.4.9

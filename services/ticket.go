@@ -1,13 +1,14 @@
 package services
 
 import (
-	echoapp "github.com/gw123/echo-app"
-	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
+
+	echoapp "github.com/gw123/echo-app"
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 type TicketService struct {
@@ -61,6 +62,7 @@ func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string,
 		Cover:      goods.Cover,
 		ComId:      order.ComId,
 		UserId:     order.UserId,
+		Mobile:     address.Mobile,
 		Rand:       int64(r),
 		Source:     source,
 		AddressID:  address.ID,

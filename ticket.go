@@ -2,8 +2,9 @@ package echoapp
 
 import (
 	"fmt"
-	"github.com/gw123/glog"
 	"time"
+
+	"github.com/gw123/glog"
 )
 
 const (
@@ -29,7 +30,7 @@ type Ticket struct {
 	OrderId    uint       `json:"-"`
 	Mobile     string     `json:"mobile"`
 	Name       string     `json:"name" gorm:"-"`
-	Source     string     `json:"name" gorm:"source"`
+	Source     string     `json:"source" gorm:"source"`
 	Number     uint       `json:"number"`
 	Status     string     `json:"status"  gorm:"status" `
 	UsedNumber uint       `json:"used_number"`

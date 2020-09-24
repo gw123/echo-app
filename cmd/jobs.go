@@ -6,4 +6,5 @@ func init() {
 	RootCmd.AddCommand(jobs.OrderCreateCmd)
 	RootCmd.AddCommand(jobs.UserScoreChangeCmd)
 	RootCmd.AddCommand(jobs.OrderPaidCmd)
+	RootCmd.AddCommand(jobs.OrderPaidTestCmd)
 }
