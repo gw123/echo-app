@@ -2,7 +2,6 @@ package jobs
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/RichardKnop/machinery/v1/config"
@@ -27,29 +26,42 @@ func (o *OrderPaid) Handle() error {
 		return err
 	}
 
-	var ticketNames []string
-	var totalTicketNum uint
-	for _, ticket := range o.Order.Tickets {
-		ticketNames = append(ticketNames, ticket.Name)
-		totalTicketNum += ticket.Number
-		glog.Infof("--> %+v", ticket)
+	msg := &echoapp.TplMsgOrderPaid{
+		BaseTemplateMessage: echoapp.BaseTemplateMessage{
+			ComID:  o.Order.ComId,
+			Openid: user.Openid,
+		},
+		OrderNO: o.Order.OrderNo,
+		Amount:  o.Order.RealTotal,
 	}
+	wechat.SendTplMessage(context.Background(), msg)
+	glog.Info("微信支付成功回调: 发送订单支付成功模板消息")
 
-	if totalTicketNum > 0 {
-		msg := &echoapp.TplMsgCreateTicket{
-			BaseTemplateMessage: echoapp.BaseTemplateMessage{
-				ComID:  o.Order.ComId,
-				Openid: user.Openid,
-			},
-			UserName:   o.Order.Address.Username,
-			OrderNO:    o.Order.OrderNo,
-			TicketName: strings.Join(ticketNames, ","),
-			Num:        totalTicketNum,
-			CreatedAt:  o.Order.CreatedAt,
-			Amount:     o.Order.RealTotal,
+	// 订单中包含门票推送门票信息
+	if len(o.Order.Tickets) > 0 {
+		//var ticketNames []string
+		//var totalTicketNum uint
+
+		for _, ticket := range o.Order.Tickets {
+			//ticketNames = append(ticketNames, ticket.Name)
+			//totalTicketNum += ticket.Number
+			msg := &echoapp.TplMsgCreateTicket{
+				BaseTemplateMessage: echoapp.BaseTemplateMessage{
+					ComID:  o.Order.ComId,
+					Openid: user.Openid,
+				},
+				UserName:   o.Order.Address.Username,
+				OrderNO:    o.Order.OrderNo,
+				TicketName: ticket.Name,
+				Num:        ticket.Number,
+				CreatedAt:  o.Order.CreatedAt,
+				Amount:     o.Order.RealTotal,
+				CheckCode:  ticket.GetCode(),
+			}
+			wechat.SendTplMessage(context.Background(), msg)
 		}
-		wechat.SendTplMessage(context.Background(), msg)
-		glog.Info("微信支付成功回调: 发送模板消息")
+
+		glog.Info("微信支付成功回调: 发送门票模板消息")
 	}
 	return nil
 }

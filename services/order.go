@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 
@@ -73,9 +72,9 @@ func (oSvr *OrderService) makeTicketNo(userId uint) string {
 }
 
 func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, error) {
-	ticket, err := oSvr.DeTicketCode(code)
+	ticket, err := oSvr.tkSvr.DeTicketCode(code)
 	if err != nil {
-		return nil, errors.Wrap(err, "DeTicketCode")
+		return nil, errors.Wrap(err, "DeTicketCode ->")
 	}
 	order, err := oSvr.GetOrderById(ticket.OrderId)
 	if err != nil {
@@ -115,24 +114,6 @@ func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, err
 		Tickets:     tickets,
 	}
 	return codeTicket, nil
-}
-
-func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
-	rand, _ := strconv.ParseInt(code[0:8], 10, 64)
-	temp, _ := strconv.ParseInt(code[8:], 10, 64)
-	if rand == 0 || temp == 0 {
-		return nil, errors.New("code is not vaild")
-	}
-	tId := temp - 1234 - rand
-	ticket := &echoapp.Ticket{}
-	if err := oSvr.db.Where("id = ?", tId).First(ticket).Error; err != nil {
-		return nil, errors.Wrap(err, "db err")
-	}
-	if ticket.Rand != rand {
-		return nil, errors.New("校验失败")
-	}
-
-	return ticket, nil
 }
 
 func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {

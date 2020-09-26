@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gw123/glog"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -21,14 +23,18 @@ func NewTicketService(db *gorm.DB) *TicketService {
 }
 
 func (tkSvr *TicketService) DeTicketCode(code string) (*echoapp.Ticket, error) {
+	if len(code) < 16 {
+		return nil, errors.New("code invalid")
+	}
 	rand, _ := strconv.ParseInt(code[0:8], 10, 64)
 	temp, _ := strconv.ParseInt(code[8:], 10, 64)
 	if rand == 0 || temp == 0 {
 		return nil, errors.New("code is not vaild")
 	}
+	glog.Infof("rand %d ,temp %d", rand, temp)
 	tId := temp - echoapp.IdHashSalt - rand
 	ticket := &echoapp.Ticket{}
-	if err := tkSvr.db.Where("id = ?", tId).First(ticket).Error; err != nil {
+	if err := tkSvr.db.Debug().Where("id = ?", tId).First(ticket).Error; err != nil {
 		return nil, errors.Wrap(err, "db err")
 	}
 	if ticket.Rand != rand {

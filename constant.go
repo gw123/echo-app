@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	ServerIndex  = "http://m.xytschool.com/index-dev/%d#%s"
 	TimeFormat   = "2006-01-02 15:04:05"
 	DateFormat   = "2006-01-02"
 	HostURL      = "host_url"
@@ -128,6 +129,38 @@ var AppErrTicketOverdue = NewAppError(CodeNotAllow, "", ErrTicketOverdue)
 var AppErrTicketUsed = NewAppError(CodeNotAllow, "", ErrTicketUsed)
 var AppErrTicketNotEnough = NewAppError(CodeNotAllow, "", ErrTicketNotEnough)
 
+// 微信模板消息
+/***
+TplMsgCreateTicket 创建订单的模板消息
+*/
+type TplMsgOrderPaid struct {
+	BaseTemplateMessage
+	OrderNO string
+	Amount  float32
+}
+
+func (t *TplMsgOrderPaid) GetUrl() string {
+	return fmt.Sprintf(ServerIndex, t.BaseTemplateMessage.ComID, "/pages/order/order?state=2")
+}
+
+func (t *TplMsgOrderPaid) GetMiniAppID() string {
+	return ""
+}
+
+func (t *TplMsgOrderPaid) GetMsgType() string {
+	return "order_paid"
+}
+
+func (t *TplMsgOrderPaid) GetItems() TemplateDataItemMap {
+	items := TemplateDataItemMap{
+		"first":    &TemplateDataItem{Value: t.First},
+		"keyword1": &TemplateDataItem{Value: t.OrderNO},
+		"keyword2": &TemplateDataItem{Value: fmt.Sprintf("%.2f", t.Amount)},
+		"remark":   &TemplateDataItem{Value: t.Remark},
+	}
+	return items
+}
+
 /***
 TplMsgCreateTicket 创建订单的模板消息
 */
@@ -138,11 +171,12 @@ type TplMsgCreateTicket struct {
 	TicketName string
 	Num        uint
 	Amount     float32
+	CheckCode  string
 	CreatedAt  time.Time
 }
 
 func (t *TplMsgCreateTicket) GetUrl() string {
-	return "http://m.xytschool.com/index/14#/"
+	return fmt.Sprintf(ServerIndex, t.BaseTemplateMessage.ComID, "/pages/ticket/index?code="+t.CheckCode)
 }
 
 func (t *TplMsgCreateTicket) GetMiniAppID() string {
@@ -150,7 +184,7 @@ func (t *TplMsgCreateTicket) GetMiniAppID() string {
 }
 
 func (t *TplMsgCreateTicket) GetMsgType() string {
-	return "order_paid"
+	return "create_ticket"
 }
 
 func (t *TplMsgCreateTicket) GetItems() TemplateDataItemMap {
