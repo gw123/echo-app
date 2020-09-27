@@ -2,6 +2,7 @@ package echoapp
 
 import (
 	"github.com/go-redis/redis/v7"
+	"github.com/gw123/gworker"
 	"github.com/spf13/viper"
 )
 
@@ -37,23 +38,7 @@ type ConfigOptions struct {
 	Wechat            *Wechat                       `yaml:"wechat" mapstructure:"wechat"`
 	Es                *EsOptions                    `yaml:"es" mapstructure:"es"`
 	Redis             *redis.Options
-	Job               *JobOpt `yaml:job  mapstructure:"job"`
-}
-
-// Config holds all configuration for our program
-type JobOpt struct {
-	Broker        string      `yaml:"broker" mapstructure:"broker"`
-	DefaultQueue  string      `yaml:"default_queue" mapstructure:"default_queue"`
-	ResultBackend string      `yaml:"result_backend" mapstructure:"result_backend"`
-	AMQP          *AMQPConfig `yaml:"amqp" mapstructure:"amqp"`
-}
-
-type AMQPConfig struct {
-	Exchange      string `yaml:"exchange" `
-	ExchangeType  string `yaml:"exchange_type"  mapstructure:"exchange_type"`
-	BindingKey    string `yaml:"binding_key" mapstructure:"binding_key"`
-	PrefetchCount int    `yaml:"prefetch_count" mapstructure:"prefetch_count"`
-	AutoDelete    bool   `yaml:"auto_delete" mapstructure:"auto_delete"`
+	Job               *gworker.Options `yaml:job  mapstructure:"job"`
 }
 
 type EsOptions struct {

@@ -13,10 +13,6 @@ type UserScoreChange struct {
 	Note         string
 }
 
-func (s *UserScoreChange) Trace() []string {
-	return nil
-}
-
 func (s *UserScoreChange) GetName() string {
 	return "user-score-change"
 }

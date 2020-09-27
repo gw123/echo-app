@@ -123,8 +123,9 @@ func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) 
 		return nil, errors.Wrap(err, "下单失败")
 	}
 	// 拉取订单支付状态
-	job := &jobs.OrderCreate{Order: order}
-	oSvr.jobPusher.PostJob(context.Background(), job)
+	fetchJob := &jobs.OrderCreate{Order: order}
+	oSvr.jobPusher.PostJob(context.Background(), fetchJob)
+
 	return &echoapp.UnifiedOrderResp{
 		WxPreOrderResponse: *resp,
 		OrderNo:            order.OrderNo,

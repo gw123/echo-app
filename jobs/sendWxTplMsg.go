@@ -11,10 +11,6 @@ type SendWxTplMsg struct {
 	Msg          string
 }
 
-func (s *SendWxTplMsg) Trace() []string {
-	return nil
-}
-
 func (s *SendWxTplMsg) GetName() string {
 	return "send-wx-tpl-msg"
 }

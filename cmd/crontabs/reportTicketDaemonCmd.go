@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package crontabs
 
 import (
 	"bytes"
@@ -253,7 +253,7 @@ var reportWay string
 go run entry/main.go report-ticket  -m hour
 go run entry/main.go report-ticket  -m daily
 */
-var reportTicketCmd = &cobra.Command{
+var ReportTicketCmd = &cobra.Command{
 	Use:   "report-ticket",
 	Short: "上报",
 	Long:  `上报使用情况`,
@@ -278,6 +278,5 @@ var reportTicketCmd = &cobra.Command{
 }
 
 func init() {
-	reportTicketCmd.PersistentFlags().StringVarP(&reportWay, "method", "m", "daily", "访问方法")
-	RootCmd.AddCommand(reportTicketCmd)
+	ReportTicketCmd.PersistentFlags().StringVarP(&reportWay, "method", "m", "daily", "访问方法")
 }

@@ -2,9 +2,8 @@ package jobs
 
 import (
 	"context"
-	"time"
+	"encoding/json"
 
-	"github.com/RichardKnop/machinery/v1/config"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/jobs"
@@ -13,11 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type OrderPaid struct {
+type OrderPaidJobber struct {
 	jobs.OrderPaid
 }
 
-func (o *OrderPaid) Handle() error {
+func (o *OrderPaidJobber) Handle() error {
 	glog.DefaultLogger().WithField(o.GetName(), o.Order.OrderNo).Info("微信支付成功事件")
 	wechat := app.MustGetWechatService()
 	userSvr := app.MustGetUserService()
@@ -45,6 +44,7 @@ func (o *OrderPaid) Handle() error {
 		for _, ticket := range o.Order.Tickets {
 			//ticketNames = append(ticketNames, ticket.Name)
 			//totalTicketNum += ticket.Number
+			glog.Info("微信支付成功回调: 发送门票模板消息")
 			msg := &echoapp.TplMsgCreateTicket{
 				BaseTemplateMessage: echoapp.BaseTemplateMessage{
 					ComID:  o.Order.ComId,
@@ -59,41 +59,33 @@ func (o *OrderPaid) Handle() error {
 				CheckCode:  ticket.GetCode(),
 			}
 			wechat.SendTplMessage(context.Background(), msg)
-		}
 
-		glog.Info("微信支付成功回调: 发送门票模板消息")
+			//发送短信
+			glog.Info("微信支付成功回调: 发送门票短信通知")
+			pusher := app.MustGetJopPusherService()
+			type Params struct {
+				Username string `json:"username"`
+				Source   string `json:"source"`
+				Code     string `json:"code"`
+			}
+			params := &Params{
+				Username: ticket.Username,
+				Source:   ticket.Source,
+				Code:     ticket.GetCode(),
+			}
+			data, _ := json.Marshal(params)
+			smsJob := jobs.SendSms{
+				SendMessageOptions: echoapp.SendMessageOptions{
+					ComId:         o.Order.ComId,
+					PhoneNumbers:  []string{ticket.Mobile},
+					Type:          "ticketCode",
+					TemplateParam: string(data),
+				},
+			}
+			pusher.PostJob(context.Background(), &smsJob)
+		}
 	}
 	return nil
-}
-
-var OrderPaidTestCmd = &cobra.Command{
-	Use:   "order_paid_test",
-	Short: "微信支付成功回调",
-	Long:  `微信支付成功回调`,
-	Run: func(cmd *cobra.Command, args []string) {
-		msg := &echoapp.TplMsgCreateTicket{
-			BaseTemplateMessage: echoapp.BaseTemplateMessage{
-				ComID:  14,
-				Openid: "oNrV6w92st6gWbXxySDiohmC2KtM",
-				Remark: "点击查看电子码",
-				First:  "您的门票已经购买成功,点击本条消息使用门票",
-			},
-			UserName:   "gw123",
-			OrderNO:    "12312312123123",
-			TicketName: "故宫门票",
-			Num:        1,
-			CreatedAt:  time.Now(),
-			Amount:     1.02,
-		}
-
-		wechat := app.MustGetWechatService()
-		_, err := wechat.SendTplMessage(context.Background(), msg)
-		if err != nil {
-			glog.Errorf("发送模板消息失败：%s", err)
-			return
-		}
-		glog.Info("微信支付成功回调: 发送模板消息")
-	},
 }
 
 var OrderPaidCmd = &cobra.Command{
@@ -101,26 +93,15 @@ var OrderPaidCmd = &cobra.Command{
 	Short: "微信支付成功回调",
 	Long:  `微信支付成功回调`,
 	Run: func(cmd *cobra.Command, args []string) {
-		model := &OrderPaid{}
+		model := &OrderPaidJobber{}
 		opt := echoapp.ConfigOpts.Job
-		cfg := &config.Config{
-			Broker:        opt.Broker,
-			DefaultQueue:  model.GetName(),
-			ResultBackend: opt.ResultBackend,
-			AMQP: &config.AMQPConfig{
-				Exchange:      opt.AMQP.Exchange,
-				ExchangeType:  opt.AMQP.ExchangeType,
-				PrefetchCount: opt.AMQP.PrefetchCount,
-				AutoDelete:    opt.AMQP.AutoDelete,
-			},
-		}
-
-		taskManager, err := gworker.NewConsumer(cfg, "xyt")
+		opt.DefaultQueue = model.GetName()
+		taskManager, err := gworker.NewConsumer(opt, "xyt")
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(&OrderPaid{})
+		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }

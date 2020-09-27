@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/RichardKnop/machinery/v1/config"
 	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -35,6 +34,7 @@ type EchoApp struct {
 	WechatService   echoapp.WechatService
 	TicketService   echoapp.TicketService
 	SiteSvr         echoapp.SiteService
+	TongchengSvr    echoapp.TongchengService
 }
 
 func init() {
@@ -49,19 +49,8 @@ func GetJobPusher() (gworker.Producer, error) {
 		return App.JobPusher, nil
 	}
 	opt := echoapp.ConfigOpts.Job
-	cfg := &config.Config{
-		Broker:        opt.Broker,
-		DefaultQueue:  opt.DefaultQueue,
-		ResultBackend: opt.ResultBackend,
-		AMQP: &config.AMQPConfig{
-			Exchange:      opt.AMQP.Exchange,
-			ExchangeType:  opt.AMQP.ExchangeType,
-			PrefetchCount: opt.AMQP.PrefetchCount,
-			AutoDelete:    opt.AMQP.AutoDelete,
-		},
-	}
 	var err error
-	App.JobPusher, err = gworker.NewPorducerManager(cfg)
+	App.JobPusher, err = gworker.NewPorducerManager(opt)
 	if err != nil {
 		glog.Errorf("NewTaskManager : %s", err.Error())
 		return nil, err
@@ -451,6 +440,13 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
+}
+
+func GetTongchengService() echoapp.TongchengService {
+	if App.TongchengSvr == nil {
+		App.TongchengSvr = services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
+	}
+	return App.TongchengSvr
 }
 
 func GetEs() (*es7.Client, error) {

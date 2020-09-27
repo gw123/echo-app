@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package crontabs
 
 import (
 	"encoding/json"
@@ -191,7 +191,7 @@ func updateCacheByMq() {
 }
 
 // serverCmd represents the server command
-var updateCacheCmd = &cobra.Command{
+var UpdateCacheCmd = &cobra.Command{
 	Use:   "updateCache",
 	Short: "cache 更新",
 	Long:  `cache 服务`,
@@ -215,6 +215,5 @@ var updateCacheCmd = &cobra.Command{
 }
 
 func init() {
-	updateCacheCmd.PersistentFlags().StringVarP(&updateMethod, "method", "m", "once", "访问方法")
-	RootCmd.AddCommand(updateCacheCmd)
+	UpdateCacheCmd.PersistentFlags().StringVarP(&updateMethod, "method", "m", "once", "访问方法")
 }

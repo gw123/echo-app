@@ -1,18 +1,13 @@
 package jobs
 
-import "time"
+import (
+	"time"
+
+	echoapp "github.com/gw123/echo-app"
+)
 
 type SendSms struct {
-	ComId        uint
-	UserId       uint
-	Score        int
-	Source       string
-	SourceDetail string
-	Note         string
-}
-
-func (s *SendSms) Trace() []string {
-	return nil
+	echoapp.SendMessageOptions
 }
 
 func (s *SendSms) GetName() string {

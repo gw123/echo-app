@@ -10,10 +10,6 @@ type OrderCreate struct {
 	*echoapp.Order
 }
 
-func (s *OrderCreate) Trace() []string {
-	return nil
-}
-
 func (s *OrderCreate) GetName() string {
 	return "order-create"
 }

@@ -10,10 +10,6 @@ type OrderPaid struct {
 	Order *echoapp.Order
 }
 
-func (s *OrderPaid) Trace() []string {
-	return nil
-}
-
 func (s *OrderPaid) GetName() string {
 	return "order-paid"
 }

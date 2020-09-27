@@ -10,10 +10,6 @@ type TicketCreated struct {
 	echoapp.Ticket
 }
 
-func (s *TicketCreated) Trace() []string {
-	return nil
-}
-
 func (s *TicketCreated) GetName() string {
 	return "ticket-created"
 }
