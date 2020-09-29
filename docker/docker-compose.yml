@@ -1,0 +1,126 @@
+version: "3"
+services:
+        user:
+           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+           container_name: echoapp-user
+           ports:
+             - 8881:8881
+           command: echoapp user --config /etc/echoapp/config.yaml
+           volumes:
+             -  ./resources:/usr/local/var/echoapp/resources
+             -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        goods:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-goods
+          ports:
+            - 8882:8882
+          command: echoapp goods --config /etc/echoapp/config.yaml
+          volumes:
+            -  ./resources:/usr/local/var/echoapp/resources
+            -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        order:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-order
+          ports:
+            - 8883:8883
+          command: echoapp order --config /etc/echoapp/config.yaml
+          volumes:
+            -  ./resources:/usr/local/var/echoapp/resources
+            -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        comment:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-comment
+          ports:
+            - 8885:8885
+          command: echoapp comment --config /etc/echoapp/config.yaml
+          volumes:
+            -  ./resources:/usr/local/var/echoapp/resources
+            -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        file:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-file
+          ports:
+            - 8888:8888
+          command: echoapp file --config /etc/echoapp/config.yaml
+          volumes:
+            -  ./resources:/usr/local/var/echoapp/resources
+            -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        message:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-message
+          ports:
+            - 8890:8890
+          command: echoapp message --config /etc/echoapp/config.yaml
+          volumes:
+            -  ./resources:/usr/local/var/echoapp/resources
+            -  ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        site:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-site
+          ports:
+            - 8889:8889
+          command: echoapp site --config  /etc/echoapp/config.yaml
+          volumes:
+             - ./resources:/usr/local/var/echoapp/resources
+             - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        activity:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-activity
+          ports:
+            - 8891:8891
+          command: echoapp activity --config /etc/echoapp/config.yaml
+          volumes:
+            - ./resources:/usr/local/var/echoapp/resources
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+####################
+        job-check-ticket:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-check-ticket
+          command: echoapp check-ticket --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        job-order-create:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-order-create
+          command: echoapp order-create --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        job-order-paid:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-order-paid
+          command: echoapp order-paid --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        job-send-sms:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-send-sms
+          command: echoapp send-sms --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        job-sync-partner-code:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-sync-partner-code
+          command: echoapp sync-partner-code --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+        job-user-score-change:
+          image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+          container_name: echoapp-user-score-change
+          command: echoapp user-score-change --config /etc/echoapp/config.yaml
+          volumes:
+            - ./conf/config.yaml:/etc/echoapp/config.yaml
+
+

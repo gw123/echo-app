@@ -2,16 +2,15 @@ package jobs
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/gw123/echo-app/jobs"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 )
-
-func TestSendMsg(t *testing.T) {
-
-}
 
 func TestSendOrderPaidTplMsg(t *testing.T) {
 	echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
@@ -37,4 +36,43 @@ func TestSendOrderPaidTplMsg(t *testing.T) {
 		return
 	}
 	t.Log("success")
+}
+
+func TestSendMsg(t *testing.T) {
+	pusher := app.MustGetJopPusherService()
+	type Params struct {
+		Username string `json:"username"`
+		Source   string `json:"source"`
+		Code     string `json:"code"`
+	}
+	params := &Params{
+		Username: "gw123",
+		Source:   "xcx",
+		Code:     "20201001",
+	}
+	data, _ := json.Marshal(params)
+	smsJob := jobs.SendSms{
+		SendMessageOptions: echoapp.SendMessageOptions{
+			ComId:         14,
+			PhoneNumbers:  []string{"18618184632"},
+			Type:          "ticketCode",
+			TemplateParam: string(data),
+		},
+	}
+	pusher.PostJob(context.Background(), &smsJob)
+}
+
+func TestTicketeSyncCode(t *testing.T) {
+	echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
+	pusher := app.MustGetJopPusherService()
+	job := jobs.TicketSyncCode{
+		ComID: 14,
+		Body: &echoapp.SyncPartnerCodeRequestBody{
+			Tickets:        1,
+			OrderSerialId:  "sz5f5c3276212379240398007",
+			PartnerOrderId: "x123123",
+			PartnerCode:    "2131231231",
+		},
+	}
+	pusher.PostJob(context.Background(), &job)
 }

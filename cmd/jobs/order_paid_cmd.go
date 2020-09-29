@@ -89,19 +89,17 @@ func (o *OrderPaidJobber) Handle() error {
 }
 
 var OrderPaidCmd = &cobra.Command{
-	Use:   "order_paid",
+	Use:   "order-paid",
 	Short: "微信支付成功回调",
 	Long:  `微信支付成功回调`,
 	Run: func(cmd *cobra.Command, args []string) {
 		model := &OrderPaidJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }

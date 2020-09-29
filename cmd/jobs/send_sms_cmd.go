@@ -29,19 +29,17 @@ func (s *SendSMSJobber) Handle() error {
 }
 
 var SendSMSCmd = &cobra.Command{
-	Use:   "send_sms",
+	Use:   "send-sms",
 	Short: "发送短信任务",
 	Long:  `发送短信任务`,
 	Run: func(cmd *cobra.Command, args []string) {
 		model := &SendSMSJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }

@@ -15,15 +15,12 @@
 package jobs
 
 import (
+	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/app"
+	"github.com/gw123/echo-app/jobs"
+	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/gw123/gworker"
-
-	"github.com/gw123/echo-app/app"
-
-	"github.com/gw123/echo-app/jobs"
-
-	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/spf13/cobra"
 )
 
@@ -54,16 +51,14 @@ var CheckTicketDaemonCmd = &cobra.Command{
 	Use:   "check-ticket",
 	Short: "验票核销消息",
 	Long:  `验票消费者`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(c *cobra.Command, args []string) {
 		model := &TicketCheckJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }

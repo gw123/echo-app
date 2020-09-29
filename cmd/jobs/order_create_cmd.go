@@ -35,19 +35,17 @@ func (o *OrderCreateJobber) Handle() error {
 }
 
 var OrderCreateCmd = &cobra.Command{
-	Use:   "order_create",
+	Use:   "order-create",
 	Short: "拉取微信订单",
 	Long:  `拉取微信订单是否支付成功`,
 	Run: func(cmd *cobra.Command, args []string) {
 		model := &OrderCreateJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(&OrderCreateJobber{})
 		taskManager.StartWork("xyt", 1)
 	},
 }

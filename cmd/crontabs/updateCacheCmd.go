@@ -196,7 +196,6 @@ var UpdateCacheCmd = &cobra.Command{
 	Short: "cache 更新",
 	Long:  `cache 服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		quit := make(chan os.Signal, 1)
 		switch updateMethod {
 		case "once":

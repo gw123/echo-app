@@ -13,7 +13,7 @@
     })
     var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') || CSS.supports('top: constant(a)'))
     document.write('<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' + (coverSupport ? ', viewport-fit=cover' : '') + '" />')</script>
-    <link rel=stylesheet href={{assetHost}}/static/index.1b8708b7.css>
+    <link rel=stylesheet href={{publicHost}}/static/index.1b8708b7.css>
 </head>
 <body>
 
@@ -28,36 +28,6 @@
             roles: '{{user.roles}}',
             id: '{{user.id}}',
         }
-        /*
-        var wx_config = {
-            debug: false,
-            appId: '{{wxCfg.appID}}', // 必填，公众号的唯一标识
-            timestamp: '{{wxCfg.timestamp}}', // 必填，生成签名的时间戳
-            nonceStr: '{{wxCfg.nonceStr}}', // 必填，生成签名的随机串
-            signature: '{{wxCfg.signature}}',// 必填，签名
-            jsApiList: [
-                'checkJsApi',
-                'chooseImage',
-                'previewImage',
-                'getNetworkType',
-                'openLocation',
-                'getLocation',
-                'hideOptionMenu',
-                'showOptionMenu',
-                'closeWindow',
-                'scanQRCode',
-                'chooseWXPay',
-                'updateAppMessageShareData',
-                'updateTimelineShareData',
-                    'onMenuShareTimeline','onMenuShareAppMessage'
-            ], // 必填，需要使用的JS接口列表
-            openTagList: [
-                'wx-open-launch-weapp'
-            ]
-        }*/
-        //wx.config(config);
-        //window.wx_config = wx_config
-        //console.log('set wx_config',wx_config)
         {{/equal}}
 </script>
 
@@ -65,6 +35,6 @@
 <div id=app></div>
 </body>
 
-<script src={{assetHost}}/static/js/chunk-vendors.js></script>
-<script src="{{assetHost}}/static/js/index.js" ></script>
+<script src={{publicHost}}/static/js/chunk-vendors.js></script>
+<script src="{{publicHost}}/static/js/index.js" ></script>
 </html>

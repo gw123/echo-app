@@ -1,7 +1,9 @@
-DEFAULT_TAG = "echo-app:1.0.2"
-REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/user:1.0.1"
+IMAGE_TAG_VERSION = "1.0.4"
+REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
-DOCKER_BUILD_PATH=/data/docker/images/echoapp
+#DOCKER_BUILD_PATH=/data/docker/images/echoapp
+#DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp
+DOCKER_BUILD_PATH=./docker
 
 ifeq "$(MODE)" "dev"
 	BUILD_TAG = "1.10.1"
@@ -96,23 +98,27 @@ build-alpine:
 	    -e GOPROXY=https://goproxy.cn \
 	    -e GOPRIVATE=github.com/gw123/echo-app \
 		-w /go/src/github.com/gw123/echo-app \
-		golang:$(BUILD_TAG) \
+		golang:1.15.2-alpine3.12 \
 		go build -v -ldflags '-w -s' -o echoapp github.com/gw123/echo-app/entry &&\
-		rm upload && upx -9 -o upload ./echoapp
+		upx -6 -f -o upload ./echoapp
 
-docker: build-alpine
+docker-image:
 	mkdir -p $(DOCKER_BUILD_PATH)/resources/views &&\
 	mkdir -p $(DOCKER_BUILD_PATH)/etc &&\
     mkdir -p $(DOCKER_BUILD_PATH)/resources/storage &&\
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
     cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
     cp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
-    cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.prod.yaml &&\
-    cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/ &&\
+    cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/public &&\
     cp -r resources/storage/keys/ $(DOCKER_BUILD_PATH)/resources/storage
 	@docker build -t $(REMOTE_USER_API_TAG) $(DOCKER_BUILD_PATH)
 	@docker push $(REMOTE_USER_API_TAG)
-	@rm -f echoapp
+
+docker-all: build-alpine docker-image
+
+restart:
+	cd docker && docker-compose stop &&\
+	export ECHOAPP_TAG=$(IMAGE_TAG_VERSION) && docker-compose up
 
 run-docker:
 	docker run -it --rm  -v $(DOCKER_BUILD_PATH)/etc:/etc/echoapp \
@@ -122,17 +128,11 @@ run-docker:
 runUserServer:
 	go run entry/main.go user
 
-runGoodsServer:
-	go run entry/main.go goods
-
-runOrderServer:
-	go run entry/main.go user
-
 supervisor:
 	supervisord -c supervisord.conf
 
 goose:
-	goose -dir migrations mysql  'root:password@tcp(sh2:13306)/laraveltest' up
+	goose -dir migrations mysql  'root:password@tcp(sh2:3306)/laraveltest' up
 
 .PHONY: all
 all:

@@ -1,14 +1,15 @@
 package controllers
 
 import (
+	"net/http"
+	"strconv"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/silenceper/wechat/v2/officialaccount/message"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type SiteController struct {
@@ -17,7 +18,7 @@ type SiteController struct {
 	comSvr    echoapp.CompanyService
 	wxSvr     echoapp.WechatService
 	echoapp.BaseController
-	asset          echoapp.Asset
+	assetOpts      echoapp.Asset
 	indexCachePage []byte
 }
 
@@ -32,7 +33,7 @@ func NewSiteController(comSvr echoapp.CompanyService,
 		actSvr:    actSvr,
 		bannerSvr: bannerSvr,
 		wxSvr:     svr,
-		asset:     asset,
+		assetOpts: asset,
 	}
 }
 
@@ -107,7 +108,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
-	response["assetHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.asset)
+	response["publicHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.assetOpts)
 	if clientType == echoapp.ClientWxOfficial {
 		user, err := echoapp_util.GetCtxtUser(ctx)
 		if err == nil {
@@ -165,7 +166,7 @@ func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
 	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 	if err != nil {
 		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
-		return sCtl.AppErr(ctx, echoapp.AppErrArgument )
+		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
 	}
 	return sCtl.Success(ctx, jsConfig)
 }

@@ -26,19 +26,17 @@ func (s *UserScoreChangeJobber) Handle() error {
 }
 
 var UserScoreChangeCmd = &cobra.Command{
-	Use:   "user_score_change",
+	Use:   "user-score-change",
 	Short: "更新用户积分",
 	Long:  `更新用户积分`,
 	Run: func(cmd *cobra.Command, args []string) {
 		model := &UserScoreChangeJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }

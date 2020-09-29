@@ -27,42 +27,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type SyncPartnerCodeJobber struct {
-	jobs.SyncPartnerCode
+type TicketSyncCodeJobber struct {
+	jobs.TicketSyncCode
 }
 
-func (t *SyncPartnerCodeJobber) Handle() error {
+func (t *TicketSyncCodeJobber) Handle() error {
 	tc := app.GetTongchengService()
-	err := tc.SyncPartnerCode(t.ComId, &echoapp.SyncPartnerCodeRequestBody{
-		Tickets:        t.Number,
-		OrderSerialId:  t.OrderNo,
-		PartnerOrderId: t.OrderNo,
-		PartnerCode:    t.GetCode(),
-	})
+	err := tc.SyncPartnerCode(t.ComID, t.Body)
 
-	echoapp_util.DefaultLogger().Infof("Received a SyncPartnerCodeJobber message: %s", t.OrderNo)
+	echoapp_util.DefaultLogger().Infof("Received a TicketSyncCodeJobber message: %s", t.Body.PartnerOrderId)
 
 	if err != nil {
-		echoapp_util.DefaultLogger().Errorf("SyncPartnerCodeJobber: %s", err.Error())
+		echoapp_util.DefaultLogger().Errorf("TicketSyncCodeJobber: %s", err.Error())
 		return err
 	}
 	return nil
 }
 
-var SyncPartnerCodeCmd = &cobra.Command{
-	Use:   "sync-partner-code",
+var TicketSyncCodeCmd = &cobra.Command{
+	Use:   "ticket-sync-code",
 	Short: "同步门票核验码",
 	Long:  `同步门票核验吗到同程`,
 	Run: func(cmd *cobra.Command, args []string) {
-		model := &SyncPartnerCodeJobber{}
+		model := &TicketSyncCodeJobber{}
 		opt := echoapp.ConfigOpts.Job
-		opt.DefaultQueue = model.GetName()
-		taskManager, err := gworker.NewConsumer(opt, "xyt")
+		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
-		taskManager.RegisterTask(model)
 		taskManager.StartWork("xyt", 1)
 	},
 }
