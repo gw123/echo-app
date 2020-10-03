@@ -1,0 +1,138 @@
+server:
+  addr: "0.0.0.0:8082"
+  mode: development
+
+api_version: {API_VERSION}
+user_server:
+  addr: "0.0.0.0:8881"
+  origins:
+    - http://laravelschool.xyt
+goods_server:
+  addr: "0.0.0.0:8882"
+  origins:
+    - http://laravelschool.xyt
+order_server:
+  addr: "0.0.0.0:8883"
+  origins:
+    - http://laravelschool.xyt
+comment_server:
+  addr: "0.0.0.0:8885"
+  origins:
+    - http://laravelschool.xyt
+printer_server:
+  addr: "0.0.0.0:8886"
+  origins:
+    - http://laravelschool.xyt
+file_server:
+  addr: "0.0.0.0:8888"
+  origins:
+    - http://laravelschool.xyt
+site_server:
+  addr: "0.0.0.0:8889"
+  origins:
+    - http://laravelschool.xyt
+message_server:
+  addr: "0.0.0.0:8890"
+  origins:
+    - http://laravelschool.xyt
+activity_server:
+  addr: "0.0.0.0:8891"
+  origins:
+    - http://laravelschool.xyt
+asset:
+  version: "{API_VERSION}"
+  public_host_inner:  "http://localhost:8889/dev/public" ##内网加速地址
+  public_host:  "http://data.xytschool.com/m/{API_VERSION}" ##资源在CDN加速上的根路径
+  public_root: "./resources/public/m/{API_VERSION}" ##资源在服务内部根路径
+  storage_root: "./resources/storage/upload"
+  view_root: "./resources/views"
+  area_root: "./resources/storage/areas"
+
+logging:
+  #formatter: "text"
+  formatter: "json"
+  #level: "debug"
+
+database:
+  resource:
+    driver: mysql
+    dsn: "root:123456@tcp(127.0.0.1:3306)/laravelschool?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
+  shop:
+    driver: mysql
+    dsn: "root:123456@tcp(127.0.0.1:3306)/laravelschool?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
+  goods:
+    driver: mysql
+    dsn: "root:123456@tcp(127.0.0.1:3306)/laravelschool?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
+  user:
+    driver: mysql
+    dsn: "root:123456@tcp(127.0.0.1:3306)/laravelschool?timeout=3s&charset=utf8mb4&parseTime=True&loc=Local"
+
+cache:
+  default:
+    addr: "redis:6379"
+    password: ""
+    pool_size: 15
+
+redis:
+  addr: "redis:6379"
+  password: ""
+  pool_size: 15
+
+tongcheng:
+  notify_url: "http://www.lvcang.cn/jingqu/OpenAPI/OpenService/Scenery"
+  client_map:
+    14:
+      key: ''
+      user_id: 'dbc66-ac458179f0dd'
+
+report_tickets:
+  qys:
+    com_id: 14
+    base_url: 'http://qmt.lyta.com.cn'
+    loginName: ''
+    pwd: ''
+
+jws:
+  audience: "user"
+  issuer: "xytschool"
+  #7天
+  timeout: 604800
+  public_key_path: "./resources/storage/keys/jws_public_key.pem"
+  private_key_path: "./resources/storage/keys/jws_private_key.pem"
+  hash_ids_salt: "123456"
+
+resource:
+  base_url: "http://img.xytschool.com"
+  cnd_host: "http://img.xytschool.com"
+  bucket_name: "image"
+  max_file_size: 20000000
+  callback_url: "http://goods.api.xytschool.com/v1/goods-api/uploadCallback"
+  access_key: ""
+  secret_key: "KJp_DEcgdHV"
+
+wechat:
+  auth_redirect_url: "http://m.xytschool.com/index"
+  js_host: "m.xytschool.com"
+  message_host: "http://m.xytschool.com/dev/site/wx_message"
+
+es:
+  addresses:
+    - "http://127.0.0.1:9200"
+  #  username: ""
+  #  password: ""
+  sniff: false
+  debug: true
+  scheme: "http"
+
+job:
+  broker: 'amqp://root:123@181.72.35.139:5672/xytschool'
+  default_queue: 'job'
+  result_backend: 'redis://123456@redis:6379'
+  amqp:
+    exchange: 'xyt'
+    exchange_type: 'direct'
+    binding_key: 'job'
+    prefetch_count: 1
+    auto_delete: false
+  redis:
+

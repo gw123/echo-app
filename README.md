@@ -6,6 +6,13 @@
 - go mod vendor
 - go run entry/main.go
 
+# 设置etcd配置文件
+make set-config
+make set-dev-config
+
+# 编译docker镜像
+make docker-all
+
 ## app/EchoApp 是一个常用接口集合, EchoApp所有属性都是私有防止未初始化被使用，
 ## 在app.go中GetServiceName函数里面使用单例模式方式防止重复创建
 ## 要想获取servece正确的使用方式是调用GetServiceName和MustGetServiceName这样的函数获取接口的实例对象,

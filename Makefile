@@ -1,9 +1,9 @@
-IMAGE_TAG_VERSION = "1.1.6"
+IMAGE_TAG_VERSION = 1.1.6
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
-#DOCKER_BUILD_PATH=/data/docker/images/echoapp
 #DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp
 DOCKER_BUILD_PATH=./docker
+API_VERSION = v$(IMAGE_TAG_VERSION)
 
 ifeq "$(MODE)" "dev"
 	BUILD_TAG = "1.10.1"
@@ -40,9 +40,9 @@ upload-comment: comment-dir
 
 upload-site: site-dir
 	@ssh root@sh2 cp /data/apps/site/config.yaml /data/apps/site/config.yaml.back\ &&\
-	 scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
-     scp -r resources/public root@sh2:/data/apps/site/resources/ &&\
+	 scp config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
 	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
+     scp -r resources/public root@sh2:/data/apps/site/resources/ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
      scp -r resources/views/ root@sh2:/data/apps/site/resources/views
 
@@ -60,35 +60,11 @@ restart:
 	ssh root@sh2 supervisorctl reload
 
 upload-user-config:
-	scp  config.prod.yaml root@sh2:/data/apps/user/
+	scp config.prod.yaml root@sh2:/data/apps/user/
 
 file-dir:
 	ssh root@sh2 mkdir -p /data/apps/file
 	ssh root@sh2 mkdir -p /data/apps/file/resources/storage
-
-activity-dir:
-	ssh root@sh2 mkdir -p /data/apps/activity
-	ssh root@sh2 mkdir -p /data/apps/activity/resources/storage
-
-user-dir:
-	ssh root@sh2 mkdir -p /data/apps/user
-	ssh root@sh2 mkdir -p /data/apps/user/resources/storage
-
-comment-dir:
-	ssh root@sh2 mkdir -p /data/apps/comment
-	ssh root@sh2 mkdir -p /data/apps/comment/resources/storage
-
-order-dir:
-	ssh root@sh2 mkdir -p /data/apps/order
-	ssh root@sh2 mkdir -p /data/apps/order/resources/storage
-
-site-dir:
-	ssh root@sh2 mkdir -p /data/apps/site
-	ssh root@sh2 mkdir -p /data/apps/site/resources/storage
-
-goods-dir:
-	ssh root@sh2 mkdir -p /data/apps/goods
-	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
 
 build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
@@ -109,7 +85,6 @@ build-static:
 
 docker-image:
 	mkdir -p $(DOCKER_BUILD_PATH)/resources/views &&\
-	mkdir -p $(DOCKER_BUILD_PATH)/etc &&\
     mkdir -p $(DOCKER_BUILD_PATH)/resources/storage &&\
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
     cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
@@ -134,12 +109,15 @@ run-docker:
     -v $(DOCKER_BUILD_PATH)/resources/storage/keys:/usr/local/var/echoapp/resources/storage/keys \
     $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.prod.yaml
 
-
 supervisor:
 	supervisord -c supervisord.conf
 
 set-config:
-	cat config.yaml | etcdctl $AUTH $ENDPOINTS put /xyt/config.yaml
+	@sed 's@{API_VERSION}@$(API_VERSION)@' ./docker/conf/config.tpl.yaml > ./docker/conf/config.yaml &&\
+	cat docker/conf/config.yaml | etcdctl $(AUTH) $(ENDPOINTS) put /xyt/config.prod.yaml
+
+set-dev-config:
+	cat config.yaml | etcdctl $(AUTH) $(ENDPOINTS) put /xyt/config.yaml
 
 goose:
 	goose -dir migrations mysql  'root:password@tcp(sh2:3306)/laraveltest' up
