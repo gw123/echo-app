@@ -162,7 +162,7 @@ func LoadFromFile(cfgFile string) {
 	}
 }
 
-func LoadFromEtcd(endpoints []string, namespace, username, password string) {
+func LoadFromEtcd(endpoints []string, namespace, configPath, username, password string) {
 	etcdCli, err := etcd.NewEtcdConfig(etcd.EtcdOptions{
 		Endpoints: endpoints,
 		Namespace: namespace,
@@ -175,7 +175,7 @@ func LoadFromEtcd(endpoints []string, namespace, username, password string) {
 		return
 	}
 
-	cfgData, err := etcdCli.Get("/config.prod.yaml")
+	cfgData, err := etcdCli.Get(configPath)
 	if err != nil {
 		glog.DefaultLogger().Fatal(err)
 		return

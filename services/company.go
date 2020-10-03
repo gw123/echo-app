@@ -67,14 +67,18 @@ func (c CompanyService) GetCompanyList(offsetId uint, limit int) ([]*echoapp.Com
 func (c CompanyService) GetCachedCompanyById(comId uint) (*echoapp.Company, error) {
 	user := &echoapp.Company{}
 	data, err := c.redis.Get(FormatCompanyRedisKey(comId)).Result()
+	if err == nil {
+		if err := json.Unmarshal([]byte(data), user); err == nil {
+			return user, nil
+		}
+	}
+
+	company, err := c.GetCompanyById(comId)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := json.Unmarshal([]byte(data), user); err != nil {
-		return nil, err
-	}
-	return user, nil
+	c.UpdateCachedCompany(company)
+	return company, err
 }
 
 func (c CompanyService) UpdateCachedCompany(company *echoapp.Company) (err error) {

@@ -40,3 +40,4 @@ docker/conf
 docker/redis
 docker/resources
 docker/echoapp
+docker/.env

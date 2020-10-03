@@ -1,4 +1,4 @@
-IMAGE_TAG_VERSION = "1.0.4"
+IMAGE_TAG_VERSION = "1.1.6"
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 #DOCKER_BUILD_PATH=/data/docker/images/echoapp
@@ -89,6 +89,7 @@ site-dir:
 goods-dir:
 	ssh root@sh2 mkdir -p /data/apps/goods
 	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
+
 build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
 	upx -9 -f -o upload ./echoapp
@@ -102,6 +103,10 @@ build-alpine:
 		go build -v -ldflags '-w -s' -o echoapp github.com/gw123/echo-app/entry &&\
 		upx -6 -f -o upload ./echoapp
 
+build-static:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s  -extldflags "-static"' -o echoapp ./entry/main.go &&\
+	upx -6 -f -o upload ./echoapp
+
 docker-image:
 	mkdir -p $(DOCKER_BUILD_PATH)/resources/views &&\
 	mkdir -p $(DOCKER_BUILD_PATH)/etc &&\
@@ -114,10 +119,14 @@ docker-image:
 	@docker build -t $(REMOTE_USER_API_TAG) $(DOCKER_BUILD_PATH)
 	@docker push $(REMOTE_USER_API_TAG)
 
-docker-all: build-alpine docker-image
+## 在宿主机器上静态打包， 打包体积大但是速度快， 适合开发阶段
+docker-all: build-static docker-image
+
+## 借助docker容器打包，打包体积小但是速度慢 ，适合正式环境使用
+docker-prod: build-alpine docker-image
 
 restart:
-	cd docker && docker-compose stop &&\
+	cd docker && docker-compose down &&\
 	export ECHOAPP_TAG=$(IMAGE_TAG_VERSION) && docker-compose up
 
 run-docker:
@@ -125,11 +134,12 @@ run-docker:
     -v $(DOCKER_BUILD_PATH)/resources/storage/keys:/usr/local/var/echoapp/resources/storage/keys \
     $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.prod.yaml
 
-runUserServer:
-	go run entry/main.go user
 
 supervisor:
 	supervisord -c supervisord.conf
+
+set-config:
+	cat config.yaml | etcdctl $AUTH $ENDPOINTS put /xyt/config.yaml
 
 goose:
 	goose -dir migrations mysql  'root:password@tcp(sh2:3306)/laraveltest' up

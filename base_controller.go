@@ -1,12 +1,12 @@
 package echoapp
 
 import (
-	"github.com/pkg/errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/labstack/echo"
 )
-
 
 type Response struct {
 	ErrorCode  int         `json:"code"`
@@ -37,7 +37,7 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 	return innerErr
 }
 
-func (b *BaseController)  AppErr(ctx echo.Context, appError AppError) error {
+func (b *BaseController) AppErr(ctx echo.Context, appError AppError) error {
 	response := Response{
 		ErrorCode: appError.GetCode(),
 		Msg:       appError.GetOuter(),

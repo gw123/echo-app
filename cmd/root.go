@@ -110,7 +110,7 @@ func initConfig() {
 	} else {
 		glog.Infof("load config from etcd addr:%s ,username:%s", strings.Join(etcdEndpoints, ","), etcdUsername)
 		glog.Infof("load config from etcd: namespace:%s ,path:%s", etcdNamespace, etcdPath)
-		echoapp.LoadFromEtcd(etcdEndpoints, etcdNamespace, etcdUsername, etcdPassword)
+		echoapp.LoadFromEtcd(etcdEndpoints, etcdNamespace, etcdPath, etcdUsername, etcdPassword)
 	}
 }
 
