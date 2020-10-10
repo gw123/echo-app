@@ -1,4 +1,4 @@
-IMAGE_TAG_VERSION = 1.1.6
+IMAGE_TAG_VERSION = 1.1.8
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 #DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp
@@ -95,7 +95,7 @@ docker-image:
 	@docker push $(REMOTE_USER_API_TAG)
 
 ## 在宿主机器上静态打包， 打包体积大但是速度快， 适合开发阶段
-docker-all: build-static docker-image
+docker-all: build-static docker-image set-config
 
 ## 借助docker容器打包，打包体积小但是速度慢 ，适合正式环境使用
 docker-prod: build-alpine docker-image

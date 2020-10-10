@@ -52,7 +52,7 @@ func (tkSvr *TicketService) GetTicketByCode(code string) (*echoapp.Ticket, error
 	return ticket, nil
 }
 
-// 拼装门票数据,为了使用事物 保存ticket应该放到 saveOrder那部分
+// 拼装门票数据,为了使用事物 保存ticket到数据库应该放到 saveOrder那部分
 func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string, address *echoapp.Address, goods *echoapp.CartGoodsItem) *echoapp.Ticket {
 	r := rand.Int31n(89999999) + 10000000
 	ticket := &echoapp.Ticket{
@@ -76,6 +76,7 @@ func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string,
 	return ticket
 }
 
+//
 func (tkSvr TicketService) GetTicketsByOrder(order *echoapp.Order) ([]*echoapp.Ticket, error) {
 	var tickets []*echoapp.Ticket
 	if err := tkSvr.db.Where("order_id = ?", order.ID).Find(&tickets).Error; err != nil {

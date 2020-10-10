@@ -170,12 +170,24 @@ func (aSvr ActivityService) GetCouponsByIds(couponIds []uint) ([]*echoapp.Coupon
 	return coupons, nil
 }
 
-func (aSvr ActivityService) GetCachedCouponById(couponId uint) (*echoapp.Coupon, error) {
-	var coupon echoapp.Coupon
-	if err := aSvr.redis.Get(echoapp.FormatCoupon(couponId)).Scan(&coupon); err != nil {
-		return nil, errors.Wrap(err, "coupon cahce")
+func (aSvr ActivityService) GetCouponById(couponId uint) (*echoapp.Coupon, error) {
+	var coupon *echoapp.Coupon = &echoapp.Coupon{}
+	if err := aSvr.db.Where("id = ?", couponId).Find(&coupon).Error; err != nil {
+		return nil, err
 	}
-	return &coupon, nil
+	return coupon, nil
+}
+
+func (aSvr ActivityService) GetCachedCouponById(couponId uint) (*echoapp.Coupon, error) {
+	var coupon *echoapp.Coupon = &echoapp.Coupon{}
+	if err := aSvr.redis.Get(echoapp.FormatCoupon(couponId)).Scan(coupon); err != nil {
+		//return nil, errors.Wrap(err, "coupon cahce")
+		coupon, err = aSvr.GetCouponById(couponId)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return coupon, nil
 }
 
 func (aSvr ActivityService) GetCachedCouponsByIds(couponIds []uint) ([]*echoapp.Coupon, error) {

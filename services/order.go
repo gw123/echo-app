@@ -225,6 +225,12 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
+
+		// 写入商品到订单商品表中
+		if err := oSvr.createOrderGoods(tx, order); err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
+		}
 		tx.Commit()
 
 		// 发送通知
@@ -252,13 +258,15 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
+
+		// 更新订单商品表中订单状态
+		if err := oSvr.updateOrderGoodsStatus(tx, order); err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
+		}
 		tx.Commit()
 	}
 	return order, nil
-}
-
-func (oSvr *OrderService) GetUserAddress(addrId uint) (*echoapp.Address, error) {
-	panic(addrId)
 }
 
 func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
@@ -392,7 +400,7 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	return orderoptions, nil
 }
 
-func (oSvr *OrderService) GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*echoapp.Order, error) {
+func (oSvr *OrderService) GetUserOrderDetail(ctx echo.Context, userId uint, orderNo string) (*echoapp.Order, error) {
 	var (
 		order echoapp.Order
 	)
@@ -501,6 +509,44 @@ func (oSvr *OrderService) WxRefundCallback(ctx echo.Context) error {
 
 func (oSvr *OrderService) QueryRefundOrderAndUpdate(order *echoapp.Order) (*echoapp.Order, error) {
 	return oSvr.QueryOrderAndUpdate(order, echoapp.OrderPayStatusRefund)
+}
+
+/***
+当用户支付成功后在写入到 OrderGoods表中, OrderGoods 表统计成功或者退款订单中的商品
+*/
+func (oSvr *OrderService) createOrderGoods(tx *gorm.DB, order *echoapp.Order) error {
+	for _, goods := range order.GoodsList {
+		orderGoods := &echoapp.OrderGoods{
+			ComID:     order.ComId,
+			OrderID:   order.ID,
+			GoodsID:   goods.GoodsId,
+			Number:    goods.Num,
+			Status:    order.PayStatus,
+			RealPrice: goods.RealPrice,
+		}
+
+		if err := tx.Save(orderGoods).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (oSvr *OrderService) updateOrderGoodsStatus(tx *gorm.DB, order *echoapp.Order) error {
+	var orderGoodsList []echoapp.OrderGoods
+
+	if err := tx.Where("order_id = ?", order.ID).First(&orderGoodsList).Error; err != nil {
+		return err
+	}
+
+	for _, orderGoods := range orderGoodsList {
+		orderGoods.Status = order.PayStatus
+		if err := tx.Save(orderGoods).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (oSvr *OrderService) StatisticCompanySalesByDate(start, end string) (*echoapp.CompanySalesSatistic, error) {

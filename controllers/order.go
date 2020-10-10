@@ -162,7 +162,7 @@ func (orderCtrl *OrderController) QueryOrder(ctx echo.Context) error {
 		params.UserId = uint(user.Id)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetial(ctx, uint(user.Id), params.OrderNo)
+	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
 	}
@@ -235,7 +235,7 @@ func (orderCtrl *OrderController) Refund(ctx echo.Context) error {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetial(ctx, uint(user.Id), params.OrderNo)
+	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
 	}
@@ -251,7 +251,7 @@ func (orderCtrl *OrderController) GetOrderDetail(ctx echo.Context) error {
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	order, err := orderCtrl.orderSvc.GetUserOrderDetial(ctx, uint(user.Id), orderNo)
+	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), orderNo)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败", err)
 	}
@@ -335,7 +335,7 @@ func (orderCtrl *OrderController) QueryRefund(ctx echo.Context) error {
 		params.UserId = uint(user.Id)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetial(ctx, uint(user.Id), params.OrderNo)
+	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
 		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
 	}

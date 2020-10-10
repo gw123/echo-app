@@ -105,6 +105,17 @@ func (o *Order) AfterFind() error {
 	return err
 }
 
+type OrderGoods struct {
+	ID        int64     `json:"id"`
+	ComID     uint      `json:"com_id"`
+	OrderID   uint      `json:"order_id"`
+	GoodsID   uint      `json:"goods_id"`
+	Number    uint      `json:"number"`
+	Status    string    `json:"status"`
+	RealPrice float32   `json:"real_price"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type GetOrderOptions struct {
 	PayMethod     string    `json:"pay_method"`
 	ShopId        int       `json:"shop_id"`
@@ -120,6 +131,7 @@ type GetOrderOptions struct {
 	PaidAt        time.Time `json:"paid_at"`
 	//Score         string    `score`
 }
+
 type CompanySalesSatistic struct {
 	ID            uint    `gorm:"primary_key"`
 	AllSalesTotal float64 `json:"all_sales_total"`
@@ -129,6 +141,7 @@ type CompanySalesSatistic struct {
 	//GoodsId         int    `json:"goods_id"`
 	//Status string `json:"status"`
 }
+
 type GoodsSalesSatistic struct {
 	ID uint `gorm:"primary_key"`
 	//AllSalesTotal   int64  `json:"company_sales"`
@@ -175,11 +188,10 @@ type OrderService interface {
 	//
 	GetOrderByOrderNo(orderNo string) (*Order, error)
 	//
-	GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+	GetUserOrderDetail(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+
 	//退款
 	Refund(order *Order, user *User) error
-
-	GetUserAddress(addrId uint) (*Address, error)
 
 	WxPayCallback(ctx echo.Context) error
 
