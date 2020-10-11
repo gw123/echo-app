@@ -295,6 +295,14 @@ func (aSvr *ActivityService) GetUserCouponsByOrder(comId uint, order *echoapp.Or
 	}
 	userCoupons2 := make([]*echoapp.Coupon, 0)
 	for _, userCoupon := range userCoupons {
+		// 优惠券金额必须大于订单的总金额
+		if userCoupon.BaseCoupon.Amount >= order.RealTotal {
+			continue
+		}
+		// 需要满足优惠券的最小核销金额
+		if float32(userCoupon.BaseCoupon.MinConsume) > order.RealTotal {
+			continue
+		}
 		//将baseCoupon 的id替换为userCoupon的id,方便后面核销优惠券
 		userCoupon.BaseCoupon.Id = userCoupon.Id
 		userCoupons2 = append(userCoupons2, userCoupon.BaseCoupon)

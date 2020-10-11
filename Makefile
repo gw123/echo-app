@@ -1,4 +1,4 @@
-IMAGE_TAG_VERSION = 1.1.8
+IMAGE_TAG_VERSION = 1.1.9
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 #DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp

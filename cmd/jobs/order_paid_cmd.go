@@ -43,7 +43,7 @@ func (o *OrderPaidJobber) Handle() error {
 
 		for _, ticket := range o.Order.Tickets {
 			//ticketNames = append(ticketNames, ticket.Name)
-			//totalTicketNum += ticket.Number
+			//totalTicketNum += ticket.Num
 			glog.Info("微信支付成功回调: 发送门票模板消息")
 			msg := &echoapp.TplMsgCreateTicket{
 				BaseTemplateMessage: echoapp.BaseTemplateMessage{

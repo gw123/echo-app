@@ -110,7 +110,7 @@ type OrderGoods struct {
 	ComID     uint      `json:"com_id"`
 	OrderID   uint      `json:"order_id"`
 	GoodsID   uint      `json:"goods_id"`
-	Number    uint      `json:"number"`
+	Num       uint      `json:"num"`
 	Status    string    `json:"status"`
 	RealPrice float32   `json:"real_price"`
 	CreatedAt time.Time `json:"created_at"`
@@ -126,9 +126,9 @@ type GetOrderOptions struct {
 	GoodsType     string    `json:"goods_type"`
 	TransactionId string    `json:"transaction_id"`
 	Note          string    `json:"note"`
-	Info          string    `json:"info"`
 	CreatedAt     time.Time `json:"created_at"`
 	PaidAt        time.Time `json:"paid_at"`
+	Info          string    `json:"info"`
 	//Score         string    `score`
 }
 

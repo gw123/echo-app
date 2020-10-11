@@ -299,6 +299,10 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 				glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
 				return errors.New("下单失败,优惠券金额校验错误")
 			}
+			if float32(realCoupon.MinConsume) > order.RealTotal {
+				glog.JsonLogger().Error("下单失败,优惠券最低消费金额未满足")
+				return errors.New("下单失败,优惠券最低消费金额未满足")
+			}
 			if realCoupon.IsExpire() {
 				glog.JsonLogger().Error("下单失败,优惠券已经过期")
 				return errors.New("下单失败,优惠券已经过期")
@@ -520,7 +524,7 @@ func (oSvr *OrderService) createOrderGoods(tx *gorm.DB, order *echoapp.Order) er
 			ComID:     order.ComId,
 			OrderID:   order.ID,
 			GoodsID:   goods.GoodsId,
-			Number:    goods.Num,
+			Num:       goods.Num,
 			Status:    order.PayStatus,
 			RealPrice: goods.RealPrice,
 		}

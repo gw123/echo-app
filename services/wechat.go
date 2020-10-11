@@ -308,9 +308,9 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*ech
 	// 初始化 BodyMap
 	bm := make(gopay.BodyMap)
 	bm.Set("nonce_str", gotil.GetRandomString(32))
-	bm.Set("body", "测试支付003")
+	bm.Set("body", order.GoodsList[0].Name)
 	bm.Set("out_trade_no", order.OrderNo)
-	bm.Set("total_fee", int(order.RealTotal*100))
+	bm.Set("total_fee", int(order.RealTotal))
 	bm.Set("spbill_create_ip", order.ClientIP)
 	bm.Set("notify_url", "http://m.xytschool.com/wx_order")
 	//
@@ -375,14 +375,14 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
 
-	glog.Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal*100)))
+	glog.Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal)))
 	if resp.ResultCode == "SUCCESS" {
 		if resp.TradeState == "SUCCESS" {
-			if resp.TotalFee == strconv.Itoa(int(order.RealTotal*100)) {
+			if resp.TotalFee == strconv.Itoa(int(order.RealTotal)) {
 				return echoapp.OrderPayStatusPaid, nil
 			} else {
-				glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal*100)))
-				return echoapp.OrderPayStatusUnpay, errors.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal*100)))
+				glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
+				return echoapp.OrderPayStatusUnpay, errors.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
 			}
 		} else if resp.TradeState == "REFUND" {
 			return echoapp.OrderPayStatusRefund, nil
