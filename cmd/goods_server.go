@@ -75,6 +75,7 @@ func startGoodsServer() {
 	normal.GET("/getGoodsListByTagId", goodsCtl.GetTagGoodsList)
 	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
+	normal.GET("/getVipInfo", goodsCtl.GetVipDesc)
 
 	//cart
 	jwsAuth := e.Group("/" + mode + "/goods/:com_id")

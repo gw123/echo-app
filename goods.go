@@ -13,12 +13,24 @@ const (
 	GoodsTypeTicket  = "ticket"
 	GoodsTypeRoom    = "room"
 	GoodsTypeCombine = "combine"
+	GoodsTypeVip     = "vip"
+
 	//订单中多种商品混合可能出现
 	GoodsTypeMix = "mix"
 
 	GoodsStatusPublish = "publish"
 	GoodsStatusOffline = "offline"
 )
+
+type GoodsTag struct {
+	ID        uint       `gorm:"primary_key" json:"id"`
+	ComId     uint       `json:"com_id"`
+	Name      string     `json:"name"`
+	Icon      string     `json:"icon"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `sql:"index"`
+}
 
 type GoodsBrief struct {
 	ID          uint      `gorm:"primary_key" json:"id"`
@@ -106,8 +118,7 @@ type Goods struct {
 
 func (goods *Goods) AfterFind() error {
 	if goods.SkuLabelsStr != "" {
-		if err := json.Unmarshal([]byte(goods.SkuLabelsStr), &goods.SkuLabels)
-			err != nil {
+		if err := json.Unmarshal([]byte(goods.SkuLabelsStr), &goods.SkuLabels); err != nil {
 			glog.Error(goods.SkuLabelsStr + "skuiLabel str---" + err.Error())
 			return err
 		}
@@ -119,16 +130,6 @@ func (goods *Goods) AfterFind() error {
 		}
 	}
 	return goods.GoodsBrief.AfterFind()
-}
-
-type GoodsTag struct {
-	ID        uint       `gorm:"primary_key" json:"id"`
-	ComId     uint       `json:"com_id"`
-	Name      string     `json:"name"`
-	Icon      string     `json:"icon"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `sql:"index"`
 }
 
 // Cart
@@ -197,4 +198,7 @@ type GoodsService interface {
 	IsValidCartGoods(item *CartGoodsItem) error
 	IsValidCartGoodsList(itemList []*CartGoodsItem) error
 	GetGoodsTags(id uint) ([]*GoodsTag, error)
+
+	//获取商品类型为会员的商品, 用户在办理会员时候购买的就是这个虚拟的商品
+	GetVipDesc() (*Goods, error)
 }

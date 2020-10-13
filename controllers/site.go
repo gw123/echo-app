@@ -119,6 +119,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			data["sex"] = user.Sex
 			data["roles"] = user.Roles
 			data["id"] = user.Id
+			data["vip_level"] = user.VipLevel
 			response["user"] = data
 		}
 	}

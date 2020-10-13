@@ -191,6 +191,7 @@ func (u *UserService) GetCachedUserById(userId int64) (*echoapp.User, error) {
 	}
 	return user, nil
 }
+
 func (u *UserService) GetCachedUserDefaultAddrById(userId int64) (*echoapp.Address, error) {
 	addr := &echoapp.Address{}
 	data, err := u.redis.Get(FormatUserAddrRedisKey(userId)).Result()
@@ -216,6 +217,7 @@ func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
 	}
 	return err
 }
+
 func (u *UserService) UpdateCachedUserDefaultAddr(addr *echoapp.Address) (err error) {
 	//r := time.Duration(rand.Int63n(180))
 	data, err := json.Marshal(addr)
@@ -312,25 +314,33 @@ func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.U
 }
 
 //自动注册微信用户
-func (u *UserService) ChangeUserJwsToken(newUser *echoapp.User) (err error) {
-
+func (u *UserService) ChangeUserJwsToken(user *echoapp.User) (err error) {
 	data := make(map[string]interface{})
-	data["username"] = newUser.Nickname
-	data["com_id"] = newUser.ComId
+	data["username"] = user.Nickname
+	data["com_id"] = user.ComId
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return errors.Wrap(err, "Marshal")
 	}
 
-	newUser.JwsToken, err = u.jws.CreateToken(newUser.Id, string(payload))
+	user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
 	if err != nil {
 		return errors.Wrap(err, "createToken")
 	}
 
-	if err := u.Save(newUser); err != nil {
-		return errors.Wrap(err, "save newUser")
+	if err := u.Save(user); err != nil {
+		return errors.Wrap(err, "save user")
 	}
-	//更新缓存
+	return nil
+}
+
+// 设置用户vip等级
+func (u *UserService) SetVipLevel(user *echoapp.User, level int16) (err error) {
+	user.VipLevel = level
+	if err := u.Save(user); err != nil {
+		return errors.Wrap(err, "set vip level")
+	}
+	glog.Infof("userid : %d ,set vip level %d", user.Id, level)
 	return nil
 }
 

@@ -231,13 +231,14 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
+
 		tx.Commit()
 
 		// 发送通知
 		scoreJob := &jobs.UserScoreChange{
 			ComId:        order.ComId,
 			UserId:       order.UserId,
-			Score:        int(order.RealTotal * 100),
+			Score:        int(order.RealTotal),
 			Source:       "order",
 			SourceDetail: "pay",
 		}

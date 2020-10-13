@@ -87,6 +87,7 @@ func startOrderServer() {
 	jwsAuth.POST("/refund", orderCtl.Refund)
 	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
 	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
+	jwsAuth.POST("/openVip", orderCtl.OpenVip)
 
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)

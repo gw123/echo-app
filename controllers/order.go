@@ -3,35 +3,34 @@ package controllers
 import (
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
 type OrderController struct {
-	orderSvc echoapp.OrderService
+	orderSvr echoapp.OrderService
 	userSvr  echoapp.UserService
 	echoapp.BaseController
 }
 
 func NewOrderController(orderSvr echoapp.OrderService, userSvr echoapp.UserService) *OrderController {
 	return &OrderController{
-		orderSvc: orderSvr,
+		orderSvr: orderSvr,
 		userSvr:  userSvr,
 	}
 }
 
-func (orderCtrl *OrderController) GetOrdereById(c echo.Context) error {
+func (oCtl *OrderController) GetOrdereById(c echo.Context) error {
 	param := &Param{}
 	if err := c.Bind(param); err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeArgument, "", errors.Wrap(err, "Bind"))
+		return oCtl.Fail(c, echoapp.CodeArgument, "", errors.Wrap(err, "Bind"))
 	}
-	res, err := orderCtrl.orderSvc.GetOrderById(param.ID)
+	res, err := oCtl.orderSvr.GetOrderById(param.ID)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeDBError, "", errors.Wrap(err, "GetResourceById"))
+		return oCtl.Fail(c, echoapp.CodeDBError, "", errors.Wrap(err, "GetResourceById"))
 	}
-	return orderCtrl.Success(c, res)
+	return oCtl.Success(c, res)
 }
 
 type Param struct {
@@ -43,142 +42,186 @@ type Param struct {
 	Status uint `json:"status"`
 }
 
-func (orderCtrl *OrderController) GetUserPaymentOrder(c echo.Context) error {
+func (oCtl *OrderController) GetUserPaymentOrder(c echo.Context) error {
 	params := &Param{}
 	if err := c.Bind(params); err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeArgument, "", errors.Wrap(err, "Bind"))
+		return oCtl.Fail(c, echoapp.CodeArgument, "", errors.Wrap(err, "Bind"))
 	}
-	res, err := orderCtrl.orderSvc.GetUserPaymentOrder(c, params.UserID, params.From, params.Limit)
+	res, err := oCtl.orderSvr.GetUserPaymentOrder(c, params.UserID, params.From, params.Limit)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeDBError, "", errors.Wrap(err, "GetUserPaymentOrder"))
+		return oCtl.Fail(c, echoapp.CodeDBError, "", errors.Wrap(err, "GetUserPaymentOrder"))
 	}
-	return orderCtrl.Success(c, res)
+	return oCtl.Success(c, res)
 }
 
-func (orderCtrl *OrderController) GetOrderList(c echo.Context) error {
+func (oCtl *OrderController) GetOrderList(c echo.Context) error {
 	userID, err := echoapp_util.GetCtxtUserId(c)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeArgument, "授权失败", err)
+		return oCtl.Fail(c, echoapp.CodeArgument, "授权失败", err)
 	}
 	last, limit := echoapp_util.GetCtxListParams(c)
 	status := c.QueryParam("status")
-	filelist, err := orderCtrl.orderSvc.GetUserOrderList(c, uint(userID), status, last, limit)
+	filelist, err := oCtl.orderSvr.GetUserOrderList(c, uint(userID), status, last, limit)
 	if err != nil {
-		return orderCtrl.Fail(c, echoapp.CodeArgument, "OrderCtrl->GetOrderList", err)
+		return oCtl.Fail(c, echoapp.CodeArgument, "OrderCtrl->GetOrderList", err)
 	}
 	echoapp_util.ExtractEntry(c).Infof("status: %s from:%s,limit:%s", status, last, limit)
-	return orderCtrl.Success(c, filelist)
+	return oCtl.Success(c, filelist)
 }
 
-func (orderCtrl *OrderController) GetTicketByCode(ctx echo.Context) error {
+func (oCtl *OrderController) GetTicketByCode(ctx echo.Context) error {
 	code := ctx.QueryParam("code")
 	company, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	codeTicket, err := orderCtrl.orderSvc.GetTicketByCode(code)
+	codeTicket, err := oCtl.orderSvr.GetTicketByCode(code)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
 	codeTicket.XcxCover = company.XcxCover
-	return orderCtrl.Success(ctx, codeTicket)
+	return oCtl.Success(ctx, codeTicket)
 }
 
-func (orderCtrl *OrderController) GetOrderStatistics(ctx echo.Context) error {
+func (oCtl *OrderController) GetOrderStatistics(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) PreOrder(ctx echo.Context) error {
+func (oCtl *OrderController) PreOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}
 
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	params.ComId = echoapp_util.GetCtxComId(ctx)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	} else {
-		params.UserId = uint(user.Id)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+	if err := ctx.Bind(params); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	addr, err := orderCtrl.userSvr.GetUserAddrById(int64(params.AddressId))
+	oCtl.setOrderInfoFromCtx(ctx, params)
+
+	addr, err := oCtl.userSvr.GetUserAddrById(int64(params.AddressId))
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "无效的收货地址", err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "无效的收货地址", err)
 	}
 	params.Address = addr
 
-	if params.InviterId == uint(user.Id) {
-		// 自己邀请自己不算
-		params.InviterId = 0
-	}
-
-	if params.InviterId != 0 {
-		glog.Infof("inviterId :%d ", params.InviterId)
-	}
-
-	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
-	switch clientType {
-	case echoapp.ClientWxOfficial:
-		params.Source = "公众号"
-	case echoapp.ClientWxMiniApp:
-		params.Source = "小程序"
-	}
-
-	params.ClientType = clientType
-	params.ClientIP = ctx.RealIP()
-	if err := orderCtrl.orderSvc.PreCheckOrder(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	if err := oCtl.orderSvr.PreCheckOrder(params); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	params.ExpressStatus = echoapp.OrderStatusToShip
-	resp, err := orderCtrl.orderSvc.UniPreOrder(params, user)
+	resp, err := oCtl.orderSvr.UniPreOrder(params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
+			return oCtl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
 		} else {
-			return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+			return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 		}
 	}
-	return orderCtrl.Success(ctx, resp)
+	return oCtl.Success(ctx, resp)
+}
+
+/***
+开通会员
+*/
+func (oCtl *OrderController) OpenVip(ctx echo.Context) error {
+	params := &echoapp.Order{}
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	if user.VipLevel > 0 {
+		// 如果已经是会员不需要重复办理
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "您已经是会员", err)
+	}
+
+	if err := ctx.Bind(params); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	params.GoodsType = echoapp.GoodsTypeVip
+	oCtl.setOrderInfoFromCtx(ctx, params)
+	if err := oCtl.orderSvr.PreCheckOrder(params); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	resp, err := oCtl.orderSvr.UniPreOrder(params, user)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return oCtl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
+		} else {
+			return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+		}
+	}
+	return oCtl.Success(ctx, resp)
+}
+
+func (oCtl *OrderController) setOrderInfoFromCtx(ctx echo.Context, order *echoapp.Order) {
+	order.ComId = echoapp_util.GetCtxComId(ctx)
+	user, _ := echoapp_util.GetCtxtUser(ctx)
+	order.UserId = uint(user.Id)
+
+	if order.InviterId == uint(user.Id) {
+		// 自己邀请自己不算
+		order.InviterId = 0
+	}
+
+	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
+	order.Source = clientType
+	switch clientType {
+	case echoapp.ClientWxOfficial:
+		order.Source = "公众号"
+	case echoapp.ClientWxMiniApp:
+		order.Source = "小程序"
+	}
+	order.ClientType = clientType
+	order.ClientIP = ctx.RealIP()
 }
 
 /***
   查询订单的支付结果
 */
-func (orderCtrl *OrderController) QueryOrder(ctx echo.Context) error {
+func (oCtl *OrderController) QueryOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}
 
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	params.ComId = echoapp_util.GetCtxComId(ctx)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	} else {
 		params.UserId = uint(user.Id)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
+	order, err := oCtl.orderSvr.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
 	}
 
-	addr := &echoapp.Address{}
-	addr, err = orderCtrl.userSvr.GetUserAddrById(int64(order.AddressId))
-	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "错误的收货地址", err)
+	// 办理会员订单没有收货地址
+	if order.GoodsType != echoapp.GoodsTypeVip {
+		addr := &echoapp.Address{}
+		addr, err = oCtl.userSvr.GetUserAddrById(int64(order.AddressId))
+		if err != nil {
+			return oCtl.Fail(ctx, echoapp.CodeArgument, "错误的收货地址", err)
+		}
+		order.Address = addr
 	}
-	order.Address = addr
 
-	resp, err := orderCtrl.orderSvc.QueryOrderAndUpdate(order, echoapp.OrderStatusPaid)
+	resp, err := oCtl.orderSvr.QueryOrderAndUpdate(order, echoapp.OrderStatusPaid)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 	}
-	return orderCtrl.Success(ctx, resp)
+	return oCtl.Success(ctx, resp)
 }
 
 //func (orderCtrl *OrderController) PlaceSelfOrder(ctx echo.Context) error {
@@ -192,7 +235,7 @@ func (orderCtrl *OrderController) QueryOrder(ctx echo.Context) error {
 //	} else {
 //		params.UserId = uint(user.Id)
 //	}
-//	_, err = orderCtrl.orderSvc.UniPreOrder(params, user)
+//	_, err = orderCtrl.orderSvr.UniPreOrder(params, user)
 //	if err != nil {
 //		if err == gorm.ErrRecordNotFound {
 //			return orderCtrl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
@@ -203,59 +246,59 @@ func (orderCtrl *OrderController) QueryOrder(ctx echo.Context) error {
 //	return orderCtrl.Success(ctx, nil)
 //}
 
-func (orderCtrl *OrderController) CancelOrder(ctx echo.Context) error {
+func (oCtl *OrderController) CancelOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}
 
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	params.ComId = echoapp_util.GetCtxComId(ctx)
 	if userId, err := echoapp_util.GetCtxtUserId(ctx); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	} else {
 		params.UserId = uint(userId)
 	}
 
-	err := orderCtrl.orderSvc.CancelOrder(params)
+	err := oCtl.orderSvr.CancelOrder(params)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常", err)
 	}
-	return orderCtrl.Success(ctx, nil)
+	return oCtl.Success(ctx, nil)
 }
 
-func (orderCtrl *OrderController) Refund(ctx echo.Context) error {
+func (oCtl *OrderController) Refund(ctx echo.Context) error {
 	params := &echoapp.Order{}
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	params.ComId = echoapp_util.GetCtxComId(ctx)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
+	order, err := oCtl.orderSvr.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, err.Error(), err)
 	}
-	if err := orderCtrl.orderSvc.Refund(order, user); err != nil {
+	if err := oCtl.orderSvr.Refund(order, user); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (orderCtrl *OrderController) GetOrderDetail(ctx echo.Context) error {
+func (oCtl *OrderController) GetOrderDetail(ctx echo.Context) error {
 	orderNo := ctx.QueryParam("order_no")
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
-	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), orderNo)
+	order, err := oCtl.orderSvr.GetUserOrderDetail(ctx, uint(user.Id), orderNo)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败", err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败", err)
 	}
-	return orderCtrl.Success(ctx, order)
+	return oCtl.Success(ctx, order)
 }
 
 type CheckTicketRequest struct {
@@ -263,93 +306,93 @@ type CheckTicketRequest struct {
 	Num  uint   `json:"num"`
 }
 
-func (orderCtrl *OrderController) CheckTicket(ctx echo.Context) error {
+func (oCtl *OrderController) CheckTicket(ctx echo.Context) error {
 	request := CheckTicketRequest{}
 	if err := ctx.Bind(&request); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
 	}
 
-	if err := orderCtrl.orderSvc.CheckTicket(request.Code, request.Num, uint(user.Id)); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "门票校验失败", err)
+	if err := oCtl.orderSvr.CheckTicket(request.Code, request.Num, uint(user.Id)); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "门票校验失败", err)
 	}
-	return orderCtrl.Success(ctx, nil)
+	return oCtl.Success(ctx, nil)
 }
 
-func (orderCtrl *OrderController) CheckTicketList(ctx echo.Context) error {
+func (oCtl *OrderController) CheckTicketList(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) GetTicketList(ctx echo.Context) error {
+func (oCtl *OrderController) GetTicketList(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) GetTicketDetail(ctx echo.Context) error {
+func (oCtl *OrderController) GetTicketDetail(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) FetchThirdTicket(ctx echo.Context) error {
+func (oCtl *OrderController) FetchThirdTicket(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) CheckTicketByStaff(ctx echo.Context) error {
+func (oCtl *OrderController) CheckTicketByStaff(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) CheckTicketBySelf(ctx echo.Context) error {
+func (oCtl *OrderController) CheckTicketBySelf(ctx echo.Context) error {
 	return nil
 }
 
-func (orderCtrl *OrderController) WxPayCallback(ctx echo.Context) error {
-	err := orderCtrl.orderSvc.WxPayCallback(ctx)
+func (oCtl *OrderController) WxPayCallback(ctx echo.Context) error {
+	err := oCtl.orderSvr.WxPayCallback(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 	}
-	return orderCtrl.Success(ctx, "SUCCESS")
+	return oCtl.Success(ctx, "SUCCESS")
 }
 
-func (orderCtrl *OrderController) WxRefundCallback(ctx echo.Context) error {
-	err := orderCtrl.orderSvc.WxRefundCallback(ctx)
+func (oCtl *OrderController) WxRefundCallback(ctx echo.Context) error {
+	err := oCtl.orderSvr.WxRefundCallback(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 	}
-	return orderCtrl.Success(ctx, "SUCCESS")
+	return oCtl.Success(ctx, "SUCCESS")
 }
 
-func (orderCtrl *OrderController) QueryRefund(ctx echo.Context) error {
+func (oCtl *OrderController) QueryRefund(ctx echo.Context) error {
 	params := &echoapp.Order{}
 
 	if err := ctx.Bind(params); err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	params.ComId = echoapp_util.GetCtxComId(ctx)
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	} else {
 		params.UserId = uint(user.Id)
 	}
 
-	order, err := orderCtrl.orderSvc.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
+	order, err := oCtl.orderSvr.GetUserOrderDetail(ctx, uint(user.Id), params.OrderNo)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取订单失败"+err.Error(), err)
 	}
 
 	addr := &echoapp.Address{}
-	addr, err = orderCtrl.userSvr.GetUserAddrById(int64(order.AddressId))
+	addr, err = oCtl.userSvr.GetUserAddrById(int64(order.AddressId))
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeArgument, "错误的收货地址", err)
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "错误的收货地址", err)
 	}
 	order.Address = addr
 
-	resp, err := orderCtrl.orderSvc.QueryRefundOrderAndUpdate(order)
+	resp, err := oCtl.orderSvr.QueryRefundOrderAndUpdate(order)
 	if err != nil {
-		return orderCtrl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 	}
-	return orderCtrl.Success(ctx, resp)
+	return oCtl.Success(ctx, resp)
 }

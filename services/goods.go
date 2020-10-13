@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/gw123/glog"
 	"github.com/olivere/elastic/v7"
 
@@ -40,6 +41,15 @@ func NewGoodsService(db *gorm.DB, redis *redis.Client, es *elastic.Client) *Good
 func (gSvr *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	res := gSvr.db.Where("name=?", name).Find(goods)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
+	}
+	return goods, nil
+}
+
+func (gSvr *GoodsService) GetVipDesc() (*echoapp.Goods, error) {
+	goods := &echoapp.Goods{}
+	res := gSvr.db.Where("goods_type = ?", echoapp.GoodsTypeVip).Find(goods)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
 	}

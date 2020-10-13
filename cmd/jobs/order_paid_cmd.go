@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/pkg/errors"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/jobs"
@@ -35,6 +37,17 @@ func (o *OrderPaidJobber) Handle() error {
 	}
 	wechat.SendTplMessage(context.Background(), msg)
 	glog.Info("微信支付成功回调: 发送订单支付成功模板消息")
+
+	// 如果是会员商品需要给用户办理会员
+	if o.Order.GoodsType == echoapp.GoodsTypeVip {
+		user, err := userSvr.GetUserById(int64(o.Order.UserId))
+		if err != nil {
+			return errors.Wrap(err, "get user at set user vip")
+		}
+		if err := userSvr.SetVipLevel(user, 1); err != nil {
+			return errors.Wrap(err, "SetVipLevel")
+		}
+	}
 
 	// 订单中包含门票推送门票信息
 	if len(o.Order.Tickets) > 0 {
