@@ -6,6 +6,7 @@ import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
+	"github.com/gw123/echo-app/services/activity"
 	"github.com/gw123/glog"
 	"github.com/gw123/gworker"
 	"github.com/jinzhu/gorm"
@@ -16,25 +17,26 @@ import (
 var App *EchoApp
 
 type EchoApp struct {
-	IsHealth        bool
-	JobPusher       gworker.Producer
-	areaSvc         echoapp.AreaService
-	smsSvc          echoapp.SmsService
-	UserSvr         echoapp.UserService
-	dbPool          echoapp.DbPool
-	redisPool       echoapp.RedisPool
-	CompanySvr      echoapp.CompanyService
-	GoodsSvr        echoapp.GoodsService
-	ResourceService echoapp.ResourceService
-	CommentSvr      echoapp.CommentService
-	OrderSvr        echoapp.OrderService
-	ActivitySvr     echoapp.ActivityService
-	WsSvr           echoapp.WsService
-	TestpaperSvr    echoapp.TestpaperService
-	WechatService   echoapp.WechatService
-	TicketService   echoapp.TicketService
-	SiteSvr         echoapp.SiteService
-	TongchengSvr    echoapp.TongchengService
+	IsHealth              bool
+	JobPusher             gworker.Producer
+	areaSvc               echoapp.AreaService
+	smsSvc                echoapp.SmsService
+	UserSvr               echoapp.UserService
+	dbPool                echoapp.DbPool
+	redisPool             echoapp.RedisPool
+	CompanySvr            echoapp.CompanyService
+	GoodsSvr              echoapp.GoodsService
+	ResourceService       echoapp.ResourceService
+	CommentSvr            echoapp.CommentService
+	OrderSvr              echoapp.OrderService
+	ActivitySvr           echoapp.ActivityService
+	WsSvr                 echoapp.WsService
+	TestpaperSvr          echoapp.TestpaperService
+	WechatService         echoapp.WechatService
+	TicketService         echoapp.TicketService
+	SiteSvr               echoapp.SiteService
+	TongchengSvr          echoapp.TongchengService
+	ActivityDriverFactory echoapp.ActivityDriverFactory
 }
 
 func init() {
@@ -447,6 +449,27 @@ func GetTongchengService() echoapp.TongchengService {
 		App.TongchengSvr = services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	}
 	return App.TongchengSvr
+}
+
+func GetActivityDriverFactory() (echoapp.ActivityDriverFactory, error) {
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	factory := activity.GetSingleDriverFactory(shopDb, redis)
+	return factory, nil
+}
+
+func MustGetAcvitityDriverFactory() (echoapp.ActivityDriverFactory, error) {
+	factory, err := GetActivityDriverFactory()
+	if err != nil {
+		panic(errors.Wrap(err, "MustGetAcvitityDriverFactory"))
+	}
+	return factory, nil
 }
 
 func GetEs() (*es7.Client, error) {

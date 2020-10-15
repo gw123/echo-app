@@ -109,7 +109,7 @@ func (c *Coupon) IsExpire() bool {
 	return c.ExpireAt.Sub(time.Now()) <= 0
 }
 
-//用户优惠券
+// 用户优惠券
 type UserCoupon struct {
 	Id         uint       `gorm:"primary_key" json:"id"`
 	CouponId   uint       `json:"coupon_id"` //优惠券
@@ -121,4 +121,8 @@ type UserCoupon struct {
 	ExpireAt   time.Time  //优惠券过期时间
 	BaseCoupon *Coupon    `json:"base_coupon" gorm:"-"`
 	ComId      uint
+}
+
+func (*UserCoupon) TableName() string {
+	return "user_coupons"
 }

@@ -402,7 +402,7 @@ func (t *UserService) Register(ctx echo.Context, param *echoapp.RegisterParam) (
 
 	err := t.db.Table("users").Where("phone=?", param.Mobile)
 	if err.Error != nil && err.RecordNotFound() {
-		return nil, errors.Wrap(err.Error, "Record has Found")
+		return nil, errors.Wrap(err.Error, "RecordAwardHistory has Found")
 	}
 	echoapp_util.ExtractEntry(ctx).Infof("mobile:%s,pwd:%s", param.Mobile, param.Password)
 	return nil, t.Create(param)
