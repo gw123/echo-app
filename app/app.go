@@ -43,7 +43,6 @@ func init() {
 	App = &EchoApp{
 		IsHealth: true,
 	}
-
 }
 
 func GetJobPusher() (gworker.Producer, error) {
@@ -464,12 +463,12 @@ func GetActivityDriverFactory() (echoapp.ActivityDriverFactory, error) {
 	return factory, nil
 }
 
-func MustGetAcvitityDriverFactory() (echoapp.ActivityDriverFactory, error) {
+func MustGetActivityDriverFactory() echoapp.ActivityDriverFactory {
 	factory, err := GetActivityDriverFactory()
 	if err != nil {
-		panic(errors.Wrap(err, "MustGetAcvitityDriverFactory"))
+		panic(errors.Wrap(err, "MustGetActivityDriverFactory"))
 	}
-	return factory, nil
+	return factory
 }
 
 func GetEs() (*es7.Client, error) {

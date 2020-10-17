@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 )
@@ -59,6 +61,22 @@ type Order struct {
 	//Score         string           `score` //积分
 }
 
+func (o *Order) OrderCheck() error {
+	if len(o.GoodsList) == 0 {
+		return AppErrOrderFromat
+	}
+
+	switch o.GoodsType {
+	case GoodsTypeVip:
+		if len(o.GoodsList) != 1 {
+			return errors.Errorf("vip订单商品只能有一个")
+		}
+	case GoodsTypeTicket:
+	case GoodsTypeRoom:
+	}
+	return nil
+}
+
 func (o *Order) BeforeSave() error {
 	data, err := json.Marshal(o.GoodsList)
 	if err != nil {
@@ -78,6 +96,7 @@ func (o *Order) BeforeSave() error {
 	} else {
 		o.CouponsStr = "[]"
 	}
+
 	return nil
 }
 

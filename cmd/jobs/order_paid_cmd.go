@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/pkg/errors"
+	"github.com/gw123/echo-app/components"
+
+	"github.com/gw123/echo-app/services/activity"
+
+	"github.com/gw123/echo-app/observer"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -16,12 +20,14 @@ import (
 
 type OrderPaidJobber struct {
 	jobs.OrderPaid
+	observer.SubjectImp
 }
 
 func (o *OrderPaidJobber) Handle() error {
 	glog.DefaultLogger().WithField(o.GetName(), o.Order.OrderNo).Info("微信支付成功事件")
 	wechat := app.MustGetWechatService()
 	userSvr := app.MustGetUserService()
+
 	user, err := userSvr.GetUserById(int64(o.Order.UserId))
 	if err != nil {
 		return err
@@ -38,25 +44,15 @@ func (o *OrderPaidJobber) Handle() error {
 	wechat.SendTplMessage(context.Background(), msg)
 	glog.Info("微信支付成功回调: 发送订单支付成功模板消息")
 
-	// 如果是会员商品需要给用户办理会员
 	if o.Order.GoodsType == echoapp.GoodsTypeVip {
-		user, err := userSvr.GetUserById(int64(o.Order.UserId))
-		if err != nil {
-			return errors.Wrap(err, "get user at set user vip")
-		}
-		if err := userSvr.SetVipLevel(user, 1); err != nil {
-			return errors.Wrap(err, "SetVipLevel")
-		}
+		glog.Info("微信支付成功回调: 创建vip会员")
+		o.Notify(o.Order)
 	}
 
 	// 订单中包含门票推送门票信息
 	if len(o.Order.Tickets) > 0 {
-		//var ticketNames []string
-		//var totalTicketNum uint
-
 		for _, ticket := range o.Order.Tickets {
-			//ticketNames = append(ticketNames, ticket.Name)
-			//totalTicketNum += ticket.Num
+			//发送模板消息
 			glog.Info("微信支付成功回调: 发送门票模板消息")
 			msg := &echoapp.TplMsgCreateTicket{
 				BaseTemplateMessage: echoapp.BaseTemplateMessage{
@@ -106,9 +102,23 @@ var OrderPaidCmd = &cobra.Command{
 	Short: "微信支付成功回调",
 	Long:  `微信支付成功回调`,
 	Run: func(cmd *cobra.Command, args []string) {
-		model := &OrderPaidJobber{}
+		db, err := app.GetDb("shop")
+		if err != nil {
+			panic(err)
+		}
+		redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+		if err != nil {
+			panic(err)
+		}
+		dao := activity.NewActivityDao(db, redis)
+		userSvr := app.MustGetUserService()
+		observer := activity.NewAwardVipActivityDriverListener(dao, userSvr)
+
+		//
+		Jobber := &OrderPaidJobber{}
+		Jobber.AddObserver(observer)
 		opt := echoapp.ConfigOpts.Job
-		taskManager, err := gworker.NewConsumer(opt, model)
+		taskManager, err := gworker.NewConsumer(opt, Jobber)
 		if err != nil {
 			glog.Errorf("NewTaskManager : %s", err.Error())
 			return

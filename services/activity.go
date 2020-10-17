@@ -121,25 +121,20 @@ func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 
 //获取商品详情页 某个商品的关联活动
 func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+	var goodsActivity echoapp.GoodsActivity
 	var activity echoapp.Activity
 	var err error
 	//优先获取单独给这个商品配置的活动
-	err = aSvr.db.Where("com_id = ? and goods_id = ? and status ='publish'", comId, goodsId).
-		First(&activity).Error
-	if err != nil && !gorm.IsRecordNotFoundError(err) {
-		return nil, errors.Wrap(err, "GetGoodsActivity")
+	err = aSvr.db.Where("goods_id = ? and status = ? ", goodsId, echoapp.GoodsActivityStatusOnline).
+		First(&goodsActivity).Error
+	if err != nil {
+		return nil, err
 	}
 
-	if gorm.IsRecordNotFoundError(err) {
-		//获取一个全局的 商品位置的活动
-		err = aSvr.db.Where("com_id = ? and position = 'goods' and status ='publish'", comId).
-			First(&activity).Error
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
-		}
-		if err != nil {
-			return nil, errors.Wrap(err, "GetGoodsActivity")
-		}
+	err = aSvr.db.Where("id = ?", goodsActivity.ID).
+		First(&activity).Error
+	if err != nil {
+		return nil, err
 	}
 	return &activity, nil
 }

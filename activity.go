@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gw123/echo-app/observer"
+
 	"github.com/gw123/glog"
 )
 
@@ -117,14 +119,14 @@ type GoodsActivity struct {
 
 //  记录用户参加的活动，和活动的状态
 type UserActivity struct {
-	ID         uint      `json id:"id"`
-	UserID     uint      `json:"user_id"`
-	ActivityID uint      `json:"activity_id"`
-	Status     uint8     `json:"status"`
-	Metadata   string    `json:"metadata"`
-	Log        string    `json:"log"`
-	CreatedAt  time.Time `json:"created_at"`
-	FinishedAt time.Time `json:"finished_at"`
+	ID         uint       `json id:"id"`
+	UserID     uint       `json:"user_id"`
+	ActivityID uint       `json:"activity_id"`
+	Status     uint8      `json:"status"`
+	Metadata   string     `json:"metadata"`
+	Log        string     `json:"log"`
+	CreatedAt  time.Time  `json:"created_at"`
+	FinishedAt *time.Time `json:"finished_at"`
 }
 
 // 用户通过参加活动领取的奖品
@@ -132,7 +134,6 @@ type UserAward struct {
 	ID        uint      `json id:"id"`
 	UserID    uint      `json:"user_id"`
 	GoodsID   uint      `json:"goods_id"`
-	Total     uint      `json:"total"`
 	Num       uint      `json:"num"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -186,11 +187,12 @@ type ActivityService interface {
 	//创建用户优惠券
 	CreateUserCoupon(comId uint, userId uint, couponId uint) error
 	UpdateCachedCouponsByComId(comId uint, lastId uint) ([]*Coupon, error)
-	GetUserCouponById(comId, userId, couponId uint) (*Coupon, error)
+	GetUserCouponById(comId, userID, couponID uint) (*Coupon, error)
 	//获取商品页面关联商品的一个活动
 	GetGoodsActivity(comID uint, goodsID uint) (*Activity, error)
-	//
 
+	GetUserAwards(userId, lastId, limit uint) ([]*UserAward, error)
+	//GetGoodsActivity(comID uint, goodsID uint) (*Activity, error)
 }
 
 //
@@ -212,7 +214,14 @@ type ActivityDriver interface {
 	Record(award *AwardHistory) error
 }
 
+// 活动开始 生成用户活动记录
 // 使用工厂方法创建活动驱动
 type ActivityDriverFactory interface {
 	GetActivityDriver(activityType string) (ActivityDriver, error)
+}
+
+// 装饰器在原来类基础上加上一个订单变化的监听器
+type ActivityDriverWithOrderListener interface {
+	ActivityDriver
+	observer.Observer
 }

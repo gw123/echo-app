@@ -2,6 +2,7 @@ package activity
 
 import (
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/glog"
 )
 
 // 领取奖品的活动通用
@@ -54,11 +55,11 @@ func (a AwardActivityDriver) Fail(userActivity *echoapp.UserActivity) error {
 }
 
 func (a AwardActivityDriver) SendUserAward(userActivity *echoapp.UserActivity) error {
-	activity, err := a.Dao.GetActivity(userActivity.ID)
+	glog.Info("发送活动奖品")
+	activity, err := a.Dao.GetActivity(userActivity.ActivityID)
 	if err != nil {
 		return err
 	}
-
 	for _, award := range activity.Rewards {
 		if err := a.Dao.AddUserAward(userActivity.UserID, award.GoodsId, award.Num); err != nil {
 			return err

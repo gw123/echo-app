@@ -13,6 +13,7 @@ type Dao interface {
 	AddAwardHistory(awardHistory *echoapp.AwardHistory) error
 	GetActivity(ActivityID uint) (*echoapp.Activity, error)
 	RecordAwardHistory(awardHistory *echoapp.AwardHistory) error
+	GetGoodsActivity(goodsID uint) (*echoapp.Activity, error)
 }
 
 type ActivityDao struct {
@@ -43,13 +44,12 @@ func (a ActivityDao) AddUserAward(userId uint, goodsId uint, num uint) error {
 			userAward.GoodsID = goodsId
 		}
 	}
-
 	userAward.Num += num
-	return a.db.Save(userAward).Error
+	return a.db.Debug().Save(userAward).Error
 }
 
 func (a ActivityDao) AddAwardHistory(awardHistory *echoapp.AwardHistory) error {
-	return a.db.Save(awardHistory).Error
+	return a.db.Debug().Save(awardHistory).Error
 }
 
 func (a ActivityDao) GetActivity(activityID uint) (*echoapp.Activity, error) {
@@ -62,4 +62,24 @@ func (a ActivityDao) GetActivity(activityID uint) (*echoapp.Activity, error) {
 
 func (a ActivityDao) RecordAwardHistory(awardHistory *echoapp.AwardHistory) error {
 	return a.db.Save(awardHistory).Error
+}
+
+//获取商品详情页 某个商品的关联活动
+func (aSvr ActivityDao) GetGoodsActivity(goodsId uint) (*echoapp.Activity, error) {
+	var goodsActivity echoapp.GoodsActivity
+	var activity echoapp.Activity
+	var err error
+	//优先获取单独给这个商品配置的活动
+	err = aSvr.db.Debug().Where("goods_id = ? and status = ? ", goodsId, echoapp.GoodsActivityStatusOnline).
+		First(&goodsActivity).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = aSvr.db.Debug().Where("id = ?", goodsActivity.ActivityID).
+		First(&activity).Error
+	if err != nil {
+		return nil, err
+	}
+	return &activity, nil
 }
