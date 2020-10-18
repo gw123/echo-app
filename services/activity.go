@@ -15,16 +15,18 @@ import (
 )
 
 type ActivityService struct {
-	db    *gorm.DB
-	redis *redis.Client
-	lock  *redislock.Client
+	db       *gorm.DB
+	redis    *redis.Client
+	lock     *redislock.Client
+	goodsSvr echoapp.GoodsService
 }
 
-func NewActivityService(db *gorm.DB, redis *redis.Client, lock *redislock.Client) *ActivityService {
+func NewActivityService(db *gorm.DB, redis *redis.Client, lock *redislock.Client, goodsSvr echoapp.GoodsService) *ActivityService {
 	return &ActivityService{
-		db:    db,
-		redis: redis,
-		lock:  lock,
+		db:       db,
+		redis:    redis,
+		lock:     lock,
+		goodsSvr: goodsSvr,
 	}
 }
 
@@ -120,7 +122,7 @@ func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 }
 
 //获取商品详情页 某个商品的关联活动
-func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+func (aSvr ActivityService) getGoodsActivity(goodsId uint) (*echoapp.Activity, error) {
 	var goodsActivity echoapp.GoodsActivity
 	var activity echoapp.Activity
 	var err error
@@ -137,6 +139,15 @@ func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp
 		return nil, err
 	}
 	return &activity, nil
+}
+
+//获取商品详情页 某个商品的关联活动
+func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+	activity, err := aSvr.getGoodsActivity(goodsId)
+	if gorm.IsRecordNotFoundError(err) {
+		return nil, nil
+	}
+	return activity, nil
 }
 
 func (aSvr ActivityService) GetNotifyDetail(id int) (*echoapp.Notify, error) {
@@ -609,7 +620,7 @@ func (aSvr ActivityService) GetCouponsByComId(comId uint, lastId uint) ([]*echoa
 	return coupons, nil
 }
 
-//更新某个公司的优惠券
+// 更新某个公司的优惠券
 func (aSvr ActivityService) UpdateCachedCouponsByComId(comId uint, lastId uint) ([]*echoapp.Coupon, error) {
 	coupons, err := aSvr.GetCouponsByComId(comId, lastId)
 	if err != nil {
@@ -642,4 +653,58 @@ func (aSvr ActivityService) UpdateCachedCouponsByComId(comId uint, lastId uint) 
 		}
 	}
 	return coupons, nil
+}
+
+// 获取用户的奖品列表
+func (aSvr ActivityService) GetUserAwards(userID, lastID, limit uint) ([]*echoapp.UserAward, error) {
+	var userAwards []*echoapp.UserAward
+	query := aSvr.db.Debug().Where("user_id = ? and num >0 ", userID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+	query.Limit(limit).Order("id desc")
+
+	if err := query.Find(&userAwards).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+	for _, award := range userAwards {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "db exec goodsId :%d", award.GoodsID)
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+	return userAwards, nil
+}
+
+// 用户奖品历史获得和领取的记录
+func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
+	var awardHistories []*echoapp.AwardHistory
+	query := aSvr.db.Debug().Where("user_id = ? ", userID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	query.Limit(limit).Order("id desc")
+	if err := query.Find(&awardHistories).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+
+	for _, award := range awardHistories {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrap(err, "db exec")
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+
+	return awardHistories, nil
 }

@@ -131,24 +131,26 @@ type UserActivity struct {
 
 // 用户通过参加活动领取的奖品
 type UserAward struct {
-	ID        uint      `json id:"id"`
-	UserID    uint      `json:"user_id"`
-	GoodsID   uint      `json:"goods_id"`
-	Num       uint      `json:"num"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        uint        `json:"id"`
+	UserID    uint        `json:"user_id"`
+	GoodsID   uint        `json:"goods_id"`
+	Num       uint        `json:"num"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
+	Goods     *GoodsBrief `gorm:"-" json:"goods"`
 }
 
 // 用户领取和核销商品的历史记录表
 type AwardHistory struct {
-	ID             uint      `json id:"id"`
-	UserID         uint      `json:"user_id"`
-	GoodsID        uint      `json:"goods_id"`
-	UserActivityID uint      `json:"user_activity_id"`
-	ActivityID     uint      `json:"activity_id"`
-	Method         string    `json:"method"`
-	Num            uint      `json:"num"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             uint        `json:"id"`
+	UserID         uint        `json:"user_id"`
+	GoodsID        uint        `json:"goods_id"`
+	UserActivityID uint        `json:"user_activity_id"`
+	ActivityID     uint        `json:"activity_id"`
+	Method         string      `json:"method"`
+	Num            uint        `json:"num"`
+	CreatedAt      time.Time   `json:"created_at"`
+	Goods          *GoodsBrief `gorm:"-" json:"goods"`
 }
 
 // 活动优惠券
@@ -164,35 +166,37 @@ func (*ActivityCoupon) TableName() string {
 }
 
 type ActivityService interface {
-	//GetActivityById(id int) (*Banner, error)
+	// GetActivityById(id int) (*Banner, error)
 	AddActivityPv(goodsId uint) error
 	GetActivityList(comId uint, lastId uint, limit int) ([]*Activity, error)
 	GetActivityDetail(id uint) (*Activity, error)
 
-	//coupon
+	// coupon
 	GetCachedCouponById(couponId uint) (*Coupon, error)
 	GetCachedCouponsByIds(couponIds []uint) ([]*Coupon, error)
 
-	//获取当前位置可以领取的优惠券, 首页,支付页面,购物车
+	// 获取当前位置可以领取的优惠券, 首页,支付页面,购物车
 	GetCouponsByPosition(ComId uint, position string) ([]*Coupon, error)
-	//获取当前商品可以领取的优惠券列表
+	// 获取当前商品可以领取的优惠券列表
 	GetCouponsByGoodsId(comId uint, goodsId uint) ([]*Coupon, error)
 
-	//获取活动可以领取优惠券
+	// 获取活动可以领取优惠券
 	GetCouponsByActivity(ComId uint, activityId uint) ([]*Coupon, error)
-	//获取当前订单可以使用的优惠券
+	// 获取当前订单可以使用的优惠券
 	GetUserCouponsByOrder(ComId uint, order *Order) ([]*Coupon, []*Coupon, error)
-	//获取用户领取的优惠券列表
+	// 获取用户领取的优惠券列表
 	GetUserCoupons(ComId uint, userId, lastId uint) ([]*UserCoupon, error)
-	//创建用户优惠券
+	// 创建用户优惠券
 	CreateUserCoupon(comId uint, userId uint, couponId uint) error
 	UpdateCachedCouponsByComId(comId uint, lastId uint) ([]*Coupon, error)
 	GetUserCouponById(comId, userID, couponID uint) (*Coupon, error)
-	//获取商品页面关联商品的一个活动
-	GetGoodsActivity(comID uint, goodsID uint) (*Activity, error)
+	// 获取商品页面关联商品的一个活动
+	GetGoodsActivity(goodsID uint) (*Activity, error)
 
+	// 获取用户获得的奖品列表
 	GetUserAwards(userId, lastId, limit uint) ([]*UserAward, error)
-	//GetGoodsActivity(comID uint, goodsID uint) (*Activity, error)
+	// 获取用户领取奖品的历史记录
+	GetAwardHistoryByUserID(userId, lastId, limit uint) ([]*AwardHistory, error)
 }
 
 //

@@ -135,7 +135,7 @@ func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) (
 
 func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
+	if err := gSvr.db.Debug().Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
 	return goods, nil
@@ -144,13 +144,18 @@ func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 func (gSvr *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	data, err := gSvr.redis.Get(FormatGoodsRedisKey(goodsId)).Result()
+	if err == nil {
+		if err := json.Unmarshal([]byte(data), goods); err != nil {
+			return nil, err
+		}
+		return goods, nil
+	}
+
+	goods, err = gSvr.GetGoodsById(goodsId)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := json.Unmarshal([]byte(data), goods); err != nil {
-		return nil, err
-	}
+	gSvr.UpdateCachedGoods(goods)
 	return goods, nil
 }
 

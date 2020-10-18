@@ -363,7 +363,9 @@ func GetActivityService() (echoapp.ActivityService, error) {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
 	lock := MustGetRedLock("")
-	App.ActivitySvr = services.NewActivityService(shopDb, redis, lock)
+
+	goodsSvr := MustGetGoodsService()
+	App.ActivitySvr = services.NewActivityService(shopDb, redis, lock, goodsSvr)
 	return App.ActivitySvr, nil
 }
 
