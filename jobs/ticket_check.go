@@ -7,7 +7,7 @@ import (
 )
 
 type TicketCheck struct {
-	echoapp.Ticket
+	echoapp.CheckTicketRequestBody
 }
 
 func (s *TicketCheck) GetName() string {

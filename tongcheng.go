@@ -29,6 +29,7 @@ type TongchengResponse struct {
 //  CheckTicketRequestBody
 type CheckTicketRequestBody struct {
 	Tickets        uint   `json:"tickets"`
+	ComID          uint   `json:"com_id"`
 	OrderSerialId  string `json:"orderSerialId"`
 	PartnerOrderId string `json:"partnerOrderId"`
 	ConsumeDate    string `json:"consumeDate"`

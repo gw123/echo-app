@@ -142,7 +142,7 @@ func (aSvr ActivityService) getGoodsActivity(goodsId uint) (*echoapp.Activity, e
 }
 
 //获取商品详情页 某个商品的关联活动
-func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+func (aSvr ActivityService) GetGoodsActivity(goodsId uint) (*echoapp.Activity, error) {
 	activity, err := aSvr.getGoodsActivity(goodsId)
 	if gorm.IsRecordNotFoundError(err) {
 		return nil, nil

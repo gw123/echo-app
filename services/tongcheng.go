@@ -51,7 +51,7 @@ func (mSvr TongchengService) CheckTicket(comID uint, info *echoapp.CheckTicketRe
 func (mSvr TongchengService) TongchengRequest(token string, method string, requestBody interface{}) (*echoapp.TongchengResponse, error) {
 	comInfo, ok := mSvr.tongchengOptionMap[token]
 	if !ok {
-		return nil, errors.New("com not found")
+		return nil, errors.Errorf("com: %d not found", token)
 	}
 
 	rawbody, err := json.Marshal(requestBody)

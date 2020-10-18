@@ -30,15 +30,8 @@ type TicketCheckJobber struct {
 
 func (t *TicketCheckJobber) Handle() error {
 	tc := app.GetTongchengService()
-	err := tc.CheckTicket(t.ComId, &echoapp.CheckTicketRequestBody{
-		Tickets:        t.Number,
-		OrderSerialId:  t.OrderNo,
-		PartnerOrderId: t.OrderNo,
-		ConsumeDate:    t.CreatedAt.Format(echoapp.TimeFormat),
-	})
-
-	echoapp_util.DefaultLogger().Infof("Received a ticket-check message: %s", t.OrderNo)
-
+	err := tc.CheckTicket(t.ComID, &t.CheckTicketRequestBody)
+	echoapp_util.DefaultLogger().Infof("Received a ticket-check message: %s", t.OrderSerialId)
 	if err != nil {
 		echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
 		return err
