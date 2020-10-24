@@ -74,6 +74,7 @@ func (a AwardVipActivityDriverListener) OnEvent(event interface{}) error {
 
 	//
 	if order.GoodsType == echoapp.GoodsTypeVip {
+		glog.Info("微信支付成功回调: 创建vip会员")
 		user, err := a.userSvr.GetUserById(int64(order.UserId))
 		if err != nil {
 			return errors.Wrap(err, "get user at set user vip")

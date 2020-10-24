@@ -3,6 +3,7 @@ package controllers
 import (
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -91,14 +92,13 @@ func (oCtl *OrderController) PreOrder(ctx echo.Context) error {
 	params := &echoapp.Order{}
 
 	if err := ctx.Bind(params); err != nil {
+		glog.Info("preOrder argument err")
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
-		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	if err := ctx.Bind(params); err != nil {
+		glog.Error("preOrder getCtxUser err")
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
@@ -115,6 +115,7 @@ func (oCtl *OrderController) PreOrder(ctx echo.Context) error {
 	}
 
 	params.ExpressStatus = echoapp.OrderStatusToShip
+	glog.Info("begin uniPreOrder")
 	resp, err := oCtl.orderSvr.UniPreOrder(params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {

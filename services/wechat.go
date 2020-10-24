@@ -328,6 +328,7 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*ech
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
 	if !ok {
+		glog.Infof("weixin unified order 签名验证失败")
 		return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
 	}
 

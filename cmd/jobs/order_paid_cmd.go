@@ -33,6 +33,12 @@ func (o *OrderPaidJobber) Handle() error {
 		return err
 	}
 
+	// 通知监听者
+	//1.活动: vip 奖品
+	//2.积分
+	o.Notify(o.Order)
+
+	// 支付成功模板消息
 	msg := &echoapp.TplMsgOrderPaid{
 		BaseTemplateMessage: echoapp.BaseTemplateMessage{
 			ComID:  o.Order.ComId,
@@ -43,11 +49,6 @@ func (o *OrderPaidJobber) Handle() error {
 	}
 	wechat.SendTplMessage(context.Background(), msg)
 	glog.Info("微信支付成功回调: 发送订单支付成功模板消息")
-
-	if o.Order.GoodsType == echoapp.GoodsTypeVip {
-		glog.Info("微信支付成功回调: 创建vip会员")
-		o.Notify(o.Order)
-	}
 
 	// 订单中包含门票推送门票信息
 	if len(o.Order.Tickets) > 0 {

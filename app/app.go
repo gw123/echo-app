@@ -37,6 +37,7 @@ type EchoApp struct {
 	SiteSvr               echoapp.SiteService
 	TongchengSvr          echoapp.TongchengService
 	ActivityDriverFactory echoapp.ActivityDriverFactory
+	VideoSvr              echoapp.VideoService
 }
 
 func init() {
@@ -396,6 +397,30 @@ func GetSiteService() (echoapp.SiteService, error) {
 
 func MustGetSiteService() echoapp.SiteService {
 	svr, err := GetSiteService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
+func GetVideoService() (echoapp.VideoService, error) {
+	if App.VideoSvr != nil {
+		return App.VideoSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	App.VideoSvr = services.NewVideoService(shopDb, redis)
+	return App.VideoSvr, nil
+}
+
+func MustGetVideoService() echoapp.VideoService {
+	svr, err := GetVideoService()
 	if err != nil {
 		panic(errors.Wrap(err, "GetUserSvr"))
 	}

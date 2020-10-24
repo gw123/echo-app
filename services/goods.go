@@ -90,7 +90,7 @@ func (gSvr *GoodsService) GetGoodsByCode(code string) (*echoapp.Goods, error) {
 func (gSvr *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
-		Where("status = 'publish'").
+		Where("status = 'publish' and goods_type != ? ", echoapp.GoodsTypeVip).
 		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
 		return nil, errors.Wrap(err, "db err")
@@ -101,7 +101,7 @@ func (gSvr *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoap
 func (gSvr *GoodsService) GetGoodsListByKeyword(comId uint, keyword string, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
-		Where("status = 'publish'").
+		Where("status = 'publish' and goods_type != ? ", echoapp.GoodsTypeVip).
 		Where("name like ?", "%"+keyword+"%").
 		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {

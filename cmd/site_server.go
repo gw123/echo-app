@@ -19,8 +19,10 @@ import (
 )
 
 func startSiteServer() {
-	echoapp_util.DefaultLogger().Info("开启站点服务")
 	e := echo.New()
+	mode := echoapp.ConfigOpts.ApiVersion
+	echoapp_util.DefaultLogger().Infof("开启站点服务 version %s", mode)
+
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
@@ -59,8 +61,10 @@ func startSiteServer() {
 	actSvr := app.MustGetActivityService()
 	siteSvr := app.MustGetSiteService()
 	userSvr := app.MustGetUserService()
+	videoSvr := app.MustGetVideoService()
+
 	companyCtl := controllers.NewCompanyController(comSvr)
-	mode := echoapp.ConfigOpts.ApiVersion
+
 	wechatSvr := app.MustGetWechatService()
 	weChatMiddle := echoapp_middlewares.NewWechatAuthMiddlewares(
 		middleware.DefaultSkipper,
@@ -74,11 +78,14 @@ func startSiteServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, echoapp.ConfigOpts.Asset)
+	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, videoSvr, echoapp.ConfigOpts.Asset)
 	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+	e.GET("/index/:com_id/video/:id", siteCtl.GetVideoDetail)
+
 	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
 	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+	e.GET("/index-dev/:com_id/video/:id", siteCtl.GetVideoDetail)
 
 	normal := e.Group("/" + mode + "/site/:com_id")
 
@@ -93,6 +100,7 @@ func startSiteServer() {
 	normal.GET("/getActivityDetail", siteCtl.GetActivityDetail)
 	normal.GET("/getNavList", siteCtl.GetQuickNav)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
+	normal.GET("/getVideoList", siteCtl.GetVideoList)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.SiteServer.Addr); err != nil {

@@ -84,7 +84,7 @@ func startUserServer() {
 
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
-	//jwsAuth := e.Group("/v1/user")
+	// jwsAuth := e.Group("/v1/user")
 	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
@@ -92,30 +92,36 @@ func startUserServer() {
 		//IgnoreAuth: true,
 		//MockUserId: 58,
 	}
+
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, userMiddleware)
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
-	//获取用户vip
-	jwsAuth.GET("/getUserCode", userCtl.GetUserCode)
 
-	//roles
+	// 获取用户识别码
+	jwsAuth.GET("/updateUserCode", userCtl.UpdateUserCode)
+	jwsAuth.GET("/getUserByCode", userCtl.GetUserByCode)
+
+	// roles
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
-	//addressList
+
+	// addressList
 	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
 	jwsAuth.POST("/createUserAddress", userCtl.CreateUserAddress)
 	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
 	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
 	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
-	//collection
+
+	// collection
 	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
 	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
 	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
 	jwsAuth.POST("/isCollect", userCtl.IsCollect)
-	//history
+
+	// history
 	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
 	jwsAuth.GET("/getUserHistoryList", userCtl.GetUserHistoryList)
 	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
