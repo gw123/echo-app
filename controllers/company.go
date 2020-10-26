@@ -22,7 +22,7 @@ type CompanyInfoReponse struct {
 }
 
 func (comCtl *CompanyController) GetCompanyInfo(ctx echo.Context) error {
-	comapny, err := echoapp_util.GetCtxtCompany(ctx)
+	comapny, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
 		return comCtl.Fail(ctx, echoapp.CodeNotFound, "查找公司信息失败", err)
 	}
@@ -38,3 +38,5 @@ func (comCtl *CompanyController) GetQuickNav(ctx echo.Context) error {
 	}
 	return comCtl.Success(ctx, navs)
 }
+
+

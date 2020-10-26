@@ -15,6 +15,7 @@ logs/
 main/
 keys/
 config.yaml
+config.prod.yaml
 config.inner.yaml
 config.docker.yaml
 *-linux-amd64
@@ -33,4 +34,9 @@ resources/storage
 resources/echoapp-frontend
 resources/echoapp-frontend/node_modules
 .vscode
+<<<<<<< HEAD
 etcd.sh
+=======
+etcd.sh
+
+>>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4

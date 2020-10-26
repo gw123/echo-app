@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +19,7 @@ import (
 )
 
 func startGoodsServer() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
+	echoapp_util.DefaultLogger().Info("开启GoodsHTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -32,22 +33,20 @@ func startGoodsServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.GoodsServer.Origins
-	if len(origins) > 0 {
-		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins: origins,
-			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
-		}))
-	}
+	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: echoapp.ConfigOpts.GoodsServer.Origins,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, "ClientID",
+			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+	})
 
 	loggerMiddleware := echoapp_middlewares.NewLoggingMiddleware(echoapp_middlewares.LoggingMiddlewareConfig{
 		Skipper: func(ctx echo.Context) bool {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
-	e.Use(loggerMiddleware)
+	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 	//	StackSize: 1 << 10, // 1 KB
 	//}))
@@ -55,7 +54,6 @@ func startGoodsServer() {
 	//Actions
 	companySvr := app.MustGetCompanyService()
 	goodsSvr := app.MustGetGoodsService()
-	//resourceSvr := app.MustGetResourceService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
@@ -65,31 +63,31 @@ func startGoodsServer() {
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
-	//
-	//callback := e.Group("/v1/goods-api")
-	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
-	//
-	normal := e.Group("/v1/goods-api")
-	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/goods/:com_id")
+	normal.Use( limitMiddleware, companyMiddleware, tryJwsMiddleware)
 
 	goodsCtl := controllers.NewGoodsController(goodsSvr)
-	companyCtl := controllers.NewCompanyController(companySvr)
 
-	normal.GET("/getIndexBanner", goodsCtl.GetIndexBanners)
-	normal.GET("/getQuickNav", companyCtl.GetQuickNav)
 	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
-	normal.GET("/getRecommendGoods", goodsCtl.GetRecommendGoods)
-	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
-	//normal.GET("/getUploadToken", resourceCtl.GetUploadToken)
+	normal.GET("/getRecommendGoodsList", goodsCtl.GetRecommendGoodsList)
+	normal.GET("/getGoodsListByTagId", goodsCtl.GetTagGoodsList)
+	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
+	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 
-	//jwsAuth := e.Group("/v1/goods-api")
-	//jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-	//	Skipper: middleware.DefaultSkipper,
-	//	Jws:     app.MustGetJwsHelper(),
-	//}
-	//jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	//jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
+	//cart
+	jwsAuth := e.Group("/" + mode + "/goods/:com_id")
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+	})
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
+	jwsAuth.POST("/addCartGoods", goodsCtl.AddCartGoods)
+	jwsAuth.POST("/delCartGoods", goodsCtl.DelCartGoods)
+	jwsAuth.POST("/clearCart", goodsCtl.ClearCart)
+	jwsAuth.POST("/updateCartGoods", goodsCtl.UpdateCartGoods)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

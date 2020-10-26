@@ -3,7 +3,6 @@ package echoapp_util
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/speps/go-hashids"
 )
 
@@ -47,7 +46,7 @@ func EncodeString(input, salt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("raw : %s , hex.EncodeToString: %s\n", input, hex.EncodeToString([]byte(input)))
+	//fmt.Printf("raw : %s , hex.EncodeToString: %s\n", input, hex.EncodeToString([]byte(input)))
 	return hashId.EncodeHex(hex.EncodeToString([]byte(input)))
 }
 

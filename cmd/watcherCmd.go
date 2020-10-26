@@ -64,7 +64,7 @@ func watchDir(dir string) {
 								fmt.Println(errors.Wrap(err, "Md5SumFile"))
 								continue
 							}
-							md5path := md5fileStr32[:2] + md5fileStr32 + path.Ext(ev.Name)
+							md5path := md5fileStr32[:2] + "/" + md5fileStr32 + path.Ext(ev.Name)
 							if _, err := resourceSvc.GetResourceByMd5Path(nil, md5path); err == nil {
 								fmt.Println(errors.New(ev.Name + " :It already has the same content"))
 								continue
@@ -95,8 +95,8 @@ func watchDir(dir string) {
 									Name:  path.Base(ev.Name),
 									Price: 0.2,
 									//GoodType:   path.Ext(ev.Name),
-									RealPrice:  0.5,
-									Covers:     strArr[0],
+									RealPrice: 0.5,
+									//Covers:     strArr[0:6],
 									SmallCover: string(data),
 									Tags:       path.Dir(ev.Name),
 									//Pages:      len(strArr),

@@ -100,7 +100,7 @@ func startHttp() {
 	// e.GET("/getResourcebyName", resourceCtl.GetResourceByName)
 	// e.GET("/downloadFile", resourceCtl.DownloadResource)
 
-	// e.POST("/placeOrder", orderCtl.PlaceOrder)
+	// e.POST("/placeOrder", orderCtl.UniPreOrder)
 	// e.POST("/getOrderbyId", orderCtl.GetOrdereById)
 	// e.POST("/getUserPaymentOrder", orderCtl.GetUserPaymentOrder)
 	// e.POST("/getOrderList", orderCtl.GetOrderList)

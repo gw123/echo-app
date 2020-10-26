@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -37,7 +38,7 @@ func startUserServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -46,6 +47,7 @@ func startUserServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -58,12 +60,17 @@ func startUserServer() {
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 	usrSvr := app.MustGetUserService()
-	userCtl := controllers.NewUserController(usrSvr)
-	normal := e.Group("/v1/user")
+	goodsSvr := app.MustGetGoodsService()
+	smsSvr := app.MustGetSmsService()
+	wechatSvr := app.MustGetWechatService()
+	userCtl := controllers.NewUserController(usrSvr, goodsSvr, smsSvr, wechatSvr)
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/user/:com_id")
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
+		MockUserId: 58,
 	}
 	normal.Use(companyMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt))
 	//登录
@@ -71,12 +78,18 @@ func startUserServer() {
 	normal.POST("/register", userCtl.Register)
 	normal.POST("/logout", userCtl.Logout)
 	normal.POST("/sendVerifyCodeSms", userCtl.SendVerifyCodeSms)
+	//normal.POST("/checkVerifyCode", userCtl.CheckVerifyCode)
+	//
+
 	normal.GET("/getVerifyPic", userCtl.GetVerifyPic)
 
-	jwsAuth := e.Group("/v1/user")
+	//jwsAuth := e.Group("/v1/user")
+	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
+		//IgnoreAuth: true,
+		//MockUserId: 58,
 	}
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
 	userMiddleware := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, usrSvr)
@@ -84,9 +97,27 @@ func startUserServer() {
 	jwsAuth.POST("/changeUserScore", userCtl.AddUserScore)
 	jwsAuth.POST("/jscode2session", userCtl.Jscode2session)
 	jwsAuth.GET("/getUserInfo", userCtl.GetUserInfo)
+	//获取用户vip
+	jwsAuth.GET("/getUserCode", userCtl.GetUserCode)
+
+	//roles
 	jwsAuth.POST("/getUserRoles", userCtl.GetUserRoles)
 	jwsAuth.POST("/checkHasRoles", userCtl.CheckHasRoles)
-
+	//addressList
+	jwsAuth.GET("/getUserAddressList", userCtl.GetUserAddressList)
+	jwsAuth.POST("/createUserAddress", userCtl.CreateUserAddress)
+	jwsAuth.POST("/updateUserAddress", userCtl.UpdateUserAddress)
+	jwsAuth.POST("/delUserAddress", userCtl.DelUserAddress)
+	jwsAuth.GET("/getUserDefaultAddress", userCtl.GetUserDefaultAddress)
+	//collection
+	jwsAuth.GET("/getUserCollectionList", userCtl.GetUserCollectionList)
+	jwsAuth.POST("/addUserCollection", userCtl.AddUserCollection)
+	jwsAuth.POST("/delUserCollection", userCtl.DelUserCollection)
+	jwsAuth.POST("/isCollect", userCtl.IsCollect)
+	//history
+	jwsAuth.POST("/addUserHistory", userCtl.AddUserHistory)
+	jwsAuth.GET("/getUserHistoryList", userCtl.GetUserHistoryList)
+	jwsAuth.GET("/getUserBrowseLeaderboard", userCtl.GetUserBrowseLeaderboard)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.UserServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

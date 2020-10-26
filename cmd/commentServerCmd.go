@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -37,7 +38,7 @@ func startCommentServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -46,6 +47,7 @@ func startCommentServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -70,7 +72,9 @@ func startCommentServer() {
 	//callback := e.Group("/v1/goods-api")
 	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 	//
-	normal := e.Group("/v1/comment")
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/comment/:com_id")
+	//normal := e.Group("/v1/comment")
 	normal.Use(limitMiddleware, tryJwsMiddleware)
 
 	commentCtl := controllers.NewCommentController(commentSvr)

@@ -1,31 +1,12 @@
 package echoapp
 
 import (
-	"errors"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	"github.com/labstack/echo"
 )
-
-const (
-	CodeNotFound   = 400
-	CodeNoAuth     = 401
-	CodeDBError    = 402
-	CodeCacheError = 403
-	CodeArgument   = 404
-	CodeNotAllow   = 405
-	CodeEtcdError  = 406
-	CodeInnerError = 501
-)
-
-var ErrNotFoundCache = errors.New("not found cache item")
-var ErrNotFoundDb = errors.New("not found db item")
-var ErrDb = errors.New("db exec err")
-var ErrNotFoundEtcd = errors.New("not found etcd item")
-var ErrArgument = errors.New("argument error")
-var ErrNotLogin = errors.New("not login")
-var ErrNotAuth = errors.New("not auth")
-var ErrNotAllow = errors.New("not allow")
 
 type Response struct {
 	ErrorCode  int         `json:"code"`
@@ -54,4 +35,16 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 	ctx.JSON(http.StatusOK, response)
 
 	return innerErr
+}
+
+func (b *BaseController) AppErr(ctx echo.Context, appError AppError) error {
+	response := Response{
+		ErrorCode: appError.GetCode(),
+		Msg:       appError.GetOuter(),
+	}
+	ctx.JSON(http.StatusOK, response)
+	if appError.GetInner().Error() == appError.GetOuter() {
+		return appError.GetInner()
+	}
+	return errors.Wrap(appError.GetInner(), appError.GetOuter())
 }

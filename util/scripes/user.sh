@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-APP=user
+APP=site
 term() {
     echo "Caught SIGTERM signal!"
     kill -TERM "$child" 2>/dev/null

@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,7 +51,7 @@ func startFileServer() {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAcceptEncoding,
-				"Accept-Language", "Referer", "Connection", "Client_UUID",
+				"Accept-Language", "Referer", "Connection", "ClientID",
 				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token"},
 		}))
 	}
@@ -60,6 +61,7 @@ func startFileServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -78,8 +80,13 @@ func startFileServer() {
 		}
 		return nil
 	})
+	//resourceSvr := app.MustGetResourceService()
+	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
+	//callback := e.Group("/v1/goods-api")
+	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
 
-	tryJwsAuthGroup := e.Group("/v1/file")
+	mode := echoapp.ConfigOpts.ApiVersion
+	tryJwsAuthGroup := e.Group(mode + "/file")
 
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
@@ -100,7 +107,7 @@ func startFileServer() {
 	//jwsAuth.POST("/saveReource", resourceCtl.SaveResource)
 	jwsAuth.GET("/getResourceById", resourceCtl.GetResourceById)
 	jwsAuth.GET("/getResourcesByTagId", resourceCtl.GetResourcesByTagId)
-	jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
+	//jwsAuth.GET("/getUserPaymentResources", resourceCtl.GetUserPaymentResources)
 	jwsAuth.POST("/uploadResource", resourceCtl.UploadResource)
 
 	jwsAuth.GET("/getResourceList", resourceCtl.GetResourceList)

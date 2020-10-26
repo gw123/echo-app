@@ -1,9 +1,10 @@
 package echoapp
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	"time"
 )
 
 type Resource struct {
@@ -22,11 +23,12 @@ type Resource struct {
 	SmallCover string     `json:"small_cover"`
 	Pages      int        `json:"pages"`
 }
-type Testpaper struct {
-	gorm.Model
-	Rid     int    `json:"rid"`
-	Content string `json:"content"`
-}
+
+// type Testpaper struct {
+// 	gorm.Model
+// 	Rid     int    `json:"rid"`
+// 	Content string `json:"content"`
+// }
 type GetResourceOptions struct {
 	Path string `json:"path"`
 	Name string `json:"name"`

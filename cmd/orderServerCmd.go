@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,7 +34,7 @@ func startOrderServer() {
 	origins := echoapp.ConfigOpts.OrderServer.Origins
 	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: origins,
-		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, "ClientID",
 			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
 	})
 
@@ -42,8 +43,9 @@ func startOrderServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		Logger: glog.JsonEntry(),
 	})
-	e.Use(loggerMiddleware)
+	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 	//	StackSize: 1 << 10, // 1 KB
 	//}))
@@ -54,26 +56,45 @@ func startOrderServer() {
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
-	//tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-	//	Skipper:    middleware.DefaultSkipper,
-	//	Jws:        app.MustGetJwsHelper(),
-	//	IgnoreAuth: true,
-	//}
-	//tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-
-	normal := e.Group("/v1/order")
-	normal.Use(corsMiddleware, limitMiddleware, companyMiddleware)
-	orderCtl := controllers.NewOrderController(orderSvr)
+	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
+		Skipper:    middleware.DefaultSkipper,
+		Jws:        app.MustGetJwsHelper(),
+		IgnoreAuth: true,
+	})
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/order/:com_id")
+	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
+	userSvr := app.MustGetUserService()
+	orderCtl := controllers.NewOrderController(orderSvr, userSvr)
 	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
-
-	jwsAuth := e.Group("/v1/order")
-	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
+	//微信支付回调
+	normal.POST("/wxPayCallback", orderCtl.WxPayCallback)
+	//微信退款回调
+	normal.POST("/wxRefundCallback", orderCtl.WxRefundCallback)
+	jwsAuth := e.Group("/" + mode + "/order/:com_id")
+	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
-	}
-	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
-	jwsAuth.Use(corsMiddleware, jwsMiddleware, limitMiddleware, companyMiddleware)
+	})
+	userMiddle := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, userSvr)
+	jwsAuth.Use(jwsMiddleware, userMiddle, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
+	jwsAuth.GET("/getOrderDetail", orderCtl.GetOrderDetail)
+	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
+	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
+	jwsAuth.POST("/queryOrder", orderCtl.QueryOrder)
+	jwsAuth.POST("/refund", orderCtl.Refund)
+	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
+	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
+
+	//ticket
+	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
+	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)
+	jwsAuth.GET("/checkTicketList", orderCtl.CheckTicketList)
+	jwsAuth.GET("/getTicketList", orderCtl.GetTicketList)
+	jwsAuth.GET("/getTicketDetail", orderCtl.GetTicketDetail)
+	jwsAuth.GET("/fetchThirdTicket", orderCtl.FetchThirdTicket)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
@@ -95,8 +116,8 @@ func startOrderServer() {
 // serverCmd represents the server command
 var orderServerCmd = &cobra.Command{
 	Use:   "order",
-	Short: "商品订单服务",
-	Long:  `商品订单服务`,
+	Short: "商品服务",
+	Long:  `商品服务`,
 	Run: func(cmd *cobra.Command, args []string) {
 		startOrderServer()
 	},
