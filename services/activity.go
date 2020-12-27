@@ -3,9 +3,10 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/bsm/redislock"
 	"github.com/gw123/glog"
-	"time"
 
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -14,16 +15,18 @@ import (
 )
 
 type ActivityService struct {
-	db    *gorm.DB
-	redis *redis.Client
-	lock  *redislock.Client
+	db       *gorm.DB
+	redis    *redis.Client
+	lock     *redislock.Client
+	goodsSvr echoapp.GoodsService
 }
 
-func NewActivityService(db *gorm.DB, redis *redis.Client, lock *redislock.Client) *ActivityService {
+func NewActivityService(db *gorm.DB, redis *redis.Client, lock *redislock.Client, goodsSvr echoapp.GoodsService) *ActivityService {
 	return &ActivityService{
-		db:    db,
-		redis: redis,
-		lock:  lock,
+		db:       db,
+		redis:    redis,
+		lock:     lock,
+		goodsSvr: goodsSvr,
 	}
 }
 
@@ -114,34 +117,37 @@ func (aSvr *ActivityService) UpdateCachedBannerList(comId uint, position string)
 	return nil
 }
 
-
 func (aSvr ActivityService) AddActivityPv(goodsId uint) error {
 	panic("implement me")
 }
 
 //获取商品详情页 某个商品的关联活动
-func (aSvr ActivityService) GetGoodsActivity(comId uint, goodsId uint) (*echoapp.Activity, error) {
+func (aSvr ActivityService) getGoodsActivity(goodsId uint) (*echoapp.Activity, error) {
+	var goodsActivity echoapp.GoodsActivity
 	var activity echoapp.Activity
 	var err error
 	//优先获取单独给这个商品配置的活动
-	err = aSvr.db.Where("com_id = ? and goods_id = ? and status ='publish'", comId, goodsId).
-		First(&activity).Error
-	if err != nil && !gorm.IsRecordNotFoundError(err) {
-		return nil, errors.Wrap(err, "GetGoodsActivity")
+	err = aSvr.db.Where("goods_id = ? and status = ? ", goodsId, echoapp.GoodsActivityStatusOnline).
+		First(&goodsActivity).Error
+	if err != nil {
+		return nil, err
 	}
 
-	if gorm.IsRecordNotFoundError(err) {
-		//获取一个全局的 商品位置的活动
-		err = aSvr.db.Where("com_id = ? and position = 'goods' and status ='publish'", comId).
-			First(&activity).Error
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, nil
-		}
-		if err != nil {
-			return nil, errors.Wrap(err, "GetGoodsActivity")
-		}
+	err = aSvr.db.Where("id = ?", goodsActivity.ID).
+		First(&activity).Error
+	if err != nil {
+		return nil, err
 	}
 	return &activity, nil
+}
+
+//获取商品详情页 某个商品的关联活动
+func (aSvr ActivityService) GetGoodsActivity(goodsId uint) (*echoapp.Activity, error) {
+	activity, err := aSvr.getGoodsActivity(goodsId)
+	if gorm.IsRecordNotFoundError(err) {
+		return nil, nil
+	}
+	return activity, nil
 }
 
 func (aSvr ActivityService) GetNotifyDetail(id int) (*echoapp.Notify, error) {
@@ -170,12 +176,24 @@ func (aSvr ActivityService) GetCouponsByIds(couponIds []uint) ([]*echoapp.Coupon
 	return coupons, nil
 }
 
-func (aSvr ActivityService) GetCachedCouponById(couponId uint) (*echoapp.Coupon, error) {
-	var coupon echoapp.Coupon
-	if err := aSvr.redis.Get(echoapp.FormatCoupon(couponId)).Scan(&coupon); err != nil {
-		return nil, errors.Wrap(err, "coupon cahce")
+func (aSvr ActivityService) GetCouponById(couponId uint) (*echoapp.Coupon, error) {
+	var coupon *echoapp.Coupon = &echoapp.Coupon{}
+	if err := aSvr.db.Where("id = ?", couponId).Find(&coupon).Error; err != nil {
+		return nil, err
 	}
-	return &coupon, nil
+	return coupon, nil
+}
+
+func (aSvr ActivityService) GetCachedCouponById(couponId uint) (*echoapp.Coupon, error) {
+	var coupon *echoapp.Coupon = &echoapp.Coupon{}
+	if err := aSvr.redis.Get(echoapp.FormatCoupon(couponId)).Scan(coupon); err != nil {
+		//return nil, errors.Wrap(err, "coupon cahce")
+		coupon, err = aSvr.GetCouponById(couponId)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return coupon, nil
 }
 
 func (aSvr ActivityService) GetCachedCouponsByIds(couponIds []uint) ([]*echoapp.Coupon, error) {
@@ -283,6 +301,14 @@ func (aSvr *ActivityService) GetUserCouponsByOrder(comId uint, order *echoapp.Or
 	}
 	userCoupons2 := make([]*echoapp.Coupon, 0)
 	for _, userCoupon := range userCoupons {
+		// 优惠券金额必须大于订单的总金额
+		if userCoupon.BaseCoupon.Amount >= order.RealTotal {
+			continue
+		}
+		// 需要满足优惠券的最小核销金额
+		if float32(userCoupon.BaseCoupon.MinConsume) > order.RealTotal {
+			continue
+		}
 		//将baseCoupon 的id替换为userCoupon的id,方便后面核销优惠券
 		userCoupon.BaseCoupon.Id = userCoupon.Id
 		userCoupons2 = append(userCoupons2, userCoupon.BaseCoupon)
@@ -345,8 +371,7 @@ func (aSvr ActivityService) UpdateCouponCache(coupon *echoapp.Coupon) error {
 	if err != nil {
 		return errors.Wrapf(err, "优惠券缓存更新失败:%d ,marshal", coupon.Id)
 	}
-	if err := aSvr.redis.Set(echoapp.FormatCoupon(coupon.Id), string(couponData), 0).Err();
-		err != nil {
+	if err := aSvr.redis.Set(echoapp.FormatCoupon(coupon.Id), string(couponData), 0).Err(); err != nil {
 		return errors.Wrapf(err, "优惠券缓存更新失败:%d", coupon.Id)
 	}
 	return nil
@@ -376,6 +401,9 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 			Metadata:      "my data",
 			Context:       nil,
 		})
+		if err != nil {
+			return nil, err
+		}
 		defer lock.Release()
 		if err == redislock.ErrNotObtained {
 			return nil, errors.Wrap(err, "获取锁失败")
@@ -470,8 +498,7 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 		}
 
 		if err := tx.Model(&echoapp.Coupon{}).
-			Update("used_total", gorm.Expr("used_total + 1")).Error;
-			err != nil {
+			Update("used_total", gorm.Expr("used_total + 1")).Error; err != nil {
 			tx.Rollback()
 			return errors.Wrap(err, "update err")
 		}
@@ -593,7 +620,7 @@ func (aSvr ActivityService) GetCouponsByComId(comId uint, lastId uint) ([]*echoa
 	return coupons, nil
 }
 
-//更新某个公司的优惠券
+// 更新某个公司的优惠券
 func (aSvr ActivityService) UpdateCachedCouponsByComId(comId uint, lastId uint) ([]*echoapp.Coupon, error) {
 	coupons, err := aSvr.GetCouponsByComId(comId, lastId)
 	if err != nil {
@@ -626,4 +653,58 @@ func (aSvr ActivityService) UpdateCachedCouponsByComId(comId uint, lastId uint) 
 		}
 	}
 	return coupons, nil
+}
+
+// 获取用户的奖品列表
+func (aSvr ActivityService) GetUserAwards(userID, lastID, limit uint) ([]*echoapp.UserAward, error) {
+	var userAwards []*echoapp.UserAward
+	query := aSvr.db.Debug().Where("user_id = ? and num >0 ", userID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+	query.Limit(limit).Order("id desc")
+
+	if err := query.Find(&userAwards).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+	for _, award := range userAwards {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrapf(err, "db exec goodsId :%d", award.GoodsID)
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+	return userAwards, nil
+}
+
+// 用户奖品历史获得和领取的记录
+func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
+	var awardHistories []*echoapp.AwardHistory
+	query := aSvr.db.Debug().Where("user_id = ? ", userID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	query.Limit(limit).Order("id desc")
+	if err := query.Find(&awardHistories).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+
+	for _, award := range awardHistories {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrap(err, "db exec")
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+
+	return awardHistories, nil
 }

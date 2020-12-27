@@ -5,17 +5,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	echoapp "github.com/gw123/echo-app"
-	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/labstack/echo"
-	"github.com/pkg/errors"
-	"github.com/prometheus/common/log"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	echoapp "github.com/gw123/echo-app"
+	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/labstack/echo"
+	"github.com/pkg/errors"
+	"github.com/prometheus/common/log"
 )
 
 type TongchengService struct {
@@ -31,30 +32,46 @@ func NewTongchengService(config echoapp.TongchengConfig) *TongchengService {
 	}
 }
 
-func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
-	comInfo, ok := mSvr.tongchengOptionMap[info.ComId]
+func (mSvr TongchengService) SyncPartnerCode(comID uint, info *echoapp.SyncPartnerCodeRequestBody) error {
+	_, err := mSvr.TongchengRequest(strconv.Itoa(int(comID)), "RetCodeNotice", info)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mSvr TongchengService) CheckTicket(comID uint, info *echoapp.CheckTicketRequestBody) error {
+	_, err := mSvr.TongchengRequest(strconv.Itoa(int(comID)), "ConsumeNotice", info)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mSvr TongchengService) TongchengRequest(token string, method string, requestBody interface{}) (*echoapp.TongchengResponse, error) {
+	comInfo, ok := mSvr.tongchengOptionMap[token]
 	if !ok {
-		return errors.New("com not found")
+		return nil, errors.Errorf("com: %d not found", token)
 	}
-	rawbody, err := json.Marshal(info.TongchengRequestBody)
+
+	rawbody, err := json.Marshal(requestBody)
 	if err != nil {
-		return errors.Wrap(err, "json marshal")
+		return nil, errors.Wrap(err, "json marshal")
 	}
-	encryptBody, err := echoapp_util.EntryptDesECB(rawbody, []byte(comInfo.Key))
+
+	encryptBody, err := echoapp_util.EntryptDesECB([]byte(rawbody), []byte(comInfo.Key))
 	if err != nil {
-		return errors.Wrap(err, "encryptbody")
+		return nil, errors.Wrap(err, "encryptbody")
 	}
 	tongchengRequest := echoapp.TongchengRequest{
 		RequestHead: echoapp.TongchengRequestHead{
 			UserId:    comInfo.UserId,
-			Method:    "ConsumeNotice",
+			Method:    method,
 			Timestamp: time.Now().Unix(),
 			Version:   "v1.0",
 			Sign:      "",
 		},
-		RawRequestBody:     string(rawbody),
 		EncryptRequestBody: encryptBody,
-		RequestBody:        info.TongchengRequestBody,
 	}
 	signStr := mSvr.Sign(comInfo.Key, tongchengRequest)
 	tongchengRequest.RequestHead.Sign = signStr
@@ -63,24 +80,24 @@ func (mSvr TongchengService) CheckTicket(info *echoapp.CheckTicketJob) error {
 
 	base64ResponseData, err := mSvr.DoRequest(mSvr.ConsumeNoticeUrl, tongchengRequest)
 	if err != nil {
-		return errors.Wrap(err, "CheckTicket->DoResponse:"+string(base64ResponseData))
+		return nil, errors.Wrap(err, "CheckTicket->DoResponse:"+string(base64ResponseData))
 	}
 
 	var responseData []byte
 	if responseData, err = base64.StdEncoding.DecodeString(string(base64ResponseData)); err != nil {
-		return errors.Wrap(err, "CheckTicket->Base64Decode:"+string(base64ResponseData))
+		return nil, errors.Wrap(err, "CheckTicket->Base64Decode:"+string(base64ResponseData))
 	}
 	echoapp_util.DefaultLogger().Info(string(responseData))
 	tongchengResponse := &echoapp.TongchengResponse{}
 	if err = json.Unmarshal(responseData, tongchengResponse); err != nil {
-		return errors.Wrap(err, "CheckTicket->JsonDecode:"+string(base64ResponseData))
+		return nil, errors.Wrap(err, "CheckTicket->JsonDecode:"+string(base64ResponseData))
 	}
 
 	if tongchengResponse.ResponseHead.ResCode == "1000" {
-		return nil
+		return tongchengResponse, nil
 	}
 	//echoapp_util.DecryptDESECB(tongchengResponse.ResponseBody)
-	return errors.Errorf("Code:%s,Msg:%s", tongchengResponse.ResponseHead.ResCode, tongchengResponse.ResponseHead.ResMsg)
+	return nil, errors.Errorf("Code:%s,Msg:%s", tongchengResponse.ResponseHead.ResCode, tongchengResponse.ResponseHead.ResMsg)
 }
 
 /***

@@ -32,7 +32,22 @@ type Company struct {
 	WxToken          string `json:"wx_token"`
 	WxOfficialAesKey string `json:"wx_official_aes_key"`
 
-	SmsChannels map[string]*SmsChannel `json:"sms_channels"`
+	SmsChannels     map[string]*SmsChannel   `json:"sms_channels"`
+	WxTemplateTypes map[string]*TemplateType `json:"wx_template_types"`
+}
+
+func (c *Company) GetChannel(channel string) *SmsChannel {
+	if c.SmsChannels == nil {
+		return nil
+	}
+	return c.SmsChannels[channel]
+}
+
+func (c *Company) GetTemplateType(tplType string) *TemplateType {
+	if c.WxTemplateTypes == nil {
+		return &TemplateType{}
+	}
+	return c.WxTemplateTypes[tplType]
 }
 
 type Nav struct {

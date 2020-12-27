@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/silenceper/wechat/v2/officialaccount/message"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type SiteController struct {
@@ -18,14 +18,16 @@ type SiteController struct {
 	comSvr    echoapp.CompanyService
 	wxSvr     echoapp.WechatService
 	echoapp.BaseController
-	asset          echoapp.Asset
+	assetOpts      echoapp.Asset
 	indexCachePage []byte
+	videoSvr       echoapp.VideoService
 }
 
 func NewSiteController(comSvr echoapp.CompanyService,
 	actSvr echoapp.ActivityService,
 	bannerSvr echoapp.SiteService,
 	svr echoapp.WechatService,
+	video echoapp.VideoService,
 	asset echoapp.Asset,
 ) *SiteController {
 	return &SiteController{
@@ -33,7 +35,8 @@ func NewSiteController(comSvr echoapp.CompanyService,
 		actSvr:    actSvr,
 		bannerSvr: bannerSvr,
 		wxSvr:     svr,
-		asset:     asset,
+		videoSvr:  video,
+		assetOpts: asset,
 	}
 }
 
@@ -105,28 +108,11 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 
 func (sCtl *SiteController) Index(ctx echo.Context) error {
 	//echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
-	comID := echoapp_util.GetCtxComId(ctx)
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
-	response["assetHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.asset)
+	response["publicHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.assetOpts)
 	if clientType == echoapp.ClientWxOfficial {
-		req := ctx.Request()
-		var url string
-		if req.URL.RawQuery != "" {
-			url = fmt.Sprintf("%s://%s%s?%s", "http", req.Host, req.URL.Path, req.URL.RawQuery)
-		} else {
-			url = fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
-		}
-
-		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
-		if err != nil {
-			echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
-			return ctx.HTML(http.StatusNotImplemented,"服务暂时不可用 001")
-		} else {
-			response["wxCfg"] = jsConfig
-		}
-
 		user, err := echoapp_util.GetCtxtUser(ctx)
 		if err == nil {
 			data := make(map[string]interface{})
@@ -136,6 +122,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			data["sex"] = user.Sex
 			data["roles"] = user.Roles
 			data["id"] = user.Id
+			data["vip_level"] = user.VipLevel
 			response["user"] = data
 		}
 	}
@@ -174,4 +161,41 @@ func (sCtl *SiteController) WxMessage(ctx echo.Context) error {
 	}
 	server.Send()
 	return nil
+}
+
+func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
+	comID := echoapp_util.GetCtxComId(ctx)
+	url := ctx.QueryParam("url")
+	glog.Info("GetWxConfig: " + url)
+	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
+		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
+	}
+	return sCtl.Success(ctx, jsConfig)
+}
+
+func (sCtl *SiteController) GetVideoList(ctx echo.Context) error {
+	comID := echoapp_util.GetCtxComId(ctx)
+	lastID, limit := echoapp_util.GetCtxListParams(ctx)
+	videoList, err := sCtl.videoSvr.GetVideoList(comID, lastID, limit)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取Video失败")
+		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
+	}
+	return sCtl.Success(ctx, videoList)
+}
+
+func (sCtl *SiteController) GetVideoDetail(ctx echo.Context) error {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+
+	video, err := sCtl.videoSvr.GetVideoDetail(uint(id))
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取Video详情失败")
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
+	}
+	return ctx.Render(http.StatusOK, "video", video)
 }

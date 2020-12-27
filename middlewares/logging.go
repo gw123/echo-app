@@ -1,12 +1,13 @@
 package echoapp_middlewares
 
 import (
+	"time"
+
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/random"
 	"github.com/sirupsen/logrus"
-	"time"
 )
 
 type LoggingMiddlewareConfig struct {
@@ -80,10 +81,10 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			resp := c.Response()
 			if err != nil {
 				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
-					WithError(err).Error("log middleware")
+					WithError(err).Error("log middleware err")
 			} else {
 				logger.WithField("status", resp.Status).WithField("latency", latency.Nanoseconds()/int64(time.Millisecond)).
-					Info("log middleware")
+					Info("log middleware success")
 			}
 
 			return nil

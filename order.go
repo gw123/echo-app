@@ -2,8 +2,10 @@ package echoapp
 
 import (
 	"encoding/json"
-	"github.com/iGoogle-ink/gopay/wechat"
 	"time"
+
+	"github.com/pkg/errors"
+
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 )
@@ -13,6 +15,7 @@ const (
 	OrderStatusPaid      = "paid"
 	OrderStatusRefund    = "refund"
 	OrderStatusShipping  = "shipping"
+	OrderStatusToShip    = "unship"
 	OrderStatusSigned    = "signed"
 	OrderStatusCancel    = "cancel"
 	OrderStatusCommented = "commented"
@@ -23,19 +26,20 @@ const (
 )
 
 type Order struct {
-	ID            uint             `json:"id" gorm:"primary_key"`
-	CreatedAt     time.Time        `json:"created_at"`
-	UpdatedAt     time.Time        `json:"updated_at"`
-	PaidAt        time.Time        `json:"paid_at"`
-	Source        string           `json:"source"`
-	PayMethod     string           `json:"pay_method"`
-	ComId         uint             `json:"com_id"`
-	ShopId        uint             `json:"shop_id"`
-	OrderNo       string           `json:"order_no"`
-	UserId        uint             `json:"user_id"`
-	SellerId      uint             `json:"seller_id"`
-	InviterId     uint             `json:"inviter_id"`
-	PayStatus     string           `json:"pay_status" gorm:"column:status"`
+	ID        uint      `json:"id" gorm:"primary_key"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	PaidAt    time.Time `json:"paid_at"`
+	Source    string    `json:"source"`
+	PayMethod string    `json:"pay_method"`
+	ComId     uint      `json:"com_id"`
+	ShopId    uint      `json:"shop_id"`
+	OrderNo   string    `json:"order_no"`
+	UserId    uint      `json:"user_id"`
+	SellerId  uint      `json:"seller_id"`
+	InviterId uint      `json:"inviter_id"`
+	PayStatus string    `json:"pay_status" gorm:"column:status"`
+	// Status 是一个根据pay_status和express_status计算出来的字段
 	Status        string           `json:"status" gorm:"-"`
 	ExpressStatus string           `json:"express_status"`
 	AddressId     uint             `json:"address_id"`
@@ -57,6 +61,22 @@ type Order struct {
 	//Score         string           `score` //积分
 }
 
+func (o *Order) OrderCheck() error {
+	if len(o.GoodsList) == 0 {
+		return AppErrOrderFromat
+	}
+
+	switch o.GoodsType {
+	case GoodsTypeVip:
+		if len(o.GoodsList) != 1 {
+			return errors.Errorf("vip订单商品只能有一个")
+		}
+	case GoodsTypeTicket:
+	case GoodsTypeRoom:
+	}
+	return nil
+}
+
 func (o *Order) BeforeSave() error {
 	data, err := json.Marshal(o.GoodsList)
 	if err != nil {
@@ -76,6 +96,7 @@ func (o *Order) BeforeSave() error {
 	} else {
 		o.CouponsStr = "[]"
 	}
+
 	return nil
 }
 
@@ -94,13 +115,24 @@ func (o *Order) AfterFind() error {
 			o.Status = OrderStatusCommented
 		}
 	default:
-		glog.Warn("unknow pay_status")
+		glog.Warn("unknow pay_status:" + o.PayStatus)
 	}
 
 	o.GoodsList = make([]*CartGoodsItem, 0)
 	//	glog.Infof("goodsListStr %s", o.GoodsListStr)
 	err := json.Unmarshal([]byte(o.GoodsListStr), &o.GoodsList)
 	return err
+}
+
+type OrderGoods struct {
+	ID        int64     `json:"id"`
+	ComID     uint      `json:"com_id"`
+	OrderID   uint      `json:"order_id"`
+	GoodsID   uint      `json:"goods_id"`
+	Num       uint      `json:"num"`
+	Status    string    `json:"status"`
+	RealPrice float32   `json:"real_price"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type GetOrderOptions struct {
@@ -113,11 +145,12 @@ type GetOrderOptions struct {
 	GoodsType     string    `json:"goods_type"`
 	TransactionId string    `json:"transaction_id"`
 	Note          string    `json:"note"`
-	Info          string    `json:"info"`
 	CreatedAt     time.Time `json:"created_at"`
 	PaidAt        time.Time `json:"paid_at"`
+	Info          string    `json:"info"`
 	//Score         string    `score`
 }
+
 type CompanySalesSatistic struct {
 	ID            uint    `gorm:"primary_key"`
 	AllSalesTotal float64 `json:"all_sales_total"`
@@ -127,6 +160,7 @@ type CompanySalesSatistic struct {
 	//GoodsId         int    `json:"goods_id"`
 	//Status string `json:"status"`
 }
+
 type GoodsSalesSatistic struct {
 	ID uint `gorm:"primary_key"`
 	//AllSalesTotal   int64  `json:"company_sales"`
@@ -145,7 +179,7 @@ func (*GoodsSalesSatistic) TableName() string {
 }
 
 type UnifiedOrderResp struct {
-	wechat.UnifiedOrderResponse
+	WxPreOrderResponse
 	OrderNo string `json:"order_no"`
 }
 
@@ -173,11 +207,10 @@ type OrderService interface {
 	//
 	GetOrderByOrderNo(orderNo string) (*Order, error)
 	//
-	GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+	GetUserOrderDetail(ctx echo.Context, userId uint, orderNo string) (*Order, error)
+
 	//退款
 	Refund(order *Order, user *User) error
-
-	GetUserAddress(addrId uint) (*Address, error)
 
 	WxPayCallback(ctx echo.Context) error
 

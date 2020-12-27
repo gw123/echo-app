@@ -35,4 +35,9 @@ resources/echoapp-frontend
 resources/echoapp-frontend/node_modules
 .vscode
 etcd.sh
-
+config.qys.yaml
+docker/conf
+docker/redis
+docker/resources
+docker/echoapp
+docker/.env

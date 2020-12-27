@@ -1,22 +1,6 @@
 package echoapp
 
-import (
-	"github.com/labstack/echo"
-)
-
-type CheckTicketJob struct {
-	BaseMqMsg
-	ComId string `json:"com_id"`
-	TongchengRequestBody
-}
-
-type TongchengRequest struct {
-	RequestHead        TongchengRequestHead `json:"requestHead"`
-	RequestBody        TongchengRequestBody `json:"_"`
-	RawRequestBody     string               `json:"-"`
-	EncryptRequestBody string               `json:"requestBody"`
-}
-
+// TongchengRequestHead
 type TongchengRequestHead struct {
 	Sign      string `json:"sign"`
 	UserId    string `json:"user_id"`
@@ -25,18 +9,14 @@ type TongchengRequestHead struct {
 	Timestamp int64  `json:"timestamp"`
 }
 
-type TongchengRequestBody struct {
-	Tickets        int    `json:"tickets"`
-	OrderSerialId  string `json:"orderSerialId"`
-	PartnerOrderId string `json:"partnerOrderId"`
-	ConsumeDate    string `json:"consumeDate"`
+// TongchengRequest 基础请求结构
+type TongchengRequest struct {
+	RequestHead        TongchengRequestHead `json:"requestHead"`
+	RawRequestBody     string               `json:"-"`
+	EncryptRequestBody string               `json:"requestBody"`
 }
 
-type TongchengConsumeNoticeRequest struct {
-	RequestHead TongchengRequestHead `json:"requestHead"`
-	RequestBody TongchengRequestBody `json:"requestBody"`
-}
-
+// TongchengResponse 响应结构
 type TongchengResponse struct {
 	ResponseHead struct {
 		ResCode   string `json:"res_code"`
@@ -46,7 +26,34 @@ type TongchengResponse struct {
 	ResponseBody string `json:"responseBody"`
 }
 
+//  CheckTicketRequestBody
+type CheckTicketRequestBody struct {
+	Tickets        uint   `json:"tickets"`
+	ComID          uint   `json:"com_id"`
+	OrderSerialId  string `json:"orderSerialId"`
+	PartnerOrderId string `json:"partnerOrderId"`
+	ConsumeDate    string `json:"consumeDate"`
+}
+
+type SyncPartnerCodeRequestBody struct {
+	Tickets        uint   `json:"tickets"`
+	OrderSerialId  string `json:"orderSerialId"`
+	PartnerOrderId string `json:"partnerOrderId"`
+	PartnerCode    string `json:"partnerCode"`
+}
+
+type CheckTicketJob struct {
+	BaseMqMsg
+	CheckTicketRequestBody
+}
+
+type SyncPartnerCodeJob struct {
+	BaseMqMsg
+	SyncPartnerCodeRequestBody
+}
+
 type TongchengService interface {
 	//核销门票通知第三方
-	CheckTicket(ctx echo.Context, info CheckTicketJob) error
+	SyncPartnerCode(comID uint, info *SyncPartnerCodeRequestBody) error
+	CheckTicket(comID uint, info *CheckTicketRequestBody) error
 }

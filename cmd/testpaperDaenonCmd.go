@@ -112,5 +112,5 @@ var testpaperServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(testpaperServerCmd)
+	RootCmd.AddCommand(testpaperServerCmd)
 }

@@ -1,29 +1,35 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 
+	"github.com/bsm/redislock"
+
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/jobs"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
+	"github.com/gw123/gworker"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 )
 
 type OrderService struct {
-	db      *gorm.DB
-	mu      sync.Mutex
-	redis   *redis.Client
-	goodSvr echoapp.GoodsService
-	actSvr  echoapp.ActivityService
-	wechat  echoapp.WechatService
-	tkSvr   echoapp.TicketService
+	db        *gorm.DB
+	mu        sync.Mutex
+	redis     *redis.Client
+	goodSvr   echoapp.GoodsService
+	actSvr    echoapp.ActivityService
+	wechat    echoapp.WechatService
+	tkSvr     echoapp.TicketService
+	jobPusher gworker.Producer
+	lock      *redislock.Client
 }
 
 func NewOrderService(db *gorm.DB,
@@ -32,14 +38,18 @@ func NewOrderService(db *gorm.DB,
 	actSvr echoapp.ActivityService,
 	wechat echoapp.WechatService,
 	tkSvr echoapp.TicketService,
+	jobPusher gworker.Producer,
 ) *OrderService {
+	lock := redislock.New(redis)
 	help := &OrderService{
-		db:      db,
-		redis:   redis,
-		goodSvr: goodsSvr,
-		actSvr:  actSvr,
-		wechat:  wechat,
-		tkSvr:   tkSvr,
+		db:        db,
+		redis:     redis,
+		goodSvr:   goodsSvr,
+		actSvr:    actSvr,
+		wechat:    wechat,
+		tkSvr:     tkSvr,
+		jobPusher: jobPusher,
+		lock:      lock,
 	}
 	return help
 }
@@ -62,9 +72,9 @@ func (oSvr *OrderService) makeTicketNo(userId uint) string {
 }
 
 func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, error) {
-	ticket, err := oSvr.DeTicketCode(code)
+	ticket, err := oSvr.tkSvr.DeTicketCode(code)
 	if err != nil {
-		return nil, errors.Wrap(err, "DeTicketCode")
+		return nil, errors.Wrap(err, "DeTicketCode ->")
 	}
 	order, err := oSvr.GetOrderById(ticket.OrderId)
 	if err != nil {
@@ -106,132 +116,158 @@ func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, err
 	return codeTicket, nil
 }
 
-func (oSvr *OrderService) DeTicketCode(code string) (*echoapp.Ticket, error) {
-	rand, _ := strconv.ParseInt(code[0:8], 10, 64)
-	temp, _ := strconv.ParseInt(code[8:], 10, 64)
-	if rand == 0 || temp == 0 {
-		return nil, errors.New("code is not vaild")
-	}
-	tId := temp - 1234 - rand
-	ticket := &echoapp.Ticket{}
-	if err := oSvr.db.Where("id = ?", tId).First(ticket).Error; err != nil {
-		return nil, errors.Wrap(err, "db err")
-	}
-	if ticket.Rand != rand {
-		return nil, errors.New("校验失败")
-	}
-
-	return ticket, nil
-}
-
 func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {
-	glog.DefaultLogger().Infof("user: %+v,openid:%s", user, user.Openid)
+	///glog.DefaultLogger().Infof("user: %+v,openid:%s", user, user.Openid)
 	resp, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")
 	}
+	// 拉取订单支付状态
+	fetchJob := &jobs.OrderCreate{Order: order}
+	oSvr.jobPusher.PostJob(context.Background(), fetchJob)
 
 	return &echoapp.UnifiedOrderResp{
-		UnifiedOrderResponse: *resp,
-		OrderNo:              order.OrderNo,
+		WxPreOrderResponse: *resp,
+		OrderNo:            order.OrderNo,
 	}, nil
 }
 
+func (oSvr *OrderService) CreateOrderTickets(order *echoapp.Order, db *gorm.DB) error {
+	order.Tickets = make([]*echoapp.Ticket, 0)
+	for _, cartGoods := range order.GoodsList {
+		goods, err := oSvr.goodSvr.GetGoodsById(cartGoods.GoodsId)
+		if err != nil {
+			return err
+		}
+		//glog.Infof("ID: %d ,goodsType %s", goods.ID, goods.GoodsType)
+		if goods.GoodsType == echoapp.GoodsTypeTicket || goods.GoodsType == echoapp.GoodsTypeRoom {
+			ticket := oSvr.tkSvr.PreCreateTicket(order, order.Source, order.Address, cartGoods)
+			if err := db.Save(ticket).Error; err != nil {
+				return err
+			}
+			order.Tickets = append(order.Tickets, ticket)
+			glog.Infof("createTicket ID:%d, ticketName:%s ,OrderNo:%s ,Mobile:%s", ticket.ID, ticket.Name, ticket.OrderNo, ticket.Mobile)
+		}
+	}
+	return nil
+}
+
+func (oSvr *OrderService) RefundOrderTickets(order *echoapp.Order, tx *gorm.DB) ([]*echoapp.Ticket, error) {
+	tickets, err := oSvr.tkSvr.GetTicketsByOrder(order)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetTicketsByOrder")
+	}
+
+	for _, ticket := range tickets {
+		ticket.Status = echoapp.TicketstatusRefund
+		if err := tx.Model(ticket).UpdateColumn("status", ticket.Status).Error; err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "create ticket")
+		}
+	}
+	return tickets, nil
+}
+
 func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus string) (*echoapp.Order, error) {
-	orderBeferStatuss := order.Status
-	if order.Status == echoapp.OrderStatusPaid ||
-		order.Status == echoapp.OrderStatusRefund {
+	// 给订单查询前加锁 防止一个订单多次修改
+	lock, err := oSvr.lock.Obtain("create_order:"+order.OrderNo, time.Second*5, &redislock.Options{
+		RetryStrategy: redislock.LimitRetry(redislock.LinearBackoff(time.Millisecond*500), 10),
+		Metadata:      "my data",
+		Context:       nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	defer lock.Release()
+	// 获取锁后在查询一次防止订单状态在获取锁前修改
+	orderStatus, err := oSvr.GetOrderPayStatusByOrderNo(order.OrderNo)
+	if err != nil {
+		return nil, err
+	}
+	glog.Info("current order status : " + orderStatus)
+	if orderStatus == echoapp.OrderStatusPaid || orderStatus == echoapp.OrderStatusRefund {
 		//订单已经是最终的状态
 		return order, nil
 	}
 
 	var currentStatus string
-	var err error
 	switch order.ClientType {
-	case echoapp.ClientWxOfficial:
-		fallthrough
-	case echoapp.ClientWxMiniApp:
+	case echoapp.ClientWxOfficial, echoapp.ClientWxMiniApp:
 		if shouldStatus == echoapp.OrderPayStatusPaid {
 			currentStatus, err = oSvr.wechat.QueryOrder(order)
 		} else if shouldStatus == echoapp.OrderStatusRefund {
 			currentStatus, err = oSvr.wechat.QueryRefund(order)
 		}
-		if err != nil {
-			return nil, err
-		}
 	default:
 		return nil, errors.New("暂时不支持该支付方式")
 	}
 
+	if err != nil {
+		return nil, err
+	}
 	if currentStatus == echoapp.OrderPayStatusUnpay {
 		return order, nil
 	}
 
+	order.PayStatus = currentStatus
 	//从未支付到支付成功
-	if orderBeferStatuss == echoapp.OrderStatusUnpay && currentStatus == echoapp.OrderStatusPaid {
-		//创建票
-		//发送通知
-		order.Status = currentStatus
-		order.Tickets = make([]*echoapp.Ticket, 0)
+	if currentStatus == echoapp.OrderStatusPaid {
 		tx := oSvr.db.Begin()
-		err := func() error {
-			for _, cartGoods := range order.GoodsList {
-				goods, err := oSvr.goodSvr.GetGoodsById(cartGoods.GoodsId)
-				if err != nil {
-					return err
-				}
-				//spew.Dump(goods.GoodsType)
-				//glog.Infof("ID: %d ,goodsType %s", goods.ID, goods.GoodsType)
-				if goods.GoodsType == echoapp.GoodsTypeTicket {
-					ticket := oSvr.tkSvr.PreCreateTicket(order, order.Source, order.Address, cartGoods)
-					glog.Infof("createTicket %+v", ticket)
-					if err := oSvr.db.Save(ticket).Error; err != nil {
-						return err
-					}
-					order.Tickets = append(order.Tickets, ticket)
-				}
-			}
-			return nil
-		}()
+		// 创建票
+		err := oSvr.CreateOrderTickets(order, tx)
 		if err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "create ticket")
 		}
-
-		if err := oSvr.db.Save(order).Error; err != nil {
+		// update order status
+		if err := tx.Model(order).UpdateColumn("status", order.PayStatus).Error; err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
+
+		// 写入商品到订单商品表中
+		if err := oSvr.createOrderGoods(tx, order); err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
+		}
+
 		tx.Commit()
 
+		// 发送通知
+		scoreJob := &jobs.UserScoreChange{
+			ComId:        order.ComId,
+			UserId:       order.UserId,
+			Score:        int(order.RealTotal),
+			Source:       "order",
+			SourceDetail: "pay",
+		}
+		orderPaid := &jobs.OrderPaid{
+			Order: order,
+		}
+		glog.Info("send orderPaid job")
+		oSvr.jobPusher.PostJob(context.Background(), orderPaid)
+		oSvr.jobPusher.PostJob(context.Background(), scoreJob)
 	} else if currentStatus == echoapp.OrderPayStatusRefund {
-		//todo 修改退款的订单中的门票为退款状态
-		order.Status = echoapp.OrderStatusRefund
-		tickets, err := oSvr.tkSvr.GetTicketsByOrder(order)
-		if err != nil {
-			return nil, errors.Wrap(err, "GetTicketsByOrder")
-		}
-
 		tx := oSvr.db.Begin()
-		for _, ticket := range tickets {
-			ticket.Status = echoapp.TicketstatusRefund
-			if err := oSvr.db.Save(ticket).Error; err != nil {
-				tx.Rollback()
-				return nil, errors.Wrap(err, "create ticket")
-			}
+		_, err := oSvr.RefundOrderTickets(order, tx)
+		if err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "refund ticket")
+		}
+		if err := tx.Model(order).UpdateColumn("status", order.PayStatus).Error; err != nil {
+			tx.Rollback()
+			return nil, errors.Wrap(err, "change order currentStatus")
 		}
 
-		if err := oSvr.db.Save(order).Error; err != nil {
+		// 更新订单商品表中订单状态
+		if err := oSvr.updateOrderGoodsStatus(tx, order); err != nil {
 			tx.Rollback()
 			return nil, errors.Wrap(err, "change order currentStatus")
 		}
 		tx.Commit()
 	}
 	return order, nil
-}
-
-func (oSvr *OrderService) GetUserAddress(addrId uint) (*echoapp.Address, error) {
-	panic(addrId)
 }
 
 func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
@@ -251,26 +287,34 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 	for _, goods := range order.GoodsList {
 		totalGoodsAmount += goods.RealPrice * float32(goods.Num)
 	}
-	glog.JsonLogger().Info("校验优惠券")
-	for _, coupon := range order.Coupons {
-		realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
-		if err != nil {
-			glog.JsonLogger().Error("下单失败,优惠券校验失败")
-			return errors.Wrap(err, "下单失败,优惠券校验失败")
+
+	if len(order.Coupons) > 0 {
+		glog.JsonLogger().Info("校验优惠券")
+		for _, coupon := range order.Coupons {
+			realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
+			if err != nil {
+				glog.JsonLogger().Error("下单失败,优惠券校验失败")
+				return errors.Wrap(err, "下单失败,优惠券校验失败")
+			}
+			if realCoupon.Amount != coupon.Amount {
+				glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
+				return errors.New("下单失败,优惠券金额校验错误")
+			}
+			if float32(realCoupon.MinConsume) > order.RealTotal {
+				glog.JsonLogger().Error("下单失败,优惠券最低消费金额未满足")
+				return errors.New("下单失败,优惠券最低消费金额未满足")
+			}
+			if realCoupon.IsExpire() {
+				glog.JsonLogger().Error("下单失败,优惠券已经过期")
+				return errors.New("下单失败,优惠券已经过期")
+			}
+			if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
+				//todo 检查商品是否满足条件
+			}
+			totalCouponAmount += realCoupon.Amount
 		}
-		if realCoupon.Amount != coupon.Amount {
-			glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
-			return errors.New("下单失败,优惠券金额校验错误")
-		}
-		if realCoupon.IsExpire() {
-			glog.JsonLogger().Error("下单失败,优惠券已经过期")
-			return errors.New("下单失败,优惠券已经过期")
-		}
-		if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
-			//todo 检查商品是否满足条件
-		}
-		totalCouponAmount += realCoupon.Amount
 	}
+
 	realTotal := totalGoodsAmount - totalCouponAmount
 	if realTotal != order.RealTotal {
 		glog.JsonLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
@@ -279,16 +323,19 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 
 	tx := oSvr.db.Begin()
 	var userCoupon echoapp.UserCoupon
-	glog.JsonLogger().Info("开始核销优惠券")
-	for _, coupon := range order.Coupons {
-		glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
-		if err := tx.Model(&userCoupon).
-			Where("id = ?", coupon.Id).
-			Update("used_at", time.Now()).Error; err != nil {
-			tx.Rollback()
-			return errors.Wrap(err, "优惠券核销失败")
+	if len(order.Coupons) > 0 {
+		glog.JsonLogger().Info("开始核销优惠券")
+		for _, coupon := range order.Coupons {
+			glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
+			if err := tx.Model(&userCoupon).
+				Where("id = ?", coupon.Id).
+				Update("used_at", time.Now()).Error; err != nil {
+				tx.Rollback()
+				return errors.Wrap(err, "优惠券核销失败")
+			}
 		}
 	}
+
 	if err := tx.Create(order).Error; err != nil {
 		tx.Rollback()
 		return errors.Wrap(err, "订单保存失败")
@@ -342,7 +389,7 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	case echoapp.OrderStatusCommented:
 		query = query.Where("status = ?", status)
 	case echoapp.OrderStatusShipping:
-		fallthrough
+		query = query.Where("status= ?", echoapp.OrderStatusPaid)
 	case echoapp.OrderStatusSigned:
 		query = query.Where("status= ? and express_status=?", echoapp.OrderStatusPaid, status)
 	default:
@@ -358,7 +405,7 @@ func (oSvr *OrderService) GetUserOrderList(c echo.Context, userId uint, status s
 	return orderoptions, nil
 }
 
-func (oSvr *OrderService) GetUserOrderDetial(ctx echo.Context, userId uint, orderNo string) (*echoapp.Order, error) {
+func (oSvr *OrderService) GetUserOrderDetail(ctx echo.Context, userId uint, orderNo string) (*echoapp.Order, error) {
 	var (
 		order echoapp.Order
 	)
@@ -469,6 +516,44 @@ func (oSvr *OrderService) QueryRefundOrderAndUpdate(order *echoapp.Order) (*echo
 	return oSvr.QueryOrderAndUpdate(order, echoapp.OrderPayStatusRefund)
 }
 
+/***
+当用户支付成功后在写入到 OrderGoods表中, OrderGoods 表统计成功或者退款订单中的商品
+*/
+func (oSvr *OrderService) createOrderGoods(tx *gorm.DB, order *echoapp.Order) error {
+	for _, goods := range order.GoodsList {
+		orderGoods := &echoapp.OrderGoods{
+			ComID:     order.ComId,
+			OrderID:   order.ID,
+			GoodsID:   goods.GoodsId,
+			Num:       goods.Num,
+			Status:    order.PayStatus,
+			RealPrice: goods.RealPrice,
+		}
+
+		if err := tx.Save(orderGoods).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (oSvr *OrderService) updateOrderGoodsStatus(tx *gorm.DB, order *echoapp.Order) error {
+	var orderGoodsList []echoapp.OrderGoods
+
+	if err := tx.Where("order_id = ?", order.ID).First(&orderGoodsList).Error; err != nil {
+		return err
+	}
+
+	for _, orderGoods := range orderGoodsList {
+		orderGoods.Status = order.PayStatus
+		if err := tx.Save(orderGoods).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (oSvr *OrderService) StatisticCompanySalesByDate(start, end string) (*echoapp.CompanySalesSatistic, error) {
 	salesStatistic := &echoapp.CompanySalesSatistic{}
 	if err := oSvr.db.Table("orders").
@@ -498,4 +583,12 @@ func (oSvr *OrderService) StatisticComGoodsSalesByDate(start, end string, comId 
 		return nil, errors.Wrap(err, "Create")
 	}
 	return salesStatistic, nil
+}
+
+func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, error) {
+	order := &echoapp.Order{}
+	if err := oSvr.db.Where("order_no = ?", orderNo).First(order).Error; err != nil {
+		return "", errors.Wrap(err, "GetOrderPayStatusByOrderNo")
+	}
+	return order.PayStatus, nil
 }

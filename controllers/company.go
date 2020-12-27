@@ -17,17 +17,13 @@ func NewCompanyController(companySvr echoapp.CompanyService) *CompanyController 
 	}
 }
 
-type CompanyInfoReponse struct {
-	Company echoapp.CompanyBrief `json:"company"`
-}
-
 func (comCtl *CompanyController) GetCompanyInfo(ctx echo.Context) error {
 	comapny, err := echoapp_util.GetCtxCompany(ctx)
 	if err != nil {
 		return comCtl.Fail(ctx, echoapp.CodeNotFound, "查找公司信息失败", err)
 	}
 
-	return comCtl.Success(ctx, &CompanyInfoReponse{Company: comapny.CompanyBrief})
+	return comCtl.Success(ctx, comapny.CompanyBrief)
 }
 
 func (comCtl *CompanyController) GetQuickNav(ctx echo.Context) error {
@@ -38,5 +34,3 @@ func (comCtl *CompanyController) GetQuickNav(ctx echo.Context) error {
 	}
 	return comCtl.Success(ctx, navs)
 }
-
-

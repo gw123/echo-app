@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/gw123/glog"
 	"github.com/olivere/elastic/v7"
 
@@ -46,6 +47,15 @@ func (gSvr *GoodsService) GetGoodsByName(name string) (*echoapp.Goods, error) {
 	return goods, nil
 }
 
+func (gSvr *GoodsService) GetVipDesc() (*echoapp.Goods, error) {
+	goods := &echoapp.Goods{}
+	res := gSvr.db.Where("goods_type = ?", echoapp.GoodsTypeVip).Find(goods)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetGoodsByName")
+	}
+	return goods, nil
+}
+
 func (gSvr *GoodsService) SaveTag(tag *echoapp.GoodsTag) error {
 	gSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.GoodsTag{})
 	tmptag := &echoapp.GoodsTag{}
@@ -80,7 +90,7 @@ func (gSvr *GoodsService) GetGoodsByCode(code string) (*echoapp.Goods, error) {
 func (gSvr *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
-		Where("status = 'publish'").
+		Where("status = 'publish' and goods_type != ? ", echoapp.GoodsTypeVip).
 		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
 		return nil, errors.Wrap(err, "db err")
@@ -91,7 +101,7 @@ func (gSvr *GoodsService) GetGoodsList(comId, lastId uint, limit int) ([]*echoap
 func (gSvr *GoodsService) GetGoodsListByKeyword(comId uint, keyword string, lastId uint, limit int) ([]*echoapp.GoodsBrief, error) {
 	var goodsList []*echoapp.GoodsBrief
 	if err := gSvr.db.Where("com_id = ? and id > ?", comId, lastId).
-		Where("status = 'publish'").
+		Where("status = 'publish' and goods_type != ? ", echoapp.GoodsTypeVip).
 		Where("name like ?", "%"+keyword+"%").
 		Order("id desc").Limit(limit).
 		Find(&goodsList).Error; err != nil {
@@ -125,7 +135,7 @@ func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) (
 
 func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
+	if err := gSvr.db.Debug().Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
 	return goods, nil
@@ -134,13 +144,18 @@ func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 func (gSvr *GoodsService) GetCachedGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
 	data, err := gSvr.redis.Get(FormatGoodsRedisKey(goodsId)).Result()
+	if err == nil {
+		if err := json.Unmarshal([]byte(data), goods); err != nil {
+			return nil, err
+		}
+		return goods, nil
+	}
+
+	goods, err = gSvr.GetGoodsById(goodsId)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := json.Unmarshal([]byte(data), goods); err != nil {
-		return nil, err
-	}
+	gSvr.UpdateCachedGoods(goods)
 	return goods, nil
 }
 

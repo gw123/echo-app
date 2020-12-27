@@ -1,7 +1,13 @@
 package echoapp
 
 import (
+	"strings"
+
+	"github.com/gw123/glog"
+
 	"github.com/go-redis/redis/v7"
+	"github.com/gw123/echo-app/libs/etcd"
+	"github.com/gw123/gworker"
 	"github.com/spf13/viper"
 )
 
@@ -37,6 +43,7 @@ type ConfigOptions struct {
 	Wechat            *Wechat                       `yaml:"wechat" mapstructure:"wechat"`
 	Es                *EsOptions                    `yaml:"es" mapstructure:"es"`
 	Redis             *redis.Options
+	Job               *gworker.Options `yaml:job  mapstructure:"job"`
 }
 
 type EsOptions struct {
@@ -75,7 +82,7 @@ type JwsHelperOpt struct {
 	Issuer   string `json:"issuer"`
 	//单位秒
 	Timeout int64 `json:"timeout"`
-	//接受者需要提供公钥(不需要提供公钥)
+	//接受者需要提供公钥(不需要提供私钥)
 	PublicKeyPath string `json:"public_key_path" yaml:"public_key_path"  mapstructure:"public_key_path"`
 	//签发者需要知道私钥
 	PrivateKeyPath string `json:"private_key_path" yaml:"private_key_path" mapstructure:"private_key_path"`
@@ -140,20 +147,51 @@ type Wechat struct {
 	JsHost          string `yaml:"js_host" mapstructure:"js_host"`
 }
 
-func InitConfig(cfgFile string) {
+func LoadFromFile(cfgFile string) {
 	if cfgFile == "" {
 		cfgFile = DefaultConfigFile
 	}
 
-	Viper = viper.New()
 	viper.SetConfigFile(cfgFile)
-	viper.AutomaticEnv() // read in environment variables that match
-
 	if err := viper.ReadInConfig(); err != nil {
 		panic(err)
 	}
-
+	viper.ReadInConfig()
 	if err := viper.Unmarshal(&ConfigOpts); err != nil {
 		panic(err)
+	}
+}
+
+func LoadFromEtcd(endpoints []string, namespace, configPath, username, password string) {
+	etcdCli, err := etcd.NewEtcdConfig(etcd.EtcdOptions{
+		Endpoints: endpoints,
+		Namespace: namespace,
+		Username:  username,
+		Password:  password,
+	})
+
+	if err != nil {
+		glog.DefaultLogger().Fatal(err)
+		return
+	}
+
+	cfgData, err := etcdCli.Get(configPath)
+	if err != nil {
+		glog.DefaultLogger().Fatal(err)
+		return
+	}
+
+	// 要先去设置文件类型,再去ReadConfig
+	viper.SetConfigType("yaml") // because there is no file extension in a stream of bytes, supported extensions are "json", "toml", "yaml", "yml", "properties", "props", "prop", "env", "dotenv"
+	viper.ReadConfig(strings.NewReader(cfgData))
+	if err != nil {
+		glog.DefaultLogger().Fatal(err)
+		return
+	}
+	// unmarshal config
+	err = viper.Unmarshal(&ConfigOpts)
+	if err != nil {
+		glog.DefaultLogger().Fatal(err)
+		return
 	}
 }

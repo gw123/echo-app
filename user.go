@@ -166,4 +166,8 @@ type UserService interface {
 	GetUserByMobile(id uint, mobile string) (*User, error)
 	GetUserCodeAndUpdate(user *User) (string, error)
 	GetUserIdByUserCode(code string) (int64, error)
+	AddScoreByUserId(comID, userID uint, score int, source string, detail string, note string) error
+
+	//
+	SetVipLevel(user *User, level int16) (err error)
 }

@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"errors"
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
-	"strconv"
 )
 
 type ActivityController struct {
@@ -121,7 +122,6 @@ func (sCtl *ActivityController) CreateUserCoupon(ctx echo.Context) error {
 	comId := echoapp_util.GetCtxComId(ctx)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
 	if err != nil {
-
 		return sCtl.AppErr(ctx, echoapp.AppErrNotLogin.WithInner(err))
 	}
 
@@ -137,15 +137,41 @@ func (sCtl *ActivityController) CreateUserCoupon(ctx echo.Context) error {
 
 //获取商品页面关联商品的一个活动
 func (sCtl *ActivityController) GetActivityByGoodsId(ctx echo.Context) error {
-	comId := echoapp_util.GetCtxComId(ctx)
 	goodsId, err := strconv.Atoi(ctx.QueryParam("goods_id"))
 	if goodsId == 0 {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 
-	act, err := sCtl.actSvr.GetGoodsActivity(comId, uint(goodsId))
+	act, err := sCtl.actSvr.GetGoodsActivity(uint(goodsId))
+
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	return sCtl.Success(ctx, act)
+}
+
+func (sCtl *ActivityController) GetUserAwards(ctx echo.Context) error {
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.AppErr(ctx, echoapp.AppErrNotLogin.WithInner(err))
+	}
+	lastId, limit := echoapp_util.GetCtxListParams(ctx)
+	userAwards, err := sCtl.actSvr.GetUserAwards(uint(userID), lastId, uint(limit))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
+	}
+	return sCtl.Success(ctx, userAwards)
+}
+
+func (sCtl *ActivityController) GetUserAwardHistories(ctx echo.Context) error {
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.AppErr(ctx, echoapp.AppErrNotLogin.WithInner(err))
+	}
+	lastId, limit := echoapp_util.GetCtxListParams(ctx)
+	userAwardsHistories, err := sCtl.actSvr.GetAwardHistoryByUserID(uint(userID), lastId, uint(limit))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
+	}
+	return sCtl.Success(ctx, userAwardsHistories)
 }

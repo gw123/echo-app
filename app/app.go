@@ -6,6 +6,9 @@ import (
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/services"
+	"github.com/gw123/echo-app/services/activity"
+	"github.com/gw123/glog"
+	"github.com/gw123/gworker"
 	"github.com/jinzhu/gorm"
 	es7 "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
@@ -14,29 +17,55 @@ import (
 var App *EchoApp
 
 type EchoApp struct {
-	IsHealth        bool
-	areaSvc         echoapp.AreaService
-	smsSvc          echoapp.SmsService
-	UserSvr         echoapp.UserService
-	dbPool          echoapp.DbPool
-	redisPool       echoapp.RedisPool
-	CompanySvr      echoapp.CompanyService
-	GoodsSvr        echoapp.GoodsService
-	ResourceService echoapp.ResourceService
-	CommentSvr      echoapp.CommentService
-	OrderSvr        echoapp.OrderService
-	ActivitySvr     echoapp.ActivityService
-	WsSvr           echoapp.WsService
-	TestpaperSvr    echoapp.TestpaperService
-	WechatService   echoapp.WechatService
-	TicketService   echoapp.TicketService
-	SiteSvr     echoapp.SiteService
+	IsHealth              bool
+	JobPusher             gworker.Producer
+	areaSvc               echoapp.AreaService
+	smsSvc                echoapp.SmsService
+	UserSvr               echoapp.UserService
+	dbPool                echoapp.DbPool
+	redisPool             echoapp.RedisPool
+	CompanySvr            echoapp.CompanyService
+	GoodsSvr              echoapp.GoodsService
+	ResourceService       echoapp.ResourceService
+	CommentSvr            echoapp.CommentService
+	OrderSvr              echoapp.OrderService
+	ActivitySvr           echoapp.ActivityService
+	WsSvr                 echoapp.WsService
+	TestpaperSvr          echoapp.TestpaperService
+	WechatService         echoapp.WechatService
+	TicketService         echoapp.TicketService
+	SiteSvr               echoapp.SiteService
+	TongchengSvr          echoapp.TongchengService
+	ActivityDriverFactory echoapp.ActivityDriverFactory
+	VideoSvr              echoapp.VideoService
 }
 
 func init() {
 	App = &EchoApp{
 		IsHealth: true,
 	}
+}
+
+func GetJobPusher() (gworker.Producer, error) {
+	if App.JobPusher != nil {
+		return App.JobPusher, nil
+	}
+	opt := echoapp.ConfigOpts.Job
+	var err error
+	App.JobPusher, err = gworker.NewPorducerManager(opt)
+	if err != nil {
+		glog.Errorf("NewTaskManager : %s", err.Error())
+		return nil, err
+	}
+	return App.JobPusher, nil
+}
+
+func MustGetJopPusherService() gworker.Producer {
+	psuher, err := GetJobPusher()
+	if err != nil {
+		panic(err)
+	}
+	return psuher
 }
 
 func GetAreaService() (echoapp.AreaService, error) {
@@ -309,7 +338,8 @@ func GetOrderService() (echoapp.OrderService, error) {
 	actSvr := MustGetActivityService()
 	wechatSvr := MustGetWechatService()
 	ticketSvr := MustGetTicketService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr)
+	pusher := MustGetJopPusherService()
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher)
 	return App.OrderSvr, nil
 }
 
@@ -334,7 +364,9 @@ func GetActivityService() (echoapp.ActivityService, error) {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
 	lock := MustGetRedLock("")
-	App.ActivitySvr = services.NewActivityService(shopDb, redis, lock)
+
+	goodsSvr := MustGetGoodsService()
+	App.ActivitySvr = services.NewActivityService(shopDb, redis, lock, goodsSvr)
 	return App.ActivitySvr, nil
 }
 
@@ -371,6 +403,30 @@ func MustGetSiteService() echoapp.SiteService {
 	return svr
 }
 
+func GetVideoService() (echoapp.VideoService, error) {
+	if App.VideoSvr != nil {
+		return App.VideoSvr, nil
+	}
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	App.VideoSvr = services.NewVideoService(shopDb, redis)
+	return App.VideoSvr, nil
+}
+
+func MustGetVideoService() echoapp.VideoService {
+	svr, err := GetVideoService()
+	if err != nil {
+		panic(errors.Wrap(err, "GetUserSvr"))
+	}
+	return svr
+}
+
 func GetWechatService() (echoapp.WechatService, error) {
 	if App.WechatService != nil {
 		return App.WechatService, nil
@@ -401,10 +457,6 @@ func GetTestpaperService() (echoapp.TestpaperService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "GetRedis")
-	// }
 
 	App.TestpaperSvr = services.NewTestpaperService(shopDb)
 	return App.TestpaperSvr, nil
@@ -416,6 +468,34 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
+}
+
+func GetTongchengService() echoapp.TongchengService {
+	if App.TongchengSvr == nil {
+		App.TongchengSvr = services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
+	}
+	return App.TongchengSvr
+}
+
+func GetActivityDriverFactory() (echoapp.ActivityDriverFactory, error) {
+	shopDb, err := GetDb("shop")
+	if err != nil {
+		return nil, errors.Wrap(err, "GetDb")
+	}
+	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetRedis")
+	}
+	factory := activity.GetSingleDriverFactory(shopDb, redis)
+	return factory, nil
+}
+
+func MustGetActivityDriverFactory() echoapp.ActivityDriverFactory {
+	factory, err := GetActivityDriverFactory()
+	if err != nil {
+		panic(errors.Wrap(err, "MustGetActivityDriverFactory"))
+	}
+	return factory
 }
 
 func GetEs() (*es7.Client, error) {

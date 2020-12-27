@@ -1,10 +1,15 @@
 package echoapp
 
 import (
+	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/pkg/errors"
 )
 
 const (
+	ServerIndex  = "http://m.xytschool.com/index-dev/%d#%s"
 	TimeFormat   = "2006-01-02 15:04:05"
 	DateFormat   = "2006-01-02"
 	HostURL      = "host_url"
@@ -63,6 +68,7 @@ var ErrTicketInvaild = errors.New("无效的门票")
 var ErrTicketOverdue = errors.New("门票已经过期")
 var ErrTicketUsed = errors.New("门票已经被使用")
 var ErrTicketNotEnough = errors.New("已购门票数量不足,请核对数量")
+var ErrOrderFormat = errors.New("订单格式不对")
 
 type AppError interface {
 	error
@@ -78,13 +84,12 @@ type appError struct {
 	code  int
 }
 
-
 func NewAppError(code int, outer string, inner error) AppError {
 	if outer == "" {
 		outer = inner.Error()
 	}
 	return &appError{
-		code: code,
+		code:  code,
 		outer: outer,
 		inner: inner,
 	}
@@ -111,18 +116,94 @@ func (a *appError) GetOuter() string {
 	return a.outer
 }
 
-
-
-var AppErrNotFoundCache = NewAppError(CodeNotFound, "",ErrNotFoundCache)
-var AppErrNotFoundDb = NewAppError(CodeNotFound, "",ErrNotFoundDb)
+var AppErrNotFoundCache = NewAppError(CodeNotFound, "", ErrNotFoundCache)
+var AppErrNotFoundDb = NewAppError(CodeNotFound, "", ErrNotFoundDb)
 var AppErrDb = NewAppError(CodeInnerError, "", ErrDb)
-var AppErrNotFoundEtcd = NewAppError(CodeNotFound, "",ErrNotFoundEtcd)
-var AppErrArgument = NewAppError(CodeArgument,"", ErrArgument)
+var AppErrNotFoundEtcd = NewAppError(CodeNotFound, "", ErrNotFoundEtcd)
+var AppErrArgument = NewAppError(CodeArgument, "", ErrArgument)
 var AppErrNotLogin = NewAppError(CodeNoLogin, "", ErrNotLogin)
 var AppErrNotAuth = NewAppError(CodeNoAuth, "", ErrNotAuth)
 var AppErrNotAllow = NewAppError(CodeNotAllow, "", ErrNotAllow)
-var AppErrRefund = NewAppError(CodeNotAllow,"", ErrRefund)
-var AppErrTicketInvaild = NewAppError(CodeNotAllow,"", ErrTicketInvaild)
-var AppErrTicketOverdue = NewAppError(CodeNotAllow,"" , ErrTicketOverdue)
-var AppErrTicketUsed = NewAppError(CodeNotAllow,"", ErrTicketUsed)
-var AppErrTicketNotEnough = NewAppError(CodeNotAllow,"",ErrTicketNotEnough)
+var AppErrRefund = NewAppError(CodeNotAllow, "", ErrRefund)
+var AppErrTicketInvaild = NewAppError(CodeNotAllow, "", ErrTicketInvaild)
+var AppErrTicketOverdue = NewAppError(CodeNotAllow, "", ErrTicketOverdue)
+var AppErrTicketUsed = NewAppError(CodeNotAllow, "", ErrTicketUsed)
+var AppErrTicketNotEnough = NewAppError(CodeNotAllow, "", ErrTicketNotEnough)
+var AppErrOrderFromat = NewAppError(CodeArgument, "", ErrOrderFormat)
+
+// 微信模板消息
+/***
+TplMsgCreateTicket 创建订单的模板消息
+*/
+type TplMsgOrderPaid struct {
+	BaseTemplateMessage
+	OrderNO string
+	Amount  float32
+}
+
+func (t *TplMsgOrderPaid) GetUrl() string {
+	return fmt.Sprintf(ServerIndex, t.BaseTemplateMessage.ComID, "/pages/order/order?state=2")
+}
+
+func (t *TplMsgOrderPaid) GetMiniAppID() string {
+	return ""
+}
+
+func (t *TplMsgOrderPaid) GetMsgType() string {
+	return "order_paid"
+}
+
+func (t *TplMsgOrderPaid) GetItems() TemplateDataItemMap {
+	items := TemplateDataItemMap{
+		"first":    &TemplateDataItem{Value: t.First},
+		"keyword1": &TemplateDataItem{Value: t.OrderNO},
+		"keyword2": &TemplateDataItem{Value: fmt.Sprintf("%.2f", t.Amount)},
+		"remark":   &TemplateDataItem{Value: t.Remark},
+	}
+	return items
+}
+
+/***
+TplMsgCreateTicket 创建订单的模板消息
+*/
+type TplMsgCreateTicket struct {
+	BaseTemplateMessage
+	UserName   string
+	OrderNO    string
+	TicketName string
+	Num        uint
+	Amount     float32
+	CheckCode  string
+	CreatedAt  time.Time
+}
+
+func (t *TplMsgCreateTicket) GetUrl() string {
+	return fmt.Sprintf(ServerIndex, t.BaseTemplateMessage.ComID, "/pages/ticket/index?code="+t.CheckCode)
+}
+
+func (t *TplMsgCreateTicket) GetMiniAppID() string {
+	return ""
+}
+
+func (t *TplMsgCreateTicket) GetMsgType() string {
+	return "create_ticket"
+}
+
+func (t *TplMsgCreateTicket) GetItems() TemplateDataItemMap {
+	items := TemplateDataItemMap{
+		"first":    &TemplateDataItem{Value: t.First},
+		"keyword1": &TemplateDataItem{Value: t.TicketName},
+		"keyword2": &TemplateDataItem{Value: strconv.Itoa(int(t.Num))},
+		"keyword3": &TemplateDataItem{Value: fmt.Sprintf("%.2f", t.Amount)},
+		"keyword4": &TemplateDataItem{Value: t.CreatedAt.String()},
+		"keyword5": &TemplateDataItem{Value: t.OrderNO},
+		"remark":   &TemplateDataItem{Value: t.Remark},
+	}
+	return items
+}
+
+type TplMsgCheckTicket struct {
+}
+
+type TplMsgRefund struct {
+}
