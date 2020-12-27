@@ -66,9 +66,9 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			echoapp_util.ToContext(c, config.Logger)
 
 			fields := logrus.Fields{
-				"host":   req.Host,
+				//"host":   req.Host,
 				"remote": c.RealIP(),
-				"method": req.Method,
+				//"method": req.Method,
 				//"Referer": req.Referer(),
 				//"UserAgent": req.UserAgent(),
 			}

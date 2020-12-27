@@ -21,6 +21,7 @@ type Company struct {
 	WxMinSecret  string `json:"wx_min_secret"`
 	WxMiniAesKey string `json:"wx_mini_aes_key"`
 
+	OpenWxOfficial   bool   `json:"open_wx_official" `
 	WxOfficialAppId  string `json:"wx_official_app_id"`
 	WxOfficialSecret string `json:"wx_official_secret"`
 

@@ -92,6 +92,7 @@ func updateCompanyCache() {
 				glog.Error(err.Error())
 				continue
 			}
+			glog.DefaultLogger().WithField("company", companyDetail).Infof("update company")
 			if err := companySvr.UpdateCachedCompany(companyDetail); err != nil {
 				echoapp_util.DefaultJsonLogger().WithError(err).Error("更新用户缓存失败")
 			}
