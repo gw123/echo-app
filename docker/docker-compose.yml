@@ -131,6 +131,4 @@ services:
           command:
             - redis-server
             - /etc/redis/redis.conf
-          networks:
-            - backend
 

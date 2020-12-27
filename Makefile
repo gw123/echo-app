@@ -100,7 +100,7 @@ docker-all: build-static docker-image set-config
 ## 借助docker容器打包，打包体积小但是速度慢 ，适合正式环境使用
 docker-prod: build-alpine docker-image
 
-restart:
+docker-compose-up:
 	cd docker && docker-compose down &&\
 	export ECHOAPP_TAG=$(IMAGE_TAG_VERSION) && docker-compose up
 
