@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -18,8 +19,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startOrderServer() {
-	echoapp_util.DefaultLogger().Info("开启order服务")
+func startGoodsServer() {
+	echoapp_util.DefaultLogger().Info("开启GoodsHTTP服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -29,11 +30,12 @@ func startOrderServer() {
 	if echoapp.ConfigOpts.Asset.PublicRoot != "" {
 		e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	}
+
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
-	origins := echoapp.ConfigOpts.OrderServer.Origins
+
 	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: origins,
+		AllowOrigins: echoapp.ConfigOpts.GoodsServer.Origins,
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, "ClientID",
 			echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "Access-Control-Allow-Credentials"},
 	})
@@ -51,52 +53,45 @@ func startOrderServer() {
 	//}))
 
 	//Actions
-	orderSvr := app.MustGetOrderService()
 	companySvr := app.MustGetCompanyService()
+	goodsSvr := app.MustGetGoodsService()
 	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
 	companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
 
-	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
+	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
-	})
+	}
+	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	mode := echoapp.ConfigOpts.ApiVersion
-	normal := e.Group("/" + mode + "/order/:com_id")
+	normal := e.Group("/" + mode + "/goods/:com_id")
 	normal.Use(limitMiddleware, companyMiddleware, tryJwsMiddleware)
-	userSvr := app.MustGetUserService()
-	orderCtl := controllers.NewOrderController(orderSvr, userSvr)
-	normal.GET("/getTicketByCode", orderCtl.GetTicketByCode)
-	//微信支付回调
-	normal.POST("/wxPayCallback", orderCtl.WxPayCallback)
-	//微信退款回调
-	normal.POST("/wxRefundCallback", orderCtl.WxRefundCallback)
-	jwsAuth := e.Group("/" + mode + "/order/:com_id")
+
+	goodsCtl := controllers.NewGoodsController(goodsSvr)
+
+	normal.GET("/getGoodsList", goodsCtl.GetGoodsList)
+	normal.GET("/getRecommendGoodsList", goodsCtl.GetRecommendGoodsList)
+	normal.GET("/getGoodsListByTagId", goodsCtl.GetTagGoodsList)
+	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
+	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
+	normal.GET("/getVipInfo", goodsCtl.GetVipDesc)
+
+	//cart
+	jwsAuth := e.Group("/" + mode + "/goods/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 	})
-	userMiddle := echoapp_middlewares.NewUserMiddlewares(middleware.DefaultSkipper, userSvr)
-	jwsAuth.Use(jwsMiddleware, userMiddle, limitMiddleware, companyMiddleware)
-	jwsAuth.GET("/getOrderList", orderCtl.GetOrderList)
-	jwsAuth.GET("/getOrderDetail", orderCtl.GetOrderDetail)
-	jwsAuth.GET("/getOrderStatistics", orderCtl.GetOrderStatistics)
-	jwsAuth.POST("/preOrder", orderCtl.PreOrder)
-	jwsAuth.POST("/queryOrder", orderCtl.QueryOrder)
-	jwsAuth.POST("/refund", orderCtl.Refund)
-	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
-	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
-
-	//ticket
-	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
-	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)
-	jwsAuth.GET("/checkTicketList", orderCtl.CheckTicketList)
-	jwsAuth.GET("/getTicketList", orderCtl.GetTicketList)
-	jwsAuth.GET("/getTicketDetail", orderCtl.GetTicketDetail)
-	jwsAuth.GET("/fetchThirdTicket", orderCtl.FetchThirdTicket)
+	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
+	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
+	jwsAuth.POST("/addCartGoods", goodsCtl.AddCartGoods)
+	jwsAuth.POST("/delCartGoods", goodsCtl.DelCartGoods)
+	jwsAuth.POST("/clearCart", goodsCtl.ClearCart)
+	jwsAuth.POST("/updateCartGoods", goodsCtl.UpdateCartGoods)
 
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.OrderServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.GoodsServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -114,15 +109,15 @@ func startOrderServer() {
 }
 
 // serverCmd represents the server command
-var orderServerCmd = &cobra.Command{
-	Use:   "order",
+var goodsServerCmd = &cobra.Command{
+	Use:   "goods",
 	Short: "商品服务",
 	Long:  `商品服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startOrderServer()
+		startGoodsServer()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(orderServerCmd)
+	RootCmd.AddCommand(goodsServerCmd)
 }

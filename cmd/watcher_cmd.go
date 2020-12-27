@@ -232,5 +232,5 @@ var watcherCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(watcherCmd)
+	RootCmd.AddCommand(watcherCmd)
 }

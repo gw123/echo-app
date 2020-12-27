@@ -16,30 +16,41 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gw123/glog"
 	"log"
 	"os"
+	"strings"
 
 	echoapp "github.com/gw123/echo-app"
+
+	"github.com/gw123/glog"
+
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
+var (
+	etcdEndpoints []string
+	cfgFile       string
+	cfgType       string
+	etcdUsername  string
+	etcdPassword  string
+	etcdNamespace string
+	etcdPath      string
+)
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:   "echoapp",
 	Short: "echoapp for echo ,esay to develop go web application",
-	Long: `echoapp for echo ,esay to develop go web application`,
+	Long:  `echoapp for echo ,esay to develop go web application`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -51,16 +62,56 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	RootCmd.PersistentFlags().StringVar(&cfgType, "config-type", "file", "local|etcd")
+
+	RootCmd.PersistentFlags().StringSliceVar(&etcdEndpoints, "etcd-endpoints", []string{}, "endpoints")
+	RootCmd.PersistentFlags().StringVar(&etcdUsername, "etcd-username", "", "username")
+	RootCmd.PersistentFlags().StringVar(&etcdPassword, "etcd-password", "", "password")
+	RootCmd.PersistentFlags().StringVar(&etcdNamespace, "etcd-namespace", "", "namespace")
+	RootCmd.PersistentFlags().StringVar(&etcdPath, "etcd-path", "", "etcdPath config data path")
+
+	if len(etcdEndpoints) == 0 {
+		etcdEndpoints = strings.Split(os.Getenv("ETCD_ENDPOINTS"), ",")
+		if len(etcdEndpoints) == 0 {
+			etcdEndpoints = append(etcdEndpoints, "http://127.0.0.1:2379")
+		}
+	}
+
+	if etcdUsername == "" {
+		etcdUsername = os.Getenv("ETCD_USERNAME")
+	}
+
+	if etcdPassword == "" {
+		etcdPassword = os.Getenv("ETCD_PASSWORD")
+	}
+
+	if etcdNamespace == "" {
+		etcdNamespace = os.Getenv("ETCD_NAMESPACE")
+		if etcdNamespace == "" {
+			etcdNamespace = "/xyt"
+		}
+	}
+
+	if etcdPath == "" {
+		etcdPath = os.Getenv("ETCD_PATH")
+		if etcdPath == "" {
+			etcdPath = "/config.yaml"
+		}
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
-	echoapp.InitConfig(cfgFile)
+	if cfgType == "file" {
+		glog.Info("load config from file")
+		echoapp.LoadFromFile(cfgFile)
+	} else {
+		glog.Infof("load config from etcd addr:%s ,username:%s", strings.Join(etcdEndpoints, ","), etcdUsername)
+		glog.Infof("load config from etcd: namespace:%s ,path:%s", etcdNamespace, etcdPath)
+		echoapp.LoadFromEtcd(etcdEndpoints, etcdNamespace, etcdPath, etcdUsername, etcdPassword)
+	}
 }
 
 func handleInitError(module string, err error) {

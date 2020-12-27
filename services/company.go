@@ -3,8 +3,9 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/go-redis/redis/v7"
-	"github.com/gw123/echo-app"
+	echoapp "github.com/gw123/echo-app"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -36,11 +37,20 @@ func (c CompanyService) GetCompanyById(comId uint) (*echoapp.Company, error) {
 		return nil, errors.Wrap(err, "db query")
 	}
 	company.SmsChannels = make(map[string]*echoapp.SmsChannel)
+	company.WxTemplateTypes = make(map[string]*echoapp.TemplateType)
+	// sms channel
 	var channels []echoapp.SmsChannel
 	c.db.Where("com_id = ?", comId).Find(&channels)
 	for _, sch := range channels {
 		company.SmsChannels[sch.Type] = &sch
 	}
+	// wxTplMessage
+	var wxTpls []*echoapp.TemplateType
+	c.db.Where("com_id = ?", comId).Find(&wxTpls)
+	for _, tpl := range wxTpls {
+		company.WxTemplateTypes[tpl.Type] = tpl
+	}
+
 	return company, nil
 }
 
@@ -57,14 +67,18 @@ func (c CompanyService) GetCompanyList(offsetId uint, limit int) ([]*echoapp.Com
 func (c CompanyService) GetCachedCompanyById(comId uint) (*echoapp.Company, error) {
 	user := &echoapp.Company{}
 	data, err := c.redis.Get(FormatCompanyRedisKey(comId)).Result()
+	if err == nil {
+		if err := json.Unmarshal([]byte(data), user); err == nil {
+			return user, nil
+		}
+	}
+
+	company, err := c.GetCompanyById(comId)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := json.Unmarshal([]byte(data), user); err != nil {
-		return nil, err
-	}
-	return user, nil
+	c.UpdateCachedCompany(company)
+	return company, err
 }
 
 func (c CompanyService) UpdateCachedCompany(company *echoapp.Company) (err error) {

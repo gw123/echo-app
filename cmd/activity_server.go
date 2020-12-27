@@ -73,6 +73,10 @@ func startActivityServer() {
 	//获取商品页面关联商品的一个活动
 	normal.GET("/getActivityByGoodsId", actCtl.GetActivityByGoodsId)
 
+	// 用户的奖品列表
+	normal.GET("/getUserAwards", actCtl.GetUserAwards)
+	normal.GET("/getUserAwardHistories", actCtl.GetUserAwardHistories)
+
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.ActivityServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
@@ -102,5 +106,5 @@ var activityServerCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(activityServerCmd)
+	RootCmd.AddCommand(activityServerCmd)
 }

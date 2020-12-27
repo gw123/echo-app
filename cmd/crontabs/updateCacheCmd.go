@@ -12,19 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package crontabs
 
 import (
 	"encoding/json"
+	"os"
+	"os/signal"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
-	"os"
-	"os/signal"
-	"time"
 )
 
 var updateMethod = ""
@@ -190,12 +191,11 @@ func updateCacheByMq() {
 }
 
 // serverCmd represents the server command
-var updateCacheCmd = &cobra.Command{
+var UpdateCacheCmd = &cobra.Command{
 	Use:   "updateCache",
 	Short: "cache 更新",
 	Long:  `cache 服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		quit := make(chan os.Signal, 1)
 		switch updateMethod {
 		case "once":
@@ -214,6 +214,5 @@ var updateCacheCmd = &cobra.Command{
 }
 
 func init() {
-	updateCacheCmd.PersistentFlags().StringVarP(&updateMethod, "method", "m", "once", "访问方法")
-	rootCmd.AddCommand(updateCacheCmd)
+	UpdateCacheCmd.PersistentFlags().StringVarP(&updateMethod, "method", "m", "once", "访问方法")
 }

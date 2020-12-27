@@ -2,15 +2,16 @@ package controllers
 
 import (
 	"errors"
+	"math/rand"
+	"strconv"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 type UserController struct {
@@ -189,7 +190,7 @@ func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
 	}
 	addrParam.UserID = userId
 	if err := sCtl.userSvr.UpdateUserAddress(addrParam); err != nil {
-		return sCtl.AppErr(ctx, echoapp.NewAppError(echoapp.CodeInnerError, err.Error() ,err))
+		return sCtl.AppErr(ctx, echoapp.NewAppError(echoapp.CodeInnerError, err.Error(), err))
 	}
 	return sCtl.Success(ctx, addrParam)
 }
@@ -391,7 +392,7 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 			glog.Info("sCtl.goodSvr.GetGoodsById")
 			continue
 		}
-		tempGoods.ID =  goods.ID
+		tempGoods.ID = goods.ID
 		tempGoods.Name = goods.Name
 		tempGoods.Price = goods.Price
 		tempGoods.GoodsType = goods.GoodsType
@@ -458,12 +459,13 @@ func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
 	return sCtl.Success(ctx, collectionMap)
 }
 
-func (sCtl *UserController) GetUserCode(ctx echo.Context) error {
-	//comId := echoapp_util.GetCtxComId(ctx)
+// 获取用户会员码 GetUserCode
+func (sCtl *UserController) UpdateUserCode(ctx echo.Context) error {
 	user, err := echoapp_util.GetCtxtUser(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
+
 	var code string
 	code, err = sCtl.userSvr.GetUserCodeAndUpdate(user)
 	if err != nil {
@@ -471,9 +473,40 @@ func (sCtl *UserController) GetUserCode(ctx echo.Context) error {
 	}
 	expireAt := time.Now().Add(time.Second * 30)
 
-	//前端需要判断30秒后在去请求获取一个新的码
+	// 前端需要判断30秒后在去请求获取一个新的码
 	return sCtl.Success(ctx, map[string]interface{}{
 		"code":      code,
 		"timestamp": expireAt.Unix(),
 	})
+}
+
+type UserCodeRequest struct {
+	Code string `json:"code"`
+}
+
+// 通过用户码获取用户信息
+func (sCtl *UserController) GetUserByCode(ctx echo.Context) error {
+	staff, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	if !staff.IsStaff {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "只有员工可以访问", errors.New("只有员工可以访问"))
+	}
+
+	requestParam := &UserCodeRequest{}
+	err = ctx.Bind(requestParam)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	userId, err := sCtl.userSvr.GetUserIdByUserCode(requestParam.Code)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取用户码失败", err)
+	}
+	user, err := sCtl.userSvr.GetCachedUserById(userId)
+
+	// 前端需要判断30秒后在去请求获取一个新的码
+	return sCtl.Success(ctx, user)
 }

@@ -1,12 +1,27 @@
+// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package cmd
 
 import (
 	"context"
-	"github.com/gw123/glog"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gw123/glog"
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
@@ -18,8 +33,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func startCommentServer() {
-	echoapp_util.DefaultLogger().Info("开启HTTP服务")
+func startLocalHttp() {
+	echoapp_util.DefaultLogger().Info("开启message服务")
 	//echoapp_util.DefaultLogger().Infof("%+v", echoapp.ConfigOpts)
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
@@ -33,12 +48,12 @@ func startCommentServer() {
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
-	origins := echoapp.ConfigOpts.CommentServer.Origins
+	origins := echoapp.ConfigOpts.SiteServer.Origins
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType,
-				echo.HeaderAccept, "x-requested-with", "authorization", "x-csrf-token", "ClientID", "Access-Control-Allow-Credentials"},
+				echo.HeaderAccept, "x-requested-with", "authorization", "ClientID", "x-csrf-token", "Access-Control-Allow-Credentials"},
 		}))
 	}
 
@@ -49,42 +64,30 @@ func startCommentServer() {
 		},
 		Logger: glog.JsonEntry(),
 	})
-	e.Use(loggerMiddleware)
+	//e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
 	//	StackSize: 1 << 10, // 1 KB
 	//}))
-
-	//Actions
-	commentSvr := app.MustGetCommentService()
-	//goodsSvr := app.MustGetGoodsService()
-	//resourceSvr := app.MustGetResourceService()
-	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
-	//companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper,goodsSvr)
-
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
 		IgnoreAuth: true,
 	}
-	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
-	//resourceCtl := controllers.NewResourceController(resourceSvr, goodsSvr)
-	//
-	//callback := e.Group("/v1/goods-api")
-	//callback.POST("/uploadCallback", resourceCtl.UploadCallback)
-	//
-	mode := echoapp.ConfigOpts.ApiVersion
-	normal := e.Group("/" + mode + "/comment/:com_id")
-	//normal := e.Group("/v1/comment")
-	normal.Use(limitMiddleware, tryJwsMiddleware)
 
-	commentCtl := controllers.NewCommentController(commentSvr)
-	normal.POST("/submitComment", commentCtl.SaveComment)
-	normal.GET("/getCommentList", commentCtl.GetCommentList)
-	normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
-	normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
-	normal.GET("/upComment", commentCtl.ThumbUpComment)
+	limitMiddleware := echoapp_middlewares.NewLimitMiddlewares(middleware.DefaultSkipper, 100, 200)
+	//companyMiddleware := echoapp_middlewares.NewCompanyMiddlewares(middleware.DefaultSkipper, companySvr)
+	//Actions
+	usrSvr := app.MustGetUserService()
+	wsSvr := app.MustGetWsService()
+	wsCtl := controllers.NewWsController(usrSvr, wsSvr)
+
+	mode := echoapp.ConfigOpts.ApiVersion
+	normal := e.Group("/" + mode + "/message/:com_id")
+	normal.Use(loggerMiddleware, echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt), limitMiddleware)
+	normal.GET("/newClient", wsCtl.CreateWsClient)
+
 	go func() {
-		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
+		if err := e.Start(echoapp.ConfigOpts.MessageServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")
 			os.Exit(-1)
 		}
@@ -102,15 +105,15 @@ func startCommentServer() {
 }
 
 // serverCmd represents the server command
-var commentServerCmd = &cobra.Command{
-	Use:   "comment",
-	Short: "评论服务",
-	Long:  `评论服务`,
+var localServerCmd = &cobra.Command{
+	Use:   "message",
+	Short: "服务",
+	Long:  `测试服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startCommentServer()
+		startLocalHttp()
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(commentServerCmd)
+	RootCmd.AddCommand(localServerCmd)
 }

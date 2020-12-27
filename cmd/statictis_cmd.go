@@ -173,6 +173,6 @@ var statisticHistoryCmd = &cobra.Command{
 
 func init() {
 	statisticHistoryCmd.PersistentFlags().StringVarP(&statisticsWay, "method", "m", "history", "访问方法")
-	rootCmd.AddCommand(statisticHistoryCmd)
+	RootCmd.AddCommand(statisticHistoryCmd)
 
 }
