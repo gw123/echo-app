@@ -12,7 +12,6 @@ import (
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
 	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
@@ -46,7 +45,6 @@ func startSiteServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{

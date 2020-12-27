@@ -15,7 +15,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/gw123/glog v1.1.3-0.20200725040035-6af5ed4b7f47
+	github.com/gw123/glog v1.2.1
 	github.com/gw123/gworker v1.6.1
 	github.com/iGoogle-ink/gopay v1.5.16-0.20200714134502-68dab747848e
 	github.com/iGoogle-ink/gotil v1.0.3
@@ -34,7 +34,7 @@ require (
 	github.com/qiniu/api.v7/v7 v7.4.1
 	github.com/silenceper/wechat v1.2.7-0.20200528082022-843ed3fa8ad2 // indirect
 	github.com/silenceper/wechat/v2 v2.0.1
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.7.0
 	github.com/skip2/go-qrcode v0.0.0-20200526175731-7ac0b40b2038
 	github.com/speps/go-hashids v2.0.0+incompatible
 	github.com/spf13/cobra v1.0.0
