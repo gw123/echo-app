@@ -18,14 +18,16 @@ type SiteController struct {
 	comSvr    echoapp.CompanyService
 	wxSvr     echoapp.WechatService
 	echoapp.BaseController
-	asset          echoapp.Asset
+	assetOpts      echoapp.Asset
 	indexCachePage []byte
+	videoSvr       echoapp.VideoService
 }
 
 func NewSiteController(comSvr echoapp.CompanyService,
 	actSvr echoapp.ActivityService,
 	bannerSvr echoapp.SiteService,
 	svr echoapp.WechatService,
+	video echoapp.VideoService,
 	asset echoapp.Asset,
 ) *SiteController {
 	return &SiteController{
@@ -33,7 +35,8 @@ func NewSiteController(comSvr echoapp.CompanyService,
 		actSvr:    actSvr,
 		bannerSvr: bannerSvr,
 		wxSvr:     svr,
-		asset:     asset,
+		videoSvr:  video,
+		assetOpts: asset,
 	}
 }
 
@@ -108,7 +111,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
-	response["assetHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.asset)
+	response["publicHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.assetOpts)
 	if clientType == echoapp.ClientWxOfficial {
 		user, err := echoapp_util.GetCtxtUser(ctx)
 		if err == nil {
@@ -119,6 +122,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			data["sex"] = user.Sex
 			data["roles"] = user.Roles
 			data["id"] = user.Id
+			data["vip_level"] = user.VipLevel
 			response["user"] = data
 		}
 	}
@@ -169,4 +173,29 @@ func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
 		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
 	}
 	return sCtl.Success(ctx, jsConfig)
+}
+
+func (sCtl *SiteController) GetVideoList(ctx echo.Context) error {
+	comID := echoapp_util.GetCtxComId(ctx)
+	lastID, limit := echoapp_util.GetCtxListParams(ctx)
+	videoList, err := sCtl.videoSvr.GetVideoList(comID, lastID, limit)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取Video失败")
+		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
+	}
+	return sCtl.Success(ctx, videoList)
+}
+
+func (sCtl *SiteController) GetVideoDetail(ctx echo.Context) error {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
+	}
+
+	video, err := sCtl.videoSvr.GetVideoDetail(uint(id))
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取Video详情失败")
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
+	}
+	return ctx.Render(http.StatusOK, "video", video)
 }

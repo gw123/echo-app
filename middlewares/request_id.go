@@ -2,10 +2,11 @@ package echoapp_middlewares
 
 import (
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
+	glogCommon "github.com/gw123/glog/common"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/random"
-	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -17,7 +18,7 @@ type (
 		// Optional. Default value random.String(32).
 		Generator func() string
 		// logger
-		Logger *logrus.Entry
+		Logger glogCommon.Logger
 	}
 )
 
@@ -26,7 +27,7 @@ var (
 	DefaultRequestIDConfig = ContextConfig{
 		Skipper:   middleware.DefaultSkipper,
 		Generator: generator,
-		Logger:    echoapp_util.NewDefaultEntry(),
+		Logger:    glog.DefaultLogger(),
 	}
 )
 

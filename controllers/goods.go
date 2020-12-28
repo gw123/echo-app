@@ -1,10 +1,11 @@
 package controllers
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
-	"strconv"
 )
 
 type GoodsController struct {
@@ -95,6 +96,15 @@ func (sCtl *GoodsController) GetGoodsInfo(ctx echo.Context) error {
 		echoapp_util.ExtractEntry(ctx).Error(err)
 	}
 	goods.Pv += 1
+	return sCtl.Success(ctx, goods)
+}
+
+// 用户办理会员时候使用的商品
+func (sCtl *GoodsController) GetVipDesc(ctx echo.Context) error {
+	goods, err := sCtl.goodsSvr.GetVipDesc()
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeNotFound, "未发现商品", err)
+	}
 	return sCtl.Success(ctx, goods)
 }
 

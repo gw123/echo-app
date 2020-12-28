@@ -111,19 +111,19 @@ func (*History) TableName() string {
 	return "user_history"
 }
 
-// type Statistics struct {
-// 	ID        uint `gorm:"primary_key"`
-// 	CreatedAt time.Time
-// 	UpdatedAt time.Time
-// 	Date      string `json:"date"`
-// 	TargetId  int    `json:"target_id"`
-// 	Total     int64  `json:"total"`
-// 	Type      string `json:"type"`
-// }
+type Statistics struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Date      string `json:"date"`
+	TargetId  int    `json:"target_id"`
+	Total     int64  `json:"total"`
+	Type      string `json:"type"`
+}
 
-// func (*Statistics) TableName() string {
-// 	return "Statistic1s"
-// }
+func (*Statistics) TableName() string {
+	return "Statistic1s"
+}
 
 type UserService interface {
 	AddScore(ctx echo.Context, user *User, amount int) error
@@ -166,4 +166,8 @@ type UserService interface {
 	GetUserByMobile(id uint, mobile string) (*User, error)
 	GetUserCodeAndUpdate(user *User) (string, error)
 	GetUserIdByUserCode(code string) (int64, error)
+	AddScoreByUserId(comID, userID uint, score int, source string, detail string, note string) error
+
+	//
+	SetVipLevel(user *User, level int16) (err error)
 }

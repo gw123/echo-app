@@ -584,14 +584,14 @@ func _Gatherrrr_GatherSalesVolumes_Handler(srv interface{}, ctx context.Context,
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GatherrrrServer).GatherSalesVolumes(ctx, in)
+		return srv.(GatherServer).GatherSalesVolumes(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/pb.Gatherrrr/GatherSalesVolumes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatherrrrServer).GatherSalesVolumes(ctx, req.(*GatherSalesVolumesRequest))
+		return srv.(GatherServer).GatherSalesVolumes(ctx, req.(*GatherSalesVolumesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -602,14 +602,14 @@ func _Gatherrrr_GatherCommentsNumber_Handler(srv interface{}, ctx context.Contex
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GatherrrrServer).GatherCommentsNumber(ctx, in)
+		return srv.(GatherServer).GatherCommentsNumber(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/pb.Gatherrrr/GatherCommentsNumber",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatherrrrServer).GatherCommentsNumber(ctx, req.(*GatherCommentsNumberRequest))
+		return srv.(GatherServer).GatherCommentsNumber(ctx, req.(*GatherCommentsNumberRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -620,21 +620,21 @@ func _Gatherrrr_GatherViews_Handler(srv interface{}, ctx context.Context, dec fu
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GatherrrrServer).GatherViews(ctx, in)
+		return srv.(GatherServer).GatherViews(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
 		FullMethod: "/pb.Gatherrrr/GatherViews",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatherrrrServer).GatherViews(ctx, req.(*GatherViewsRequest))
+		return srv.(GatherServer).GatherViews(ctx, req.(*GatherViewsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 var _Gatherrrr_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.Gatherrrr",
-	HandlerType: (*GatherrrrServer)(nil),
+	HandlerType: (*GatherServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GatherSalesVolumes",

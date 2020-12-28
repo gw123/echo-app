@@ -1,8 +1,5 @@
 package echoapp
 
-import (
-	"github.com/labstack/echo"
-)
 // TongchengRequestHead
 type TongchengRequestHead struct {
 	Sign      string `json:"sign"`
@@ -31,14 +28,15 @@ type TongchengResponse struct {
 
 //  CheckTicketRequestBody
 type CheckTicketRequestBody struct {
-	Tickets        int    `json:"tickets"`
+	Tickets        uint   `json:"tickets"`
+	ComID          uint   `json:"com_id"`
 	OrderSerialId  string `json:"orderSerialId"`
 	PartnerOrderId string `json:"partnerOrderId"`
 	ConsumeDate    string `json:"consumeDate"`
 }
 
 type SyncPartnerCodeRequestBody struct {
-	Tickets        int    `json:"tickets"`
+	Tickets        uint   `json:"tickets"`
 	OrderSerialId  string `json:"orderSerialId"`
 	PartnerOrderId string `json:"partnerOrderId"`
 	PartnerCode    string `json:"partnerCode"`
@@ -56,6 +54,6 @@ type SyncPartnerCodeJob struct {
 
 type TongchengService interface {
 	//核销门票通知第三方
-	CheckTicket(ctx echo.Context, info CheckTicketJob) error
-	SyncPartnerCode(ctx echo.Context, info SyncPartnerCodeJob) error
+	SyncPartnerCode(comID uint, info *SyncPartnerCodeRequestBody) error
+	CheckTicket(comID uint, info *CheckTicketRequestBody) error
 }

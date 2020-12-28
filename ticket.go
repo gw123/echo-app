@@ -1,9 +1,11 @@
 package echoapp
 
 import (
+	"errors"
 	"fmt"
-	"github.com/gw123/glog"
 	"time"
+
+	"github.com/gw123/glog"
 )
 
 const (
@@ -29,7 +31,7 @@ type Ticket struct {
 	OrderId    uint       `json:"-"`
 	Mobile     string     `json:"mobile"`
 	Name       string     `json:"name" gorm:"-"`
-	Source     string     `json:"name" gorm:"source"`
+	Source     string     `json:"source" gorm:"source"`
 	Number     uint       `json:"number"`
 	Status     string     `json:"status"  gorm:"status" `
 	UsedNumber uint       `json:"used_number"`
@@ -42,10 +44,28 @@ type Ticket struct {
 }
 
 func (t *Ticket) AfterFind() error {
-	if t.Rand != 0 {
-		t.Code = fmt.Sprintf("%d%d", t.Rand, t.Rand+IdHashSalt+t.ID)
-	}
+	t.Code = t.GetCode()
 	return nil
+}
+
+func (t *Ticket) AfterSave() error {
+	if t.Code != "" {
+		return nil
+	}
+	if t.Rand == 0 {
+		return errors.New("BeforeSave not set rand")
+	}
+
+	t.Code = t.GetCode()
+	return nil
+}
+
+func (t *Ticket) GetCode() string {
+	if t.Code != "" {
+		return t.Code
+	}
+	glog.Infof("rand %d ,temp %d, id:%d", t.Rand, t.Rand+IdHashSalt+t.ID, t.ID)
+	return fmt.Sprintf("%d%d", t.Rand, t.Rand+IdHashSalt+t.ID)
 }
 
 func (t *Ticket) UpdateStatus() {
@@ -102,4 +122,5 @@ type TicketService interface {
 	GetTicketsByOrder(order *Order) ([]*Ticket, error)
 	//验票的相关逻辑,因为和事务有关系交给调用着去更新
 	CheckTicket(ticket *Ticket, num uint, staffID uint) error
+	DeTicketCode(code string) (*Ticket, error)
 }

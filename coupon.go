@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 )
+
 /***
  type 优惠券类型
 	   register 注册就送
@@ -36,8 +37,6 @@ const (
 	RedisConpon            = "RedisCoupon:%d"
 	RedisMutexCreateCoupon = "RedisMutexCreateCoupon:%d"
 )
-
-
 
 func FormatGoodsCouponsKey(comId, goodsId uint) string {
 	return fmt.Sprintf(RedisGoodsCoupons, comId, goodsId)
@@ -90,11 +89,11 @@ type Coupon struct {
 	RangeType  string    `json:"range_type"`            //商品使用范围类型 all ,range , single
 	RangeStr   string    `json:"-" gorm:"column:range"` //商品适用范围
 	Range      []uint    `json:"range" gorm:"-"`        //商品适用范围
-	Total      uint      `json:"total"`
-	UsedTotal  uint      `json:"used_total"`
-	ExpireAt   time.Time `json:"expire_at"` //整体过期时间
-	Duration   uint      `json:"duration"`  //领取后可以保留的时间
-	StartAt    time.Time `json:"start_at"`  //开始可以领取优惠券时间
+	Total      uint      `json:"-"`
+	UsedTotal  uint      `json:"-"`
+	ExpireAt   time.Time `json:"-"`        //整体过期时间
+	Duration   uint      `json:"-"`        //领取后可以保留的时间
+	StartAt    time.Time `json:"start_at"` //开始可以领取优惠券时间
 	CreatedAt  time.Time `json:"created_at"`
 }
 
@@ -110,16 +109,20 @@ func (c *Coupon) IsExpire() bool {
 	return c.ExpireAt.Sub(time.Now()) <= 0
 }
 
-//用户优惠券
+// 用户优惠券
 type UserCoupon struct {
 	Id         uint       `gorm:"primary_key" json:"id"`
 	CouponId   uint       `json:"coupon_id"` //优惠券
 	UserId     uint       `json:"user_id"`
 	DeletedAt  *time.Time //删除优惠券
-	CreatedAt  time.Time  `json:"created_at" gorm:"column:created_at"`//领取时间
+	CreatedAt  time.Time  `json:"created_at" gorm:"column:created_at"` //领取时间
 	StartAt    time.Time  //可以开始使用时间
 	UsedAt     *time.Time //使用时间
 	ExpireAt   time.Time  //优惠券过期时间
 	BaseCoupon *Coupon    `json:"base_coupon" gorm:"-"`
 	ComId      uint
+}
+
+func (*UserCoupon) TableName() string {
+	return "user_coupons"
 }

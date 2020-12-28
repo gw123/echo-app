@@ -5,13 +5,15 @@ import (
 	"strings"
 
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/glog"
+	glogCommon "github.com/gw123/glog/common"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 type ctxLogger struct {
-	logger *logrus.Entry
+	logger glogCommon.Logger
 	fields logrus.Fields
 }
 
@@ -25,8 +27,7 @@ type Record struct {
 const ctxRequestIdKey = "request_id"
 
 var (
-	defaultLogger *logrus.Logger
-	isDebug       = false
+	isDebug = false
 )
 
 const (
@@ -143,45 +144,19 @@ func SetDebug(flag bool) {
 }
 
 // 为了方便创建一个默认的Logger
-func DefaultLogger() *logrus.Logger {
-	if defaultLogger == nil {
-		defaultLogger = logrus.New()
-	}
-	defaultLogger.SetFormatter(&logrus.TextFormatter{
-		TimestampFormat:  "2006-01-02 15:04:05",
-		DisableTimestamp: false,
-		FieldMap:         nil,
-		CallerPrettyfier: nil,
-	})
-	return defaultLogger
+func DefaultLogger() glogCommon.Logger {
+	return glog.DefaultLogger()
 }
 
 // 为了方便创建一个默认的Logger
-func DefaultJsonLogger() *logrus.Logger {
-	if defaultLogger == nil {
-		defaultLogger = logrus.New()
-	}
-	defaultLogger.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat:  "2006-01-02 15:04:05",
-		DisableTimestamp: false,
-		DataKey:          "",
-		FieldMap:         nil,
-		CallerPrettyfier: nil,
-		PrettyPrint:      isDebug,
-	})
-
-	return defaultLogger
-}
-
-func NewDefaultEntry() *logrus.Entry {
-	//return logrus.NewEntry(DefaultLogger())
-	return logrus.NewEntry(DefaultJsonLogger())
+func DefaultJsonLogger() glogCommon.Logger {
+	return DefaultLogger()
 }
 
 // 添加logrus.Entry到context, 这个操作添加的logrus.Entry在后面AddFields和Extract都会使用到
-func ToContext(ctx echo.Context, entry *logrus.Entry) {
+func ToContext(ctx echo.Context, logger glogCommon.Logger) {
 	l := &ctxLogger{
-		logger: entry,
+		logger: logger,
 		fields: logrus.Fields{},
 	}
 	ctx.Set(ctxLoggerKey, l)
@@ -222,13 +197,13 @@ func ExtractRequestId(ctx echo.Context) string {
 }
 
 //导出ctx_logrus日志库
-func ExtractEntry(ctx echo.Context) *logrus.Entry {
+func ExtractEntry(ctx echo.Context) glogCommon.Logger {
 	l, ok := ctx.Get(ctxLoggerKey).(*ctxLogger)
 	if !ok || l == nil {
-		return logrus.NewEntry(logrus.New())
+		return glog.DefaultLogger()
 	}
 
-	fields := logrus.Fields{}
+	fields := make(map[string]interface{})
 	for k, v := range l.fields {
 		fields[k] = v
 	}
@@ -242,6 +217,7 @@ func ExtractEntry(ctx echo.Context) *logrus.Entry {
 
 // 选择一个最合适的静态资源前缀 如果是内网访问直接走内网地址 ,如果是外网访问直接走线上的环境
 func GetOptimalPublicHost(ctx echo.Context, asset echoapp.Asset) string {
+	ctx.Logger()
 	ip := ctx.RealIP()
 	for _, ipPrefix := range asset.InnerIpPrefix {
 		if strings.HasPrefix(ip, ipPrefix) {

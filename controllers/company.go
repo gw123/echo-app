@@ -34,5 +34,3 @@ func (comCtl *CompanyController) GetQuickNav(ctx echo.Context) error {
 	}
 	return comCtl.Success(ctx, navs)
 }
-
-

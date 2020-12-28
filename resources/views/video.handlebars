@@ -1,0 +1,54 @@
+<head>
+    <meta charset=utf-8>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta http-equiv=X-UA-Compatible content="IE=edge">
+    <title></title>
+    <!--    <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>-->
+    <script>document.addEventListener('DOMContentLoaded', function () {
+        document.documentElement.style.fontSize = document.documentElement.clientWidth / 20 + 'px'
+    })
+    var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') || CSS.supports('top: constant(a)'))
+    document.write('<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' + (coverSupport ? ', viewport-fit=cover' : '') + '" />')
+    </script>
+
+    <link href="https://cdn.bootcss.com/video.js/6.3.3/video-js.min.css" rel="stylesheet">
+    <script src="https://cdn.bootcss.com/video.js/6.3.3/video.min.js"></script>
+    <script src="https://cdn.bootcss.com/videojs-contrib-hls/5.11.0/videojs-contrib-hls.js"></script>
+    <!–[if lt IE 9]>
+    <script type="text/javascript" src="http://cdn.static.runoob.com/libs/html5shiv/3.7/html5shiv.min.js"></script>
+    <![endif]–>
+</head>
+<body>
+<style>
+    body,html{ margin: 0px ;padding: 0px}
+    .video-js{
+        width: 100%;
+    }
+</style>
+
+<video  id="myVideo"  class="video-js vjs-default-skin vjs-big-play-centered"  width="400"
+        controls="controls" autoplay="autoplay"
+        x-webkit-airplay="true" x5-video-player-fullscreen="true"
+        preload="auto" playsinline="true" webkit-playsinline
+        x5-video-player-typ="h5">
+    <source type="application/x-mpegURL" src="{{src}}">
+</video>
+
+<script>
+    // videojs 简单使用
+    var myVideo = videojs('myVideo',{
+        bigPlayButton : true,
+        autoplay: true,
+        textTrackDisplay : false,
+        posterImage: true,
+        errorDisplay : false,
+    }, function(){
+        var that = this
+        setTimeout(function() {
+            that.play()
+        },1000)
+    })
+</script>
+</body>

@@ -1,13 +1,16 @@
 package services
 
 import (
-	echoapp "github.com/gw123/echo-app"
-	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"math/rand"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/gw123/glog"
+
+	echoapp "github.com/gw123/echo-app"
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 type TicketService struct {
@@ -20,14 +23,18 @@ func NewTicketService(db *gorm.DB) *TicketService {
 }
 
 func (tkSvr *TicketService) DeTicketCode(code string) (*echoapp.Ticket, error) {
+	if len(code) < 16 {
+		return nil, errors.New("code invalid")
+	}
 	rand, _ := strconv.ParseInt(code[0:8], 10, 64)
 	temp, _ := strconv.ParseInt(code[8:], 10, 64)
 	if rand == 0 || temp == 0 {
 		return nil, errors.New("code is not vaild")
 	}
+	glog.Infof("rand %d ,temp %d", rand, temp)
 	tId := temp - echoapp.IdHashSalt - rand
 	ticket := &echoapp.Ticket{}
-	if err := tkSvr.db.Where("id = ?", tId).First(ticket).Error; err != nil {
+	if err := tkSvr.db.Debug().Where("id = ?", tId).First(ticket).Error; err != nil {
 		return nil, errors.Wrap(err, "db err")
 	}
 	if ticket.Rand != rand {
@@ -45,7 +52,7 @@ func (tkSvr *TicketService) GetTicketByCode(code string) (*echoapp.Ticket, error
 	return ticket, nil
 }
 
-// 拼装门票数据,为了使用事物 保存ticket应该放到 saveOrder那部分
+// 拼装门票数据,为了使用事物 保存ticket到数据库应该放到 saveOrder那部分
 func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string, address *echoapp.Address, goods *echoapp.CartGoodsItem) *echoapp.Ticket {
 	r := rand.Int31n(89999999) + 10000000
 	ticket := &echoapp.Ticket{
@@ -61,6 +68,7 @@ func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string,
 		Cover:      goods.Cover,
 		ComId:      order.ComId,
 		UserId:     order.UserId,
+		Mobile:     address.Mobile,
 		Rand:       int64(r),
 		Source:     source,
 		AddressID:  address.ID,
@@ -68,6 +76,7 @@ func (tkSvr *TicketService) PreCreateTicket(order *echoapp.Order, source string,
 	return ticket
 }
 
+//
 func (tkSvr TicketService) GetTicketsByOrder(order *echoapp.Order) ([]*echoapp.Ticket, error) {
 	var tickets []*echoapp.Ticket
 	if err := tkSvr.db.Where("order_id = ?", order.ID).Find(&tickets).Error; err != nil {
