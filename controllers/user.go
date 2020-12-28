@@ -2,15 +2,16 @@ package controllers
 
 import (
 	"errors"
+	"math/rand"
+	"strconv"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	"math/rand"
-	"strconv"
-	"time"
 )
 
 type UserController struct {
@@ -188,19 +189,8 @@ func (sCtl *UserController) UpdateUserAddress(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
 	addrParam.UserID = userId
-	//addrId, _ := echoapp_util.GetCtxtAddrId(ctx)
-	//addrParam.AddrId = addrId
-
-	// addr, err := sCtl.userSvr.GetUserAddrById(addrParam.AddrId)
-	// if err != nil {
-	// 	return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	// }
-	// addr.Username = addrParam.Username
-	// addr.Mobile = addrParam.Mobile
-	// addr.Address = addrParam.Address
-	// addr.Checked = addrParam.Checked
 	if err := sCtl.userSvr.UpdateUserAddress(addrParam); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, echoapp.ErrDb.Error(), err)
+		return sCtl.AppErr(ctx, echoapp.NewAppError(echoapp.CodeInnerError, err.Error(), err))
 	}
 	return sCtl.Success(ctx, addrParam)
 }
@@ -222,20 +212,6 @@ func (sCtl *UserController) DelUserAddress(ctx echo.Context) error {
 	return sCtl.Success(ctx, nil)
 }
 
-// func (sCtl *UserController) GetUserCollectionList(ctx echo.Context) error {
-// 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
-// 	// limit := ctx.QueryParam("limit")
-// 	// limitint, _ := strconv.Atoi(limit)
-// 	userId, err := echoapp_util.GetCtxtUserId(ctx)
-// 	if err != nil {
-// 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
-// 	}
-// 	addressList, err := sCtl.userSvr.GetUserCollectionList(userId, lastId, limitint)
-// 	if err != nil {
-// 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-// 	}
-// 	return sCtl.Success(ctx, addressList)
-// }
 type CollectParams struct {
 	TargetId uint   `json:"target_id"`
 	Type     string `json:"type"`
@@ -352,20 +328,19 @@ func (sCtl *UserController) DelUserCollection(ctx echo.Context) error {
 }
 
 func (sCtl *UserController) AddUserHistory(ctx echo.Context) error {
+	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
 	his := &echoapp.History{}
 	if err := ctx.Bind(his); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	userId, err := echoapp_util.GetCtxtUserId(ctx)
-	if err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	//comID := echoapp_util.GetCtxComId(ctx)
-	// comId := ctx.QueryParam("com_id")
-	// comID, _ := strconv.Atoi(comId)
+	comId := util.GetCtxComId(ctx)
 	his.UserID = userId
-	//his.ComId = uint(comID)
+	his.ComId = comId
 	if err := sCtl.userSvr.CreateUserHistory(his); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, err.Error(), err)
 	}
@@ -383,9 +358,10 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	}
 	type GoodsInfo struct {
 		//BrowsTime string
+		ID         uint    `json:"id"`
 		Price      float32 `json:"price"`
 		Name       string  `json:"name"`
-		SmallCover string  `json:"small_cover"`
+		SmallCover string  `json:"cover"`
 		GoodsType  string  `json:"goods_type" `
 	}
 	hisResMap := make(map[string][]*GoodsInfo)
@@ -413,11 +389,12 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 			glog.Info("sCtl.goodSvr.GetGoodsById")
 			continue
 		}
+		tempGoods.ID = goods.ID
 		tempGoods.Name = goods.Name
 		tempGoods.Price = goods.Price
 		tempGoods.GoodsType = goods.GoodsType
 		tempGoods.SmallCover = goods.SmallCover
-		//}
+		//}s
 		curTime := hisList[i].CreatedAt.Format("2006-01-02")
 		if curTime == browseTime {
 			goodslist = append(goodslist, tempGoods)

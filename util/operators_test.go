@@ -54,7 +54,7 @@ func TestLinguisticToTFS(t *testing.T) {
 			args: args{
 				value: 5,
 			},
-			want: []float64{0.5, 0.75, 1},
+			want: []float64{0.75, 1, 1},
 		},
 	}
 	for _, tt := range tests {

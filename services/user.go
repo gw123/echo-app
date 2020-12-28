@@ -204,54 +204,11 @@ func (u *UserService) GetCachedUserDefaultAddrById(userId int64) (*echoapp.Addre
 	return addr, nil
 }
 
-// func (u *UserService) GetCachedUserCollectionListById(userId int64) ([]*echoapp.Collection, error) {
-// 	collectionList := []*echoapp.Collection{}
-// 	datamap, err := u.redis.HGetAll(FormatUserCollectionRedisKey(userId)).Result()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, val := range datamap {
-// 		var temp = &echoapp.Collection{}
-// 		if err := json.Unmarshal([]byte(val), temp); err != nil {
-// 			return nil, err
-// 		}
-// 		collectionList = append(collectionList, temp)
-// 	}
-// 	return collectionList, nil
-// }
-
-func (u *UserService) GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error) {
-
-	dataArr, err := u.redis.SMembers(FormatUserCollectionTypeRedisKey(userId, targetType)).Result()
-	//fmt.Println(dataArr, lastCursor)
-	if err != nil {
-		return nil, err
-	}
-	return dataArr, nil
-}
-
-// func (u *UserService) IsCollect(userId int64, targetId string) (bool, error) {
-// 	_, err := u.redis.HGet(FormatUserCollectionRedisKey(userId), targetId).Result()
-// 	if err != nil {
-// 		if err == redis.Nil {
-// 			return false, nil
-// 		}
-// 		return false, err
-// 	}
-// 	return true, nil
-// }
-func (u *UserService) IsCollect(userId int64, targetId uint, targetType string) (bool, error) {
-	ok, err := u.redis.SIsMember(FormatUserCollectionTypeRedisKey(userId, targetType), targetId).Result()
-	return ok, err
-}
-
 func (u *UserService) UpdateCachedUser(user *echoapp.User) (err error) {
-	//r := time.Duration(rand.Int63n(180))
 	data, err := json.Marshal(user)
 	if err != nil {
 		return errors.Wrap(err, "redis set")
 	}
-	//fmt.Println(string(data))
 	err = u.redis.Set(FormatUserRedisKey(user.Id), data, 0).
 		Err()
 	if err != nil {
@@ -273,27 +230,6 @@ func (u *UserService) UpdateCachedUserDefaultAddr(addr *echoapp.Address) (err er
 	}
 	return err
 }
-
-// func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) (err error) {
-// 	len, err := u.redis.HLen(FormatUserCollectionRedisKey(collection.UserID)).Result()
-// 	if err != nil {
-// 		return errors.Wrap(err, "redis get Hlen")
-// 	}
-// 	if len > 1000 {
-// 		return errors.New("key field beyond the limit")
-// 	}
-
-// 	data, err := json.Marshal(collection)
-// 	if err != nil {
-// 		return errors.Wrap(err, "user collection redis set")
-// 	}
-// 	temp := strconv.FormatInt(int64(collection.TargetId), 10)
-// 	err = u.redis.HSetNX(FormatUserCollectionRedisKey(collection.UserID), temp, data).Err()
-// 	if err != nil {
-// 		return errors.Wrap(err, "redis set")
-// 	}
-// 	return err
-// }
 
 func (u *UserService) GetUserById(userId int64) (*echoapp.User, error) {
 	user := &echoapp.User{}
@@ -475,11 +411,7 @@ func (uSvr *UserService) AddScore(ctx echo.Context, user *echoapp.User, amount i
 	return uSvr.Save(user)
 }
 
-<<<<<<< HEAD
-func (uSvr UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
-=======
 func (uSvr *UserService) SubScore(ctx echo.Context, user *echoapp.User, amount int) error {
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
 	user.Score -= amount
 	echoapp_util.ExtractEntry(ctx).Infof("UserId: %d ,消耗积分: %d", user.Id, amount)
 	return uSvr.Save(user)
@@ -494,6 +426,15 @@ func (uSvr *UserService) GetUserAddressList(userId int64) ([]*echoapp.Address, e
 }
 
 func (uSvr *UserService) CreateUserAddress(address *echoapp.Address) error {
+	if address.ProvinceId == 0 {
+		return errors.New("请选择省份")
+	}
+	if address.CityId == 0 {
+		return errors.New("请选择城市")
+	}
+	if address.DistrictId == 0 {
+		return errors.New("请选择区县")
+	}
 	if len(address.Mobile) != 11 {
 		return errors.New("请输入11位正确手机号")
 	}
@@ -531,7 +472,17 @@ func (uSvr *UserService) GetUserAddrById(addrId int64) (*echoapp.Address, error)
 	}
 	return res, nil
 }
+
 func (uSvr *UserService) UpdateUserAddress(address *echoapp.Address) error {
+	if address.ProvinceId == 0 {
+		return errors.New("请选择省份")
+	}
+	if address.CityId == 0 {
+		return errors.New("请选择城市")
+	}
+	if address.DistrictId == 0 {
+		return errors.New("请选择区县")
+	}
 	if len(address.Mobile) != 11 {
 		return errors.New("请输入11位正确手机号")
 	}
@@ -580,6 +531,7 @@ func (uSvr *UserService) UpdateUserAddress(address *echoapp.Address) error {
 	}
 	return nil
 }
+
 func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
 	if err := uSvr.db.Delete(address).Error; err != nil {
 		return err
@@ -592,19 +544,11 @@ func (uSvr *UserService) DelUserAddress(address *echoapp.Address) error {
 	return nil
 }
 
-// func (uSvr *UserService) GetUserCollectionList(userId int64, lastId uint, limit int) ([]*echoapp.Collection, error) {
-// 	var collectionList []*echoapp.Collection
-// 	if err := uSvr.db.
-// 		Table("user_collection").
-// 		Where("user_id=? AND id>?", userId, lastId).
-// 		Limit(limit).
-// 		Order("id asc").
-// 		Find(&collectionList).
-// 		Error; err != nil {
-// 		return nil, errors.Wrap(err, "GetUserCollectList")
-// 	}
-// 	return collectionList, nil
-// }
+func (u *UserService) IsCollect(userId int64, targetId uint, targetType string) (bool, error) {
+	ok, err := u.redis.SIsMember(FormatUserCollectionTypeRedisKey(userId, targetType), targetId).Result()
+	return ok, err
+}
+
 func (uSvr *UserService) CreateUserCollection(collection *echoapp.Collection) error {
 	if collection.TargetId == 0 {
 		return errors.New("商品不存在")
@@ -618,38 +562,17 @@ func (uSvr *UserService) CreateUserCollection(collection *echoapp.Collection) er
 		glog.Info("isCollect用户已经收藏")
 		return nil
 	}
-	// _, err = uSvr.GetUserCollectionById(address.UserID, address.Type, address.TargetId)
-	// if err == nil {
-	// 	//已经收藏 不需要
-	// 	return nil
-	// }
-	// if err := uSvr.db.Save(address).Error; err != nil {
-	// 	return errors.Wrap(err, "db err")
-	// }
 	return uSvr.UpdateCacheUserCollection(collection)
 }
 
-// func (uSvr *UserService) GetUserCollectionById(userId int64, targetType string, targetId uint) (*echoapp.Collection, error) {
-// 	res := &echoapp.Collection{}
-// 	if err := uSvr.db.Where("type = ? and target_id=? AND user_id=?", targetType, targetId, userId).
-// 		First(res).Error; err != nil {
-// 		return nil, errors.Wrap(err, "GetUsrCollectIdById")
-// 	}
-// 	return res, nil
-// }
+func (u *UserService) GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error) {
+	dataArr, err := u.redis.SMembers(FormatUserCollectionTypeRedisKey(userId, targetType)).Result()
+	if err != nil {
+		return nil, err
+	}
+	return dataArr, nil
+}
 
-// func (uSvr *UserService) DelUserCollection(collection *echoapp.Collection) error {
-// 	if err := uSvr.db.Delete(collection).Error; err != nil {
-// 		return err
-// 	}
-// 	if err := uSvr.redis.HDel(
-// 		FormatUserCollectionRedisKey(collection.UserID),
-// 		strconv.FormatInt(int64(collection.TargetId), 10)).
-// 		Err(); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
 func (uSvr *UserService) DelUserCollection(userId int64, collectType string, targetId uint) error {
 	ok, err := uSvr.IsCollect(userId, targetId, collectType)
 	if err != nil {
@@ -694,17 +617,13 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 		}
 		return errors.Wrap(err, "resdis LLen")
 	}
-	if len >= 100 {
-		//todo 过期时间
-		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); !ok {
+	if len >= 2 {
+		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); ok {
 			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
 			if err != nil {
-				//todo 释放锁
 				uSvr.redis.Del(RedisUserHistoryLockKey)
 				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
 			}
-			//uSvr.redis.Del(RedisUserHistoryListKey)
-			//todo 删除修改成只删除前100个
 			for _, val := range targetArr {
 				var resHistory = &echoapp.History{}
 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
@@ -716,13 +635,14 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 					continue
 				}
 				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
-				fmt.Println(delHisVal)
 				if err != nil {
 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
 					continue
 				}
 			}
 			uSvr.redis.Del(RedisUserHistoryLockKey)
+		} else {
+			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
 		}
 	}
 	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
@@ -755,7 +675,7 @@ func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) 
 
 func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
-	if err := u.db.
+	if err := u.db.Debug().
 		Table("user_history").
 		Where("user_id=? AND id>?", userId, lastId).
 		Limit(limit).
@@ -808,8 +728,7 @@ func (u *UserService) GetUserCodeAndUpdate(user *echoapp.User) (string, error) {
 	}
 
 	val := fmt.Sprintf("%d::%d", user.Id, rand)
-	if err := u.redis.Set(FormatUserCodeRedisKey(hash), val, time.Second*30).Err();
-		err != nil {
+	if err := u.redis.Set(FormatUserCodeRedisKey(hash), val, time.Second*30).Err(); err != nil {
 		return "", errors.Wrap(err, "GetUserCodeAndUpdate.")
 	}
 	return hash, nil

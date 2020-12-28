@@ -50,32 +50,32 @@ func TestGetFileType(t *testing.T) {
 	}
 }
 
-func TestDoHttpRequest(t *testing.T) {
-	type args struct {
-		url    string
-		method string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DoHttpRequest(tt.args.url, tt.args.method)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DoHttpRequest() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DoHttpRequest() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+// func TestDoHttpRequest(t *testing.T) {
+// 	type args struct {
+// 		url    string
+// 		method string
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		args    args
+// 		want    []byte
+// 		wantErr bool
+// 	}{
+// 		// TODO: Add test cases.
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			got, err := DoHttpRequest(tt.args.url, tt.args.method)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("DoHttpRequest() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("DoHttpRequest() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
 func TestMd5SumFile(t *testing.T) {
 	type args struct {

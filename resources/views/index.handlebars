@@ -28,8 +28,9 @@
             roles: '{{user.roles}}',
             id: '{{user.id}}',
         }
+        /*
         var wx_config = {
-            debug: true,
+            debug: false,
             appId: '{{wxCfg.appID}}', // 必填，公众号的唯一标识
             timestamp: '{{wxCfg.timestamp}}', // 必填，生成签名的时间戳
             nonceStr: '{{wxCfg.nonceStr}}', // 必填，生成签名的随机串
@@ -53,9 +54,9 @@
             openTagList: [
                 'wx-open-launch-weapp'
             ]
-        }
+        }*/
         //wx.config(config);
-        window.wx_config = wx_config
+        //window.wx_config = wx_config
         //console.log('set wx_config',wx_config)
         {{/equal}}
 </script>

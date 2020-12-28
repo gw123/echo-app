@@ -1,15 +1,15 @@
 package controllers
 
 import (
-	"fmt"
+	"net/http"
+	"strconv"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/silenceper/wechat/v2/officialaccount/message"
-	"net/http"
-	"strconv"
-	"time"
 )
 
 type SiteController struct {
@@ -105,28 +105,11 @@ func (sCtl *SiteController) GetQuickNav(ctx echo.Context) error {
 
 func (sCtl *SiteController) Index(ctx echo.Context) error {
 	//echoapp_util.ExtractEntry(ctx).Info("UserAgent" + ctx.Request().UserAgent())
-	comID := echoapp_util.GetCtxComId(ctx)
 	clientType := echoapp_util.GetClientTypeByUA(ctx.Request().UserAgent())
 	response := make(map[string]interface{})
 	response["clientType"] = clientType
 	response["assetHost"] = echoapp_util.GetOptimalPublicHost(ctx, sCtl.asset)
 	if clientType == echoapp.ClientWxOfficial {
-		req := ctx.Request()
-		var url string
-		if req.URL.RawQuery != "" {
-			url = fmt.Sprintf("%s://%s%s?%s", "http", req.Host, req.URL.Path, req.URL.RawQuery)
-		} else {
-			url = fmt.Sprintf("%s://%s%s", "http", req.Host, req.URL.Path)
-		}
-
-		jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
-		if err != nil {
-			echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
-			return ctx.HTML(http.StatusNotImplemented, "服务暂时不可用 001")
-		} else {
-			response["wxCfg"] = jsConfig
-		}
-
 		user, err := echoapp_util.GetCtxtUser(ctx)
 		if err == nil {
 			data := make(map[string]interface{})
@@ -174,4 +157,16 @@ func (sCtl *SiteController) WxMessage(ctx echo.Context) error {
 	}
 	server.Send()
 	return nil
+}
+
+func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
+	comID := echoapp_util.GetCtxComId(ctx)
+	url := ctx.QueryParam("url")
+	glog.Info("GetWxConfig: " + url)
+	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
+		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
+	}
+	return sCtl.Success(ctx, jsConfig)
 }

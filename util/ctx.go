@@ -1,12 +1,13 @@
 package echoapp_util
 
 import (
+	"strconv"
+	"strings"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
 )
 
 type ctxLogger struct {

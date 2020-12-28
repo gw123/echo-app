@@ -3,6 +3,7 @@ package echoapp_util
 import (
 	"encoding/hex"
 	"errors"
+
 	"github.com/speps/go-hashids"
 )
 

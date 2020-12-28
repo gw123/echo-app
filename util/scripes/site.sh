@@ -19,4 +19,8 @@ fi
 ./echoapp site --config=config.yaml &
 
 child=$!
+<<<<<<< HEAD
 wait "$child"
+=======
+wait "$child"
+>>>>>>> f3f0386f965506c1b3f63c682f651cbed35177fd

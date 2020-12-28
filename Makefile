@@ -11,42 +11,15 @@ ifeq "$(BUILD_TAG)" ""
 	BUILD_TAG = $(DEFAULT_BUILD_TAG)
 endif
 
-<<<<<<< HEAD
-upload-user:
-	@scp -r resources/views/ root@sh2:/data/apps/user/resources/views &&\
-     scp  config.yaml upload util/scripes/user.sh root@sh2:/data/apps/user/ &&\
-     scp -r resources/public root@sh2:/data/apps/user/resources/public &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/user/resources/storage
-
-upload-file: file-dir
-	@scp  config.yaml upload util/scripes/file.sh root@sh2:/data/apps/file/ &&\
-     scp -r resources/public  root@sh2:/data/apps/file/resources/public &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/file/resources/storage
-
-upload-order: order-dir
-	@scp  config.yaml upload util/scripes/order.sh root@sh2:/data/apps/order/ &&\
-     scp -r resources/public  root@sh2:/data/apps/order/resources/public &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/order/resources/storage
-
-upload-comment: comment-dir
-	@scp  config.yaml upload  util/scripes/comment.sh root@sh2:/data/apps/comment\ &&\
-     scp -r resources/public  root@sh2:/data/apps/comment/resources/public &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
-
-upload-site: site-dir
-	@scp  config.yaml upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
-     scp -r resources/public  root@sh2:/data/apps/site/resources/ &&\
-     scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage
-
-restart:
-	ssh root@sh2 supervisorctl restart user
-=======
 upload-all: upload-user upload-file upload-comment upload-goods upload-order upload-site
+
+upload-qys:
+	@scp  config.qys.yaml ubuntu@qys:/data/jobs/config.yaml\ &&\
+	 scp  upload ubuntu@qys:/data/jobs
 
 upload-user:
 	@scp  config.prod.yaml root@sh2:/data/apps/user/config.yaml\ &&\
-	 scp  upload  util/scripes/user.sh root@sh2:/data/apps/user\ &&\
-     scp  upload util/scripes/user.sh root@sh2:/data/apps/user/
+	 scp  upload  util/scripes/user.sh root@sh2:/data/apps/user
 
 upload-file: file-dir
 	@scp  config.prod.yaml root@sh2:/data/apps/file/config.yaml\ &&\
@@ -64,8 +37,9 @@ upload-comment: comment-dir
      scp -r resources/storage/keys/  root@sh2:/data/apps/comment/resources/storage
 
 upload-site: site-dir
-	@scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
-     scp -r resources/public root@sh2:/data/apps/site/resources/public &&\
+	@ssh root@sh2 cp /data/apps/site/config.yaml /data/apps/site/config.yaml.back\ &&\
+	 scp  config.prod.yaml root@sh2:/data/apps/site/config.yaml\ &&\
+     scp -r resources/public root@sh2:/data/apps/site/resources/ &&\
 	 scp upload  util/scripes/site.sh root@sh2:/data/apps/site\ &&\
      scp -r resources/storage/keys/  root@sh2:/data/apps/site/resources/storage\ &&\
      scp -r resources/views/ root@sh2:/data/apps/site/resources/views
@@ -85,19 +59,15 @@ restart:
 
 upload-user-config:
 	scp  config.prod.yaml root@sh2:/data/apps/user/
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
 
 file-dir:
 	ssh root@sh2 mkdir -p /data/apps/file
 	ssh root@sh2 mkdir -p /data/apps/file/resources/storage
 
-<<<<<<< HEAD
-=======
 activity-dir:
 	ssh root@sh2 mkdir -p /data/apps/activity
 	ssh root@sh2 mkdir -p /data/apps/activity/resources/storage
 
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
 user-dir:
 	ssh root@sh2 mkdir -p /data/apps/user
 	ssh root@sh2 mkdir -p /data/apps/user/resources/storage
@@ -114,18 +84,12 @@ site-dir:
 	ssh root@sh2 mkdir -p /data/apps/site
 	ssh root@sh2 mkdir -p /data/apps/site/resources/storage
 
-<<<<<<< HEAD
-build:
-	go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
-	rm upload && upx -9 -o upload ./echoapp
-=======
 goods-dir:
 	ssh root@sh2 mkdir -p /data/apps/goods
 	ssh root@sh2 mkdir -p /data/apps/goods/resources/storage
 build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\
 	upx -9 -f -o upload ./echoapp
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
 
 build-alpine:
 	@docker run --rm -v "$(PWD)":/go/src/github.com/gw123/echo-app \
@@ -143,11 +107,7 @@ docker: build-alpine
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
     cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
     cp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
-<<<<<<< HEAD
-    cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.yaml &&\
-=======
     cp config.docker.yaml $(DOCKER_BUILD_PATH)/etc/config.prod.yaml &&\
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
     cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/ &&\
     cp -r resources/storage/keys/ $(DOCKER_BUILD_PATH)/resources/storage
 	@docker build -t $(REMOTE_USER_API_TAG) $(DOCKER_BUILD_PATH)
@@ -157,11 +117,7 @@ docker: build-alpine
 run-docker:
 	docker run -it --rm  -v $(DOCKER_BUILD_PATH)/etc:/etc/echoapp \
     -v $(DOCKER_BUILD_PATH)/resources/storage/keys:/usr/local/var/echoapp/resources/storage/keys \
-<<<<<<< HEAD
-    $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.yaml
-=======
     $(REMOTE_USER_API_TAG)  echoapp file --config  /etc/echoapp/config.prod.yaml
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
 
 runUserServer:
 	go run entry/main.go user

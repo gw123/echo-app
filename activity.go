@@ -27,16 +27,17 @@ func (a *Activity) TableName() string {
 	return "activies"
 }
 
-// type Notify struct {
-// 	Id        int       `json:"id"`
-// 	Title     string    `json:"title"`
-// 	Body      string    `json:"body"`
-// 	CreatedAt time.Time `json:"created_at"`
-// }
+//活动优惠券
+type ActivityCoupon struct {
+	Id         uint `gorm:"primary_key" json:"id"`
+	ActivityId uint `json:"aid"`
+	CouponId   uint `json:"cid"`
+	DeletedAt  time.Time
+}
 
-// func (*ActivityCoupon) TableName() string {
-// 	return "activity_coupons"
-// }
+func (*ActivityCoupon) TableName() string {
+	return "activity_coupons"
+}
 
 func (*UserCoupon) TableName() string {
 	return "user_coupons"

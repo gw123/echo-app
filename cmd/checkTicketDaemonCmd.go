@@ -36,7 +36,7 @@ func doCheckTicketWorker() {
 	echoapp_util.DefaultLogger().Info(echoapp.ConfigOpts.TongchengConfig)
 	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
 	msgs, err := ch.Consume(
-		"check-ticket", // queue
+		"ticket-check", // queue
 		"",             // consumer
 		false,          // auto-ack
 		false,          // exclusive
@@ -46,7 +46,7 @@ func doCheckTicketWorker() {
 	)
 
 	for msg := range msgs {
-		echoapp_util.DefaultLogger().Infof("Received a message: %s", string(msg.Body))
+		echoapp_util.DefaultLogger().Infof("Received a ticket-check message: %s", string(msg.Body))
 		job := &echoapp.CheckTicketJob{}
 		if err := json.Unmarshal(msg.Body, job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
@@ -54,6 +54,43 @@ func doCheckTicketWorker() {
 			continue
 		}
 		if err := tongchengSvr.CheckTicket(job); err != nil {
+			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
+			msg.Ack(false)
+			continue
+		}
+		msg.Ack(false)
+	}
+}
+
+func doSyncPartnerCodeWorker() {
+	conn, err := amqp.Dial(echoapp.ConfigOpts.MQMap["ticket"].Url)
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+	ch, err := conn.Channel()
+	defer ch.Close()
+	echoapp_util.DefaultLogger().Info(echoapp.ConfigOpts.TongchengConfig)
+	tongchengSvr := services.NewTongchengService(echoapp.ConfigOpts.TongchengConfig)
+	msgs, err := ch.Consume(
+		"ticket-sync-code", // queue
+		"",             // consumer
+		false,          // auto-ack
+		false,          // exclusive
+		false,          // no-local
+		false,          // no-wait
+		nil,            // args
+	)
+
+	for msg := range msgs {
+		echoapp_util.DefaultLogger().Infof("Received a ticket-sync-code message: %s", string(msg.Body))
+		job := &echoapp.SyncPartnerCodeJob{}
+		if err := json.Unmarshal(msg.Body, job); err != nil {
+			echoapp_util.DefaultLogger().Errorf("Message Unmarshal: %s", err.Error())
+			msg.Ack(false)
+			continue
+		}
+		if err := tongchengSvr.SyncPartnerCode(job); err != nil {
 			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
 			msg.Ack(false)
 			continue
@@ -70,6 +107,14 @@ func startCheckTicketDaemon() {
 	<-quit
 }
 
+func startSyncPartnerCodeDaemon() {
+	echoapp_util.DefaultLogger().Infof("开始同步门票校验码到同程")
+	go doSyncPartnerCodeWorker()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+}
+
 // serverCmd represents the server command
 var checkTicketDaemonCmd = &cobra.Command{
 	Use:   "check-ticket",
@@ -80,6 +125,16 @@ var checkTicketDaemonCmd = &cobra.Command{
 	},
 }
 
+var syncPartnerCodeCmd = &cobra.Command{
+	Use:   "sync-partner-code",
+	Short: "同步门票核验码",
+	Long:  `同步门票核验吗到同程`,
+	Run: func(cmd *cobra.Command, args []string) {
+		startSyncPartnerCodeDaemon()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(checkTicketDaemonCmd)
+	rootCmd.AddCommand(syncPartnerCodeCmd)
 }

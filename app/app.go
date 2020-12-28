@@ -401,10 +401,6 @@ func GetTestpaperService() (echoapp.TestpaperService, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "GetRedis")
-	// }
 
 	App.TestpaperSvr = services.NewTestpaperService(shopDb)
 	return App.TestpaperSvr, nil
@@ -416,6 +412,10 @@ func MustGetTestpaperService() echoapp.TestpaperService {
 		panic(errors.Wrap(err, "GetTestPapeSvr"))
 	}
 	return svr
+}
+
+func GetEvent() {
+
 }
 
 func GetEs() (*es7.Client, error) {

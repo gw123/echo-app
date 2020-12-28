@@ -34,9 +34,12 @@ resources/storage
 resources/echoapp-frontend
 resources/echoapp-frontend/node_modules
 .vscode
-<<<<<<< HEAD
-etcd.sh
-=======
+
 etcd.sh
 
->>>>>>> 9fc3ae585f42ae0efeb5f967a4ff431a7b4509d4
+etcd.sh
+
+
+etcd.sh
+config.qys.yaml
+

@@ -7,11 +7,15 @@ require (
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/bsm/redislock v0.5.0
 	github.com/chanxuehong/wechat v0.0.0-20200409104612-0a1fd76d7a3a
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/forgoer/openssl v0.0.0-20200331032942-ad9f8d57d8b1
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/go-basic/uuid v1.0.0 // indirect
+	github.com/go-kit/kit v0.10.0
 	github.com/go-redis/redis/v7 v7.4.0
+	github.com/golang/protobuf v1.4.3
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/gw123/glog v1.1.3-0.20200725040035-6af5ed4b7f47
 	github.com/iGoogle-ink/gopay v1.5.16-0.20200714134502-68dab747848e
 	github.com/iGoogle-ink/gotil v1.0.3
@@ -19,13 +23,17 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
 	github.com/lib/pq v1.7.0 // indirect
+	github.com/lightstep/lightstep-tracer-go v0.22.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/medivhzhan/weapp v1.5.1
+	github.com/oklog/oklog v0.3.2
 	github.com/olivere/elastic v2.0.24-0.20190630115438-89a71b892680+incompatible // indirect
 	github.com/olivere/elastic/v7 v7.0.19
+	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
-	github.com/prometheus/common v0.10.0
+	github.com/prometheus/client_golang v1.8.0
+	github.com/prometheus/common v0.14.0
 	github.com/qiniu/api.v7 v7.2.5+incompatible // indirect
 	github.com/qiniu/api.v7/v7 v7.4.1
 	github.com/silenceper/wechat v1.2.7-0.20200528082022-843ed3fa8ad2 // indirect
@@ -36,7 +44,11 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.0
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9
-	golang.org/x/sys v0.0.0-20200724161237-0e2f3a69832c // indirect
+	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
 	google.golang.org/appengine v1.6.6 // indirect
+	google.golang.org/genproto v0.0.0-20200513103714-09dca8ec2884
+	google.golang.org/grpc v1.33.1
+	sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0
 )
+
+replace github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
