@@ -3,6 +3,9 @@ package echoapp_middlewares
 import (
 	"time"
 
+	"github.com/gw123/glog"
+	glogCommon "github.com/gw123/glog/common"
+
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -15,7 +18,7 @@ type LoggingMiddlewareConfig struct {
 	Skipper   middleware.Skipper
 	Generator func() string
 	// logger
-	Logger *logrus.Entry
+	Logger glogCommon.Logger
 }
 
 var (
@@ -24,7 +27,7 @@ var (
 		Name:      "echo-app",
 		Skipper:   middleware.DefaultSkipper,
 		Generator: generatorId,
-		Logger:    echoapp_util.NewDefaultEntry(),
+		Logger:    glog.DefaultLogger(),
 	}
 )
 
@@ -66,13 +69,15 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 				"host":   req.Host,
 				"remote": c.RealIP(),
 				"method": req.Method,
-				"url":    req.RequestURI,
 				//"Referer": req.Referer(),
 				//"UserAgent": req.UserAgent(),
 			}
 			logger := echoapp_util.ExtractEntry(c).
 				//WithField("app", config.Name).
-				WithFields(fields)
+				WithFields(fields).
+				WithField(glogCommon.KeyTraceID, rid).
+				WithField(glogCommon.KeyPathname, req.RequestURI)
+
 			echoapp_util.ToContext(c, logger)
 			err := next(c)
 			// in case any step changed the logger context

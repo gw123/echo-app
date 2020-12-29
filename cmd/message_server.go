@@ -62,7 +62,7 @@ func startLocalHttp() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
+		Logger: glog.DefaultLogger(),
 	})
 	//e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{

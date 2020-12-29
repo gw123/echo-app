@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gw123/glog"
-
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -48,7 +46,6 @@ func startUserServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{

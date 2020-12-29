@@ -1,0 +1,263 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "gather.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/GatherCommentsNumber": {
+      "post": {
+        "operationId": "Gatherrrr_GatherCommentsNumber",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGatherCommentsNumberReply"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGatherCommentsNumberRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Gatherrrr"
+        ]
+      }
+    },
+    "/GatherSalesVolumes": {
+      "post": {
+        "operationId": "Gatherrrr_GatherSalesVolumes",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGatherSalesVolumesReply"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGatherSalesVolumesRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Gatherrrr"
+        ]
+      }
+    },
+    "/GatherViews": {
+      "post": {
+        "operationId": "Gatherrrr_GatherViews",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbGatherViewsReply"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbGatherViewsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Gatherrrr"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "pbGatherCommentsNumberReply": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/pbGatherCommentsNumberResult"
+        },
+        "code": {
+          "type": "string",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherCommentsNumberRequest": {
+      "type": "object",
+      "properties": {
+        "targetID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "startTime": {
+          "type": "string"
+        },
+        "endTime": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherCommentsNumberResult": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "pbGatherSalesVolumesReply": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/pbGatherSalesVolumesResult"
+        },
+        "code": {
+          "type": "string",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherSalesVolumesRequest": {
+      "type": "object",
+      "properties": {
+        "targetID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "startTime": {
+          "type": "string"
+        },
+        "endTime": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherSalesVolumesResult": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "pbGatherViewsReply": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/pbGatherViewsResult"
+        },
+        "code": {
+          "type": "string",
+          "format": "int64"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherViewsRequest": {
+      "type": "object",
+      "properties": {
+        "targetID": {
+          "type": "string",
+          "format": "int64"
+        },
+        "startTime": {
+          "type": "string"
+        },
+        "endTime": {
+          "type": "string"
+        }
+      }
+    },
+    "pbGatherViewsResult": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "type": "string",
+          "format": "int64"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,7 +9,7 @@ import (
 // 	b = 2.0
 // )
 
-// func WFGHM(a, b float64, k int, theta1, theta2, theta3, theta4 []float64) (float64, error) {
+// func WFGHHM(a, b float64, k int, theta1, theta2, theta3, theta4 []float64) (float64, error) {
 // 	var Ptheta = [][]float64{
 // 		theta1, theta2, theta3, theta4,
 // 	}
@@ -52,7 +52,7 @@ func WFGHM(a, b float64, Ptheta, wight []float64) (float64, error) {
 // 		{0.8, 0.7, 0.4, 0.5},
 // 		{0.4, 0.4, 0.4, 0.4},
 // 	}
-// 	wight := []float64{0.25, 0.1, 0.3, 0.35}
+// 	wight := []float64{0.25, 0.1, 0.3, 0.35} //属性权重
 // 	res := make([]float64, 0)
 // 	for i := 0; i < len(theta4); i++ {
 // 		temp, _ := WFGHM(a, b, theta4[i], wight)

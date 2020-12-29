@@ -272,7 +272,7 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 
 func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 	//todo 校验ip , 校验客户端类型
-	glog.JsonLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
+	glog.DefaultLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
 	order.PayStatus = echoapp.OrderStatusUnpay
 	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
@@ -289,23 +289,23 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 	}
 
 	if len(order.Coupons) > 0 {
-		glog.JsonLogger().Info("校验优惠券")
+		glog.DefaultLogger().Info("校验优惠券")
 		for _, coupon := range order.Coupons {
 			realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
 			if err != nil {
-				glog.JsonLogger().Error("下单失败,优惠券校验失败")
+				glog.DefaultLogger().Error("下单失败,优惠券校验失败")
 				return errors.Wrap(err, "下单失败,优惠券校验失败")
 			}
 			if realCoupon.Amount != coupon.Amount {
-				glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
+				glog.DefaultLogger().Error("下单失败,优惠券金额校验错误")
 				return errors.New("下单失败,优惠券金额校验错误")
 			}
 			if float32(realCoupon.MinConsume) > order.RealTotal {
-				glog.JsonLogger().Error("下单失败,优惠券最低消费金额未满足")
+				glog.DefaultLogger().Error("下单失败,优惠券最低消费金额未满足")
 				return errors.New("下单失败,优惠券最低消费金额未满足")
 			}
 			if realCoupon.IsExpire() {
-				glog.JsonLogger().Error("下单失败,优惠券已经过期")
+				glog.DefaultLogger().Error("下单失败,优惠券已经过期")
 				return errors.New("下单失败,优惠券已经过期")
 			}
 			if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
@@ -317,16 +317,16 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 
 	realTotal := totalGoodsAmount - totalCouponAmount
 	if realTotal != order.RealTotal {
-		glog.JsonLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
+		glog.DefaultLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
 		return errors.New("订单金额校验失败")
 	}
 
 	tx := oSvr.db.Begin()
 	var userCoupon echoapp.UserCoupon
 	if len(order.Coupons) > 0 {
-		glog.JsonLogger().Info("开始核销优惠券")
+		glog.DefaultLogger().Info("开始核销优惠券")
 		for _, coupon := range order.Coupons {
-			glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
+			glog.DefaultLogger().WithField("coupon", coupon).Info("核销优惠券")
 			if err := tx.Model(&userCoupon).
 				Where("id = ?", coupon.Id).
 				Update("used_at", time.Now()).Error; err != nil {
