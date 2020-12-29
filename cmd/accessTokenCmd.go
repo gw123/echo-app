@@ -53,5 +53,5 @@ var accessTokenCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(accessTokenCmd)
+	RootCmd.AddCommand(accessTokenCmd)
 }

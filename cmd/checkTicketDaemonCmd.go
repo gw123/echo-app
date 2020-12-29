@@ -135,6 +135,6 @@ var syncPartnerCodeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(checkTicketDaemonCmd)
-	rootCmd.AddCommand(syncPartnerCodeCmd)
+	RootCmd.AddCommand(checkTicketDaemonCmd)
+	RootCmd.AddCommand(syncPartnerCodeCmd)
 }
