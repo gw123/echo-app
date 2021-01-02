@@ -1,6 +1,6 @@
 module github.com/gw123/echo-app
 
-go 1.14
+go 1.15
 
 require (
 	github.com/RichardKnop/machinery v1.8.6 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.4.1
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/gw123/glog v1.2.1
 	github.com/gw123/gworker v1.6.1
@@ -27,7 +27,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
 	github.com/lib/pq v1.7.0 // indirect
-	github.com/lightstep/lightstep-tracer-go v0.22.0
+	github.com/lightstep/lightstep-tracer-go v0.18.1
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/medivhzhan/weapp v1.5.1
 	github.com/oklog/oklog v0.3.2
@@ -36,8 +36,8 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose v2.6.0+incompatible // indirect
-	github.com/prometheus/client_golang v1.8.0
-	github.com/prometheus/common v0.14.0
+	github.com/prometheus/client_golang v1.3.0
+	github.com/prometheus/common v0.10.0
 	github.com/qiniu/api.v7 v7.2.5+incompatible // indirect
 	github.com/qiniu/api.v7/v7 v7.4.1
 	github.com/silenceper/wechat v1.2.7-0.20200528082022-843ed3fa8ad2 // indirect
@@ -50,17 +50,9 @@ require (
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
 	google.golang.org/appengine v1.6.6 // indirect
-	google.golang.org/genproto v0.0.0-20201209185603-f92720507ed4
+	google.golang.org/genproto v0.0.0-20201119123407-9b1e624d6bc4
 	google.golang.org/grpc v1.33.1
-	google.golang.org/protobuf v1.25.0 // indirect
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0
-	
-
 )
 
-replace (
-	github.com/coreos/bbolt v1.3.5 => go.etcd.io/bbolt v1.3.5
-	github.com/coreos/go-systemd => github.com/coreos/go-systemd/v22 v22.0.0
-	go.etcd.io/bbolt v1.3.5 => github.com/coreos/bbolt v1.3.5
-	google.golang.org/grpc => google.golang.org/grpc v1.26.0
-)
+replace google.golang.org/grpc => google.golang.org/grpc v1.29.1

@@ -19,6 +19,8 @@ import (
 	"os"
 	"os/signal"
 
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/services"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -54,7 +56,9 @@ func doCheckTicketWorker() {
 			msg.Ack(false)
 			continue
 		}
-		if err := tongchengSvr.CheckTicket(job); err != nil {
+		s := job.BaseMqMsg.ComId
+		comID, _ := strconv.Atoi(s)
+		if err := tongchengSvr.CheckTicket(uint(comID), &job.CheckTicketRequestBody); err != nil {
 			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
 			msg.Ack(false)
 			continue
@@ -91,7 +95,9 @@ func doSyncPartnerCodeWorker() {
 			msg.Ack(false)
 			continue
 		}
-		if err := tongchengSvr.SyncPartnerCode(job); err != nil {
+		s := job.BaseMqMsg.ComId
+		comID, _ := strconv.Atoi(s)
+		if err := tongchengSvr.SyncPartnerCode(uint(comID), &job.SyncPartnerCodeRequestBody); err != nil {
 			echoapp_util.DefaultLogger().Errorf("CheckTicket: %s", err.Error())
 			msg.Ack(false)
 			continue
