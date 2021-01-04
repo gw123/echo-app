@@ -3,13 +3,14 @@ package echoapp_middlewares
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 func NewWechatAuthMiddlewares(
@@ -19,14 +20,20 @@ func NewWechatAuthMiddlewares(
 ) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			//echoapp_util.ExtractEntry(c).Info("UserAgent" + c.Request().UserAgent())
 			if skipper(c) {
 				return next(c)
 			}
 			clientType := echoapp_util.GetClientTypeByUA(c.Request().UserAgent())
+			echoapp_util.ExtractEntry(c).Info("Client Type:" + clientType)
+			comId := echoapp_util.GetCtxComId(c)
+			company, err := echoapp_util.GetCtxCompany(c)
+			if err != nil {
+				echoapp_util.ExtractEntry(c).WithError(err).Error("getCtxCompany err")
+				return next(c)
+			}
 
-			//echoapp_util.ExtractEntry(c).Info("Client Type:" + clientType)
-			if clientType != echoapp.ClientWxOfficial {
+			if clientType != echoapp.ClientWxOfficial ||
+				!company.OpenWxOfficial {
 				return next(c)
 			}
 
@@ -48,7 +55,6 @@ func NewWechatAuthMiddlewares(
 				}
 			}
 
-			comId := echoapp_util.GetCtxComId(c)
 			//授权回调处理
 			var path string
 			if strings.HasPrefix(c.Request().URL.Path, "/index-dev") {
@@ -95,9 +101,7 @@ func NewWechatAuthMiddlewares(
 					return c.HTML(http.StatusInternalServerError, "注册新用户失败")
 				} else {
 					echoapp_util.SetCtxUser(c, newUser)
-					echoapp_util.ExtractEntry(c).Infof("自动登录用户-> %+v", newUser)
-					//token := fmt.Sprintf("?token=%s", newUser.JwsToken)
-					//return c.Redirect(http.StatusMovedPermanently, strings.Replace(path, "/wxAuthCallBack", token, -1))
+					echoapp_util.ExtractEntry(c).WithField("new_user", newUser).Infof("自动登录用户")
 				}
 				return next(c)
 			} else {
@@ -107,6 +111,7 @@ func NewWechatAuthMiddlewares(
 					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
 					return c.String(http.StatusInternalServerError, "系统错误请重试: not get auth url")
 				}
+				echoapp_util.ExtractEntry(c).WithField("auth_url", authUrl).Infof("jump to wxAuth")
 				return c.Redirect(http.StatusFound, authUrl)
 			}
 		}
