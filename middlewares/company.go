@@ -32,7 +32,7 @@ func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanySer
 				echoapp_util.ExtractEntry(c).Errorf("com %d cache not set", comId)
 				return c.JSON(http.StatusUnauthorized, "服务未初始化")
 			}
-			echoapp_util.ExtractEntry(c).WithField("company", company).Info("company info")
+			//echoapp_util.ExtractEntry(c).WithField("company", company).Info("company info")
 			echoapp_util.SetCtxCompany(c, company)
 			return next(c)
 		}
