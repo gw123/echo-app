@@ -97,6 +97,8 @@ func startSiteServer() {
 	normal.GET("/getWxConfig", siteCtl.GetWxConfig, tryJwsMiddle)
 	normal.GET("/wxMessage", siteCtl.WxMessage)
 	normal.GET("/getBannerList", siteCtl.GetBannerList)
+	normal.GET("/getIndexPageBanners", siteCtl.GetIndexPageBanners)
+
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
 	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)
 	normal.GET("/getActivityList", siteCtl.GetActivityList)
