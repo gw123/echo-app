@@ -592,3 +592,53 @@ func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, er
 	}
 	return order.PayStatus, nil
 }
+
+func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.Appointment) error {
+	//时间判断
+	now := time.Now()
+	if appointment.StartAt.Before(now) {
+		return errors.New("预约开始时间必须大于当前时间")
+	}
+
+	if appointment.EndAt.IsZero() {
+		appointment.EndAt = appointment.StartAt.Add(time.Hour * 24)
+	}
+	//商品冗余字段
+	goods, err := oSvr.GetGoodsById(appointment.GoodsID)
+	if err != nil {
+		return errors.Wrap(err, "appointment get goods err")
+	}
+
+	appointment.GoodsName = goods.Name
+	if err := oSvr.db.Save(appointment).Error; err != nil {
+		return errors.Wrap(err, "appointment save err")
+	}
+	return nil
+}
+
+func (oSvr *OrderService) GetAppointmentList(ctx echo.Context, comID, userID, lastID uint, status string) ([]echoapp.Appointment, error) {
+	if status != echoapp.AppointmentStatusOverdue &&
+		status != echoapp.AppointmentStatusUnused &&
+		status != echoapp.AppointmentStatusUsed {
+		return nil, errors.New("GetAppointmentDetail unKnow status")
+	}
+
+	var appointments []echoapp.Appointment
+	if err := oSvr.db.Where("user_id = ?", userID).
+		Where("com_id = ?", comID).
+		Where("id < ?", lastID).
+		Where("status = ?", status).
+		Limit(10).
+		Find(appointments).Error; err != nil {
+		return nil, errors.Wrap(err, "GetAppointmentDetail")
+	}
+	return appointments, nil
+}
+
+func (oSvr *OrderService) GetAppointmentDetail(ctx echo.Context, userID, appointmentID int) (*echoapp.Appointment, error) {
+	appointment := &echoapp.Appointment{}
+	if err := oSvr.db.Where("id = ? and user_id = ?", appointmentID, userID).First(appointment).Error; err != nil {
+		return nil, errors.Wrap(err, "GetAppointmentDetail")
+	}
+	return appointment, nil
+}
