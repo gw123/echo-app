@@ -251,7 +251,7 @@ func GetCompanyService() (echoapp.CompanyService, error) {
 func MustGetCompanyService() echoapp.CompanyService {
 	company, err := GetCompanyService()
 	if err != nil {
-		panic(errors.Wrap(err, "GetUserSvr"))
+		panic(errors.Wrap(err, "GetCompanySvr"))
 	}
 	return company
 }
