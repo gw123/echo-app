@@ -77,16 +77,21 @@ func startSiteServer() {
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, videoSvr, echoapp.ConfigOpts.Asset)
-	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
-	e.GET("/index/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+
+	wechatGroup := e.Group("/index-dev")
+	wechatGroup.Use(tryJwsMiddle, companyMiddleware, weChatMiddle)
+	wechatGroup.GET("/:com_id", siteCtl.Index)
+	wechatGroup.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
+
+	wechatGroup2 := e.Group("/index")
+	wechatGroup2.Use(tryJwsMiddle, companyMiddleware, weChatMiddle)
+	wechatGroup2.GET("/:com_id", siteCtl.Index)
+	wechatGroup2.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
+
+	e.GET("/index-dev/:com_id/video/:id", siteCtl.GetVideoDetail)
 	e.GET("/index/:com_id/video/:id", siteCtl.GetVideoDetail)
 
-	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
-	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
-	e.GET("/index-dev/:com_id/video/:id", siteCtl.GetVideoDetail)
-
 	normal := e.Group("/" + mode + "/site/:com_id")
-
 	normal.Use(companyMiddleware, limitMiddleware)
 	//首页显示
 	normal.GET("/getWxConfig", siteCtl.GetWxConfig, tryJwsMiddle)

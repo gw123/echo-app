@@ -1,12 +1,13 @@
 package echoapp_middlewares
 
 import (
+	"net/http"
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"net/http"
-	"strconv"
 )
 
 func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanyService) echo.MiddlewareFunc {
@@ -31,6 +32,7 @@ func NewCompanyMiddlewares(skipper middleware.Skipper, comSvr echoapp.CompanySer
 				echoapp_util.ExtractEntry(c).Errorf("com %d cache not set", comId)
 				return c.JSON(http.StatusUnauthorized, "服务未初始化")
 			}
+			//echoapp_util.ExtractEntry(c).WithField("company", company).Info("company info")
 			echoapp_util.SetCtxCompany(c, company)
 			return next(c)
 		}
