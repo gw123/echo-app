@@ -204,7 +204,7 @@ func (sCtl *GoodsController) ClearCart(ctx echo.Context) error {
 	return sCtl.Success(ctx, nil)
 }
 
-//GetSeckillingGoodsList 获取秒杀商品接口 返回所有秒杀商品，
+//GetSeckillingGoodsList 获取秒杀商品接口 返回当天所有秒杀商品，
 func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 	seckillParams, err := sCtl.goodsSvr.GetSeckillingGoodsList(ctx, time.Now())
 	if err != nil {
@@ -219,7 +219,7 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 				Price:   float32(seckillingGoods.Price),
 				Status:  seckillingGoods.Status,
 			}
-			mapp[seckillingGoods.StartAt.Format("2006-01-02 15")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15")], seckillingGoodsRespose)
+			mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")], seckillingGoodsRespose)
 			glog.ExtractEntry(context.Background()).WithField("offline goodsID", seckillingGoods.GoodsID)
 			continue
 		}
@@ -243,7 +243,7 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 			SaleNum:    goodsInfo.Num,
 			Status:     seckillingGoods.Status,
 		}
-		mapp[seckillingGoods.StartAt.Format("2006-01-02 15")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15")], seckillingGoodsRespose)
+		mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")], seckillingGoodsRespose)
 
 	}
 	return sCtl.Success(ctx, mapp)

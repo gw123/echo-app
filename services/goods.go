@@ -394,9 +394,10 @@ func (gSvr *GoodsService) GetSkuById(goodsId uint, labelCombine map[string]strin
 }
 
 func (s *GoodsService) GetSeckillingGoodsList(ctx echo.Context, nowTime time.Time) ([]*echoapp.GoodsSeckillingParam, error) {
-
+	nTimeZero := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(), 0, 0, 0, 0, nowTime.Location())
+	nextTimeZero := nTimeZero.AddDate(0, 0, 1)
 	goodsSeckillingParamList := []*echoapp.GoodsSeckillingParam{}
-	res := s.db.Table("seckilling_goods").Where("end_at > ?", nowTime).Order("start_at ASC").Find(&goodsSeckillingParamList)
+	res := s.db.Table("seckilling_goods").Where("end_at > ? and start_at >? and start_at< ?", nowTime, nTimeZero, nextTimeZero).Order("start_at ASC").Find(&goodsSeckillingParamList)
 	if res.Error != nil {
 		return nil, errors.Wrap(res.Error, "GoodsService->GetCurrTimeSeckillingGoodsList")
 	}
