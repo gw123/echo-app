@@ -6,6 +6,7 @@ import (
 
 	"github.com/gw123/glog"
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
 )
 
 const (
@@ -201,4 +202,32 @@ type GoodsService interface {
 
 	//获取商品类型为会员的商品, 用户在办理会员时候购买的就是这个虚拟的商品
 	GetVipDesc() (*Goods, error)
+	//秒杀
+	GetSeckillingGoodsList(ctx echo.Context, nowTime time.Time) ([]*GoodsSeckillingParam, error)
+}
+
+//GoodsSeckillingParam
+type GoodsSeckillingParam struct {
+	ID      int       `json:"id" `
+	ComID   int       `json:"com_id"`
+	GoodsID int       `json:"good_id"`
+	StartAt time.Time `json:"start_at"`
+	EndAt   time.Time `json:"end_at"`
+	Crontab string    `json:"crontab"`
+	Status  string    `json:"status"`
+	Price   int64     `json:"price"`
+}
+
+//SeckillingGoodsRespose : 返回的秒杀商品字段
+type SeckillingGoodsRespose struct {
+	GoodsID    int       `json:"good_id"`
+	StartAt    time.Time `json:"start_at"`
+	Name       string    `json:"name"`
+	SmallCover string    `json:"small_cover"`
+	Price      float32   `json:"price"`
+	RealPrice  float32   `json:"real_price"`
+	Num        int       `json:"num"`      // 秒杀商品总数
+	SaleNum    int       `json:"sale_num"` //当前秒杀数
+	Status     string    `json:"status"`
+	//Crontab    string    `json:"crontab"`
 }

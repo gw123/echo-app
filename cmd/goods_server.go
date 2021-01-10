@@ -58,6 +58,7 @@ func startGoodsServer() {
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
+		MockUserId: 12,
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
@@ -73,7 +74,8 @@ func startGoodsServer() {
 	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 	normal.GET("/getVipInfo", goodsCtl.GetVipDesc)
-
+	normal.GET("/getGoodsSeckillingList", goodsCtl.GetSeckillingGoodsList)
+	normal.GET("/getCoodsSeckillingListByQueryTime", goodsCtl.GetSeckillingGoodsByQueryTime)
 	//cart
 	jwsAuth := e.Group("/" + mode + "/goods/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{

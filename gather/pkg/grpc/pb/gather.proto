@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package pb;
+
+import "google/api/annotations.proto";
+
+
+
+//The Gatherrrr service definition.
+service Gatherrrr {
+ rpc GatherSalesVolumes   (GatherSalesVolumesRequest  ) returns (GatherSalesVolumesReply  ) {
+   option (google.api.http) = {
+     post: "/GatherSalesVolumes"
+     body: "*"
+   };
+ }
+ rpc GatherCommentsNumber (GatherCommentsNumberRequest) returns (GatherCommentsNumberReply) {
+   option (google.api.http) = {
+     post: "/GatherCommentsNumber"
+     body: "*"
+   };
+ }
+ rpc GatherViews          (GatherViewsRequest         ) returns (GatherViewsReply         ) {
+   option (google.api.http) = {
+     post: "/GatherViews"
+     body: "*"
+   };
+ }
+}
+
+message GatherSalesVolumesRequest {
+ int64  targetID  = 1;
+ string startTime = 2;
+ string endTime   = 3;
+}
+
+message GatherSalesVolumesResult {
+ int64 num = 1;
+}
+
+message GatherSalesVolumesReply {
+ GatherSalesVolumesResult result  = 1;
+ int64                    code    = 2;
+ string                   message = 3;
+}
+
+message GatherCommentsNumberRequest {
+ int64  targetID  = 1;
+ string startTime = 2;
+ string endTime   = 3;
+}
+
+message GatherCommentsNumberResult {
+ int64 num = 1;
+}
+
+message GatherCommentsNumberReply {
+ GatherCommentsNumberResult result  = 1;
+ int64                      code    = 2;
+ string                     message = 3;
+}
+
+message GatherViewsRequest {
+ int64  targetID  = 1;
+ string startTime = 2;
+ string endTime   = 3;
+}
+
+message GatherViewsResult {
+ int64 num = 1;
+}
+
+message GatherViewsReply {
+ GatherViewsResult result  = 1;
+ int64             code    = 2;
+ string            message = 3;
+}
+

@@ -3,8 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gw123/glog"
+	"github.com/labstack/echo"
 	"github.com/olivere/elastic/v7"
 
 	"github.com/go-redis/redis/v7"
@@ -17,8 +19,15 @@ import (
 const (
 	//redis 相关的key
 	RedisGoodsKey = "Goods:%d"
+	NowTime       = "NowTime:%s"
 )
 
+func GetNow() time.Time {
+	return time.Now()
+}
+func FormatNowTime() string {
+	return fmt.Sprintf(NowTime, GetNow())
+}
 func FormatGoodsRedisKey(goodsId uint) string {
 	return fmt.Sprintf(RedisGoodsKey, goodsId)
 }
@@ -382,4 +391,15 @@ func (gSvr *GoodsService) GetSkuById(goodsId uint, labelCombine map[string]strin
 		}
 	}
 	return nil, errors.New("not found")
+}
+
+func (s *GoodsService) GetSeckillingGoodsList(ctx echo.Context, nowTime time.Time) ([]*echoapp.GoodsSeckillingParam, error) {
+	nTimeZero := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(), 0, 0, 0, 0, nowTime.Location())
+	nextTimeZero := nTimeZero.AddDate(0, 0, 1)
+	goodsSeckillingParamList := []*echoapp.GoodsSeckillingParam{}
+	res := s.db.Table("seckilling_goods").Where("end_at > ? and start_at >? and start_at< ?", nowTime, nTimeZero, nextTimeZero).Order("start_at ASC").Find(&goodsSeckillingParamList)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetCurrTimeSeckillingGoodsList")
+	}
+	return goodsSeckillingParamList, nil
 }

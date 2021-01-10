@@ -2,15 +2,16 @@ package services
 
 import (
 	"encoding/json"
+	"io"
+	"sync"
+	"time"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
-	"io"
-	"sync"
-	"time"
 )
 
 type WsService struct {
