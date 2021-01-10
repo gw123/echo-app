@@ -596,6 +596,10 @@ func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, er
 func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.Appointment) error {
 	//时间判断
 	now := time.Now()
+	if appointment.StartAt.IsZero() {
+		appointment.StartAt = time.Now().Add(time.Hour * 24)
+	}
+
 	if appointment.StartAt.Before(now) {
 		return errors.New("预约开始时间必须大于当前时间")
 	}

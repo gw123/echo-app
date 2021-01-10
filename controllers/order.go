@@ -414,7 +414,10 @@ func (oCtl *OrderController) Appointment(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
+	comID := echoapp_util.GetCtxComId(ctx)
+	params.ComID = comID
 	params.Username = user.Name
+	params.UserID = uint(user.Id)
 	if params.AddressId != 0 {
 		// 身份信息来自Address选择
 		addr, err := oCtl.userSvr.GetUserAddrById(int64(params.AddressId))
@@ -422,9 +425,10 @@ func (oCtl *OrderController) Appointment(ctx echo.Context) error {
 			echoapp_util.ExtractEntry(ctx).WithError(err).Error("appointment getUserAddrById err")
 			return oCtl.Fail(ctx, echoapp.CodeArgument, "无效的收货地址", err)
 		}
-		params.IDCart = addr.Code
-		params.IDCartType = echoapp.IDCardTypeID
+		params.IDCard = addr.Code
+		params.IDCardType = echoapp.IDCardTypeID
 	}
+	params.Status = echoapp.AppointmentStatusUnused
 
 	if err := oCtl.orderSvr.Appointment(ctx, params); err != nil {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
@@ -445,11 +449,11 @@ func (oCtl *OrderController) GetAppointmentDetail(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	order, err := oCtl.orderSvr.GetAppointmentDetail(ctx, int(user.Id), id)
+	appointment, err := oCtl.orderSvr.GetAppointmentDetail(ctx, int(user.Id), id)
 	if err != nil {
 		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
 	}
-	return oCtl.Success(ctx, order)
+	return oCtl.Success(ctx, appointment)
 }
 
 func (oCtl *OrderController) GetAppointmentList(ctx echo.Context) error {

@@ -155,9 +155,10 @@ type Appointment struct {
 	GoodsName  string    `json:"goods_name"`
 	UserID     uint      `json:"user_id"`
 	Username   string    `json:"username"`
-	IDCart     string    `json:"id_cart"`
+	Phone      string    `json:"phone"`
+	IDCard     string    `json:"id_card"`
 	AddressId  int       `json:"address_id"`
-	IDCartType string    `json:"id_cart_type"`
+	IDCardType string    `json:"id_card_type"`
 	Status     string    `json:"status"`
 	CreatedAt  time.Time `json:"created_at"`
 	StartAt    time.Time `json:"start_at"`
