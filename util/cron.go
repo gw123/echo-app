@@ -1,7 +1,6 @@
 package echoapp_util
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -61,22 +60,27 @@ import (
 
 // }
 //ParseCronString 解析cron字符串，仅限 标准格式 “* * * * *”,判断start 是否为 cron 任务的下一个开始时间
+var specParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 
-func ParseCronString(crontab string, start, end time.Time) (bool, error) {
+func ParseCronString(crontab string) (string, error) {
 	if len(crontab) == 0 {
-		return false, errors.New("nil string")
+		return "", errors.New("nil string")
 	}
-	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
 	sched, err := specParser.Parse(crontab)
 	if err != nil {
-		return false, errors.Wrap(err, crontab)
+		return "", errors.Wrap(err, "specParser.Parse:"+crontab)
 	}
-	nextCronTime := sched.Next(time.Now())
-
-	if nextCronTime.Before(start) || nextCronTime.After(end) {
-		return false, errors.New("before")
+	nowTime := time.Now()
+	nTimeZero := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(), 0, 0, 0, 0, nowTime.Location())
+	nextTimeZero := nTimeZero.AddDate(0, 0, 1)
+	nextCronTime := sched.Next(nTimeZero)
+	if nextCronTime == nextTimeZero {
+		return nTimeZero.Format(TIME_LAYOUT), nil
+	} else if nextCronTime.Before(nextTimeZero) {
+		return nextCronTime.Format(TIME_LAYOUT), nil
 	}
-	return true, nil
+	return "", errors.New("parse failed")
 
 }
 func ParseCronStringByStartTime(crontab string, start, end, queryTime time.Time) (bool, error) {
@@ -98,7 +102,7 @@ func ParseCronStringByStartTime(crontab string, start, end, queryTime time.Time)
 }
 
 const (
-	TIME_LAYOUT = "2006-01-02 15"
+	TIME_LAYOUT = "2006-01-02 15:04"
 )
 
 func ParseWithLocation(locationName string, timeStr string) (time.Time, error) {
@@ -109,7 +113,7 @@ func ParseWithLocation(locationName string, timeStr string) (time.Time, error) {
 	}
 
 	lt, err := time.ParseInLocation(TIME_LAYOUT, timeStr, location)
-	fmt.Println(location, lt)
+	//fmt.Println(location, lt)
 	return lt, nil
 
 }
