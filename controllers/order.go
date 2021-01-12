@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strconv"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
@@ -396,4 +398,76 @@ func (oCtl *OrderController) QueryRefund(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeInnerError, "系统异常"+err.Error(), err)
 	}
 	return oCtl.Success(ctx, resp)
+}
+
+func (oCtl *OrderController) Appointment(ctx echo.Context) error {
+	params := &echoapp.Appointment{}
+
+	if err := ctx.Bind(params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("appointment argument err")
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("appointment getCtxUser err")
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	comID := echoapp_util.GetCtxComId(ctx)
+	params.ComID = comID
+	params.Username = user.Name
+	params.UserID = uint(user.Id)
+	if params.AddressId != 0 {
+		// 身份信息来自Address选择
+		addr, err := oCtl.userSvr.GetUserAddrById(int64(params.AddressId))
+		if err != nil {
+			echoapp_util.ExtractEntry(ctx).WithError(err).Error("appointment getUserAddrById err")
+			return oCtl.Fail(ctx, echoapp.CodeArgument, "无效的收货地址", err)
+		}
+		params.IDCard = addr.Code
+		params.IDCardType = echoapp.IDCardTypeID
+	}
+	params.Status = echoapp.AppointmentStatusUnused
+
+	if err := oCtl.orderSvr.Appointment(ctx, params); err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	return oCtl.Success(ctx, nil)
+}
+
+func (oCtl *OrderController) GetAppointmentDetail(ctx echo.Context) error {
+	idStr := ctx.QueryParam("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	appointment, err := oCtl.orderSvr.GetAppointmentDetail(ctx, int(user.Id), id)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
+	}
+	return oCtl.Success(ctx, appointment)
+}
+
+func (oCtl *OrderController) GetAppointmentList(ctx echo.Context) error {
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "获取用户信息失败", err)
+	}
+
+	status := ctx.QueryParam("status")
+	comID := echoapp_util.GetCtxComId(ctx)
+	lastID, _ := echoapp_util.GetCtxListParams(ctx)
+	list, err := oCtl.orderSvr.GetAppointmentList(ctx, comID, uint(user.Id), lastID, status)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
+	}
+	return oCtl.Success(ctx, list)
 }
