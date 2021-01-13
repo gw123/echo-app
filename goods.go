@@ -220,14 +220,14 @@ type GoodsSeckillingParam struct {
 
 //SeckillingGoodsRespose : 返回的秒杀商品字段
 type SeckillingGoodsRespose struct {
-	GoodsID    int       `json:"good_id"`
-	StartAt    time.Time `json:"start_at"`
-	Name       string    `json:"name"`
-	SmallCover string    `json:"small_cover"`
-	Price      float32   `json:"price"`
-	RealPrice  float32   `json:"real_price"`
-	Num        int       `json:"num"`      // 秒杀商品总数
-	SaleNum    int       `json:"sale_num"` //当前秒杀数
-	Status     string    `json:"status"`
+	GoodsID    int     `json:"good_id"`
+	StartAt    string  `json:"start_at"`
+	Name       string  `json:"name"`
+	SmallCover string  `json:"small_cover"`
+	Price      float32 `json:"price"`
+	RealPrice  float32 `json:"real_price"`
+	Num        int     `json:"num"`      // 秒杀商品总数
+	SaleNum    int     `json:"sale_num"` //当前秒杀数
+	Status     string  `json:"status"`
 	//Crontab    string    `json:"crontab"`
 }

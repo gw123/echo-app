@@ -213,18 +213,12 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 	mapp := make(map[string][]*echoapp.SeckillingGoodsRespose)
 	for _, seckillingGoods := range seckillParams {
 		if seckillingGoods.Status == "offline" {
-			seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
-				GoodsID: seckillingGoods.GoodsID,
-				StartAt: seckillingGoods.StartAt,
-				Price:   float32(seckillingGoods.Price),
-				Status:  seckillingGoods.Status,
-			}
-			mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)] = append(mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)], seckillingGoodsRespose)
-			echoapp_util.ExtractEntry(ctx).WithField("offline goodsID", seckillingGoods.GoodsID)
+
 			continue
 		}
-		ok, err := echoapp_util.ParseCronString(seckillingGoods.Crontab, seckillingGoods.StartAt, seckillingGoods.EndAt)
-		if !ok || err != nil {
+		start, err := echoapp_util.ParseCronString(seckillingGoods.Crontab)
+
+		if err != nil {
 			echoapp_util.ExtractEntry(ctx).WithField("ParseCronString", seckillingGoods.Crontab)
 			continue
 		}
@@ -235,7 +229,7 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 		}
 		seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
 			GoodsID:    seckillingGoods.GoodsID,
-			StartAt:    seckillingGoods.StartAt,
+			StartAt:    start,
 			Name:       goodsInfo.Name,
 			SmallCover: goodsInfo.SmallCover,
 			Price:      float32(seckillingGoods.Price),
@@ -243,8 +237,7 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 			SaleNum:    goodsInfo.Num,
 			Status:     seckillingGoods.Status,
 		}
-		mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)] = append(mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)], seckillingGoodsRespose)
-
+		mapp[start] = append(mapp[start], seckillingGoodsRespose)
 	}
 	return sCtl.Success(ctx, mapp)
 
@@ -278,8 +271,8 @@ func (sCtl *GoodsController) GetSeckillingGoodsByQueryTime(ctx echo.Context) err
 			continue
 		}
 		seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
-			GoodsID:    seckillingGoods.GoodsID,
-			StartAt:    seckillingGoods.StartAt,
+			GoodsID: seckillingGoods.GoodsID,
+			//StartAt:    seckillingGoods.StartAt,
 			Name:       goodsInfo.Name,
 			SmallCover: goodsInfo.SmallCover,
 			Price:      float32(seckillingGoods.Price),
