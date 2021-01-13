@@ -219,18 +219,18 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 				Price:   float32(seckillingGoods.Price),
 				Status:  seckillingGoods.Status,
 			}
-			mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")], seckillingGoodsRespose)
-			glog.ExtractEntry(context.Background()).WithField("offline goodsID", seckillingGoods.GoodsID)
+			mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)] = append(mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)], seckillingGoodsRespose)
+			echoapp_util.ExtractEntry(ctx).WithField("offline goodsID", seckillingGoods.GoodsID)
 			continue
 		}
 		ok, err := echoapp_util.ParseCronString(seckillingGoods.Crontab, seckillingGoods.StartAt, seckillingGoods.EndAt)
 		if !ok || err != nil {
-			glog.ExtractEntry(context.Background()).WithField("ParseCronString", seckillingGoods.Crontab)
+			echoapp_util.ExtractEntry(ctx).WithField("ParseCronString", seckillingGoods.Crontab)
 			continue
 		}
 		goodsInfo, err := sCtl.goodsSvr.GetGoodsById(uint(seckillingGoods.GoodsID))
 		if err != nil {
-			glog.ExtractEntry(context.Background()).WithField("GetGoodsById", seckillingGoods.GoodsID)
+			echoapp_util.ExtractEntry(ctx).WithField("GetGoodsById", seckillingGoods.GoodsID)
 			continue
 		}
 		seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
@@ -243,7 +243,7 @@ func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
 			SaleNum:    goodsInfo.Num,
 			Status:     seckillingGoods.Status,
 		}
-		mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")] = append(mapp[seckillingGoods.StartAt.Format("2006-01-02 15:04")], seckillingGoodsRespose)
+		mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)] = append(mapp[seckillingGoods.StartAt.Format(echoapp.TimeHourMinFormat)], seckillingGoodsRespose)
 
 	}
 	return sCtl.Success(ctx, mapp)

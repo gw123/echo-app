@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gw123/echo-app/external"
+
 	"github.com/bsm/redislock"
 
 	"github.com/go-redis/redis/v7"
@@ -616,6 +618,12 @@ func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.App
 	appointment.GoodsName = goods.Name
 	if err := oSvr.db.Save(appointment).Error; err != nil {
 		return errors.Wrap(err, "appointment save err")
+	}
+
+	// 推送预约信息到旅游局
+	_, err = external.DoPushAppointmentRequest(&external.PushAppointmentRequest{appointment})
+	if err != nil {
+		return errors.Wrap(err, "push appointment request")
 	}
 	return nil
 }

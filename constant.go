@@ -9,12 +9,13 @@ import (
 )
 
 const (
-	ServerIndex  = "http://m.xytschool.com/index-dev/%d#%s"
-	TimeFormat   = "2006-01-02 15:04:05"
-	DateFormat   = "2006-01-02"
-	HostURL      = "host_url"
-	RequestRoot  = "static_root"
-	AssetVersion = "asset_version"
+	ServerIndex       = "http://m.xytschool.com/index-dev/%d#%s"
+	TimeFormat        = "2006-01-02 15:04:05"
+	TimeHourMinFormat = "2006-01-02 15:04"
+	DateFormat        = "2006-01-02"
+	HostURL           = "host_url"
+	RequestRoot       = "static_root"
+	AssetVersion      = "asset_version"
 
 	//缓存key
 	//redis 相关的key

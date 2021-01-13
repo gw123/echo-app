@@ -202,7 +202,7 @@ type GoodsService interface {
 
 	//获取商品类型为会员的商品, 用户在办理会员时候购买的就是这个虚拟的商品
 	GetVipDesc() (*Goods, error)
-	//秒杀
+	//todo 秒杀 添加一个comID
 	GetSeckillingGoodsList(ctx echo.Context, nowTime time.Time) ([]*GoodsSeckillingParam, error)
 }
 
