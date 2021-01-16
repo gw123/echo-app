@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/jobs"
 )
 
@@ -20,11 +19,11 @@ https://m.xx.com/appointment/5134233753351226查看您的预约码。
 
 const SMS_Tpl_Appointment_Code = "appointment_code"
 
-func SendAppointmentCode(comID uint, mobile, username, source, date, timeRange, code string) error {
-	pusher, err := app.GetJobPusher()
-	if err != nil {
-		return errors.Wrap(err, "SendAppointmentCode GetJobPusher")
-	}
+func (s *SmsTplAPiIpl) SendAppointmentCode(comID uint, mobile, username, source, date, timeRange, code string) error {
+	//pusher, err := app.GetJobPusher()
+	//if err != nil {
+	//	return errors.Wrap(err, "SendAppointmentCode GetJobPusher")
+	//}
 
 	params := struct {
 		Username  string `json:"username"`
@@ -49,7 +48,7 @@ func SendAppointmentCode(comID uint, mobile, username, source, date, timeRange, 
 			TemplateParam: string(data),
 		},
 	}
-	if err := pusher.PostJob(context.Background(), &smsJob); err != nil {
+	if err := s.pusher.PostJob(context.Background(), &smsJob); err != nil {
 		return errors.Wrap(err, SMS_Tpl_Appointment_Code)
 	}
 	return nil

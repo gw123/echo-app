@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/jobs"
 )
 
@@ -19,11 +18,11 @@ import (
 
 const SMS_Tpl_Ticket_Code = "ticketCode"
 
-func SendTicketCode(comID uint, mobile, username, source, code string) error {
-	pusher, err := app.GetJobPusher()
-	if err != nil {
-		return errors.Wrap(err, "SendTicketCode GetJobPusher")
-	}
+func (s *SmsTplAPiIpl) SendTicketCode(comID uint, mobile, username, source, code string) error {
+	//pusher, err := app.GetJobPusher()
+	//if err != nil {
+	//	return errors.Wrap(err, "SendTicketCode GetJobPusher")
+	//}
 
 	type Params struct {
 		Username string `json:"username"`
@@ -44,7 +43,7 @@ func SendTicketCode(comID uint, mobile, username, source, code string) error {
 			TemplateParam: string(data),
 		},
 	}
-	if err := pusher.PostJob(context.Background(), &smsJob); err != nil {
+	if err := s.pusher.PostJob(context.Background(), &smsJob); err != nil {
 		return errors.Wrap(err, SMS_Tpl_Ticket_Code)
 	}
 	return nil

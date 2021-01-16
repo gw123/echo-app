@@ -5,6 +5,7 @@ import (
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/components"
+	"github.com/gw123/echo-app/external/sms_tpls"
 	"github.com/gw123/echo-app/services"
 	"github.com/gw123/echo-app/services/activity"
 	"github.com/gw123/glog"
@@ -38,6 +39,7 @@ type EchoApp struct {
 	TongchengSvr          echoapp.TongchengService
 	ActivityDriverFactory echoapp.ActivityDriverFactory
 	VideoSvr              echoapp.VideoService
+	SmsTplApi             sms_tpls.SmsTplAPi
 }
 
 func init() {
@@ -66,6 +68,16 @@ func MustGetJopPusherService() gworker.Producer {
 		panic(err)
 	}
 	return psuher
+}
+
+func GetSmsTplApi() (sms_tpls.SmsTplAPi, error) {
+	JobPusher, err := GetJobPusher()
+	if err != nil {
+		glog.Errorf("GetSmsTplApi : %s", err.Error())
+		return nil, err
+	}
+	App.SmsTplApi = sms_tpls.NewSmsTplApi(JobPusher)
+	return App.SmsTplApi, nil
 }
 
 func GetAreaService() (echoapp.AreaService, error) {
@@ -339,7 +351,11 @@ func GetOrderService() (echoapp.OrderService, error) {
 	wechatSvr := MustGetWechatService()
 	ticketSvr := MustGetTicketService()
 	pusher := MustGetJopPusherService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher)
+	smsTplApi, err := GetSmsTplApi()
+	if err != nil {
+		return nil, errors.Wrap(err, "getOrderService")
+	}
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher, smsTplApi)
 	return App.OrderSvr, nil
 }
 

@@ -32,6 +32,7 @@ type OrderService struct {
 	tkSvr     echoapp.TicketService
 	jobPusher gworker.Producer
 	lock      *redislock.Client
+	smsTplApi sms_tpls.SmsTplAPi
 }
 
 func NewOrderService(db *gorm.DB,
@@ -41,6 +42,7 @@ func NewOrderService(db *gorm.DB,
 	wechat echoapp.WechatService,
 	tkSvr echoapp.TicketService,
 	jobPusher gworker.Producer,
+	smsTplApi sms_tpls.SmsTplAPi,
 ) *OrderService {
 	lock := redislock.New(redis)
 	help := &OrderService{
@@ -51,6 +53,7 @@ func NewOrderService(db *gorm.DB,
 		wechat:    wechat,
 		tkSvr:     tkSvr,
 		jobPusher: jobPusher,
+		smsTplApi: smsTplApi,
 		lock:      lock,
 	}
 	return help
@@ -626,7 +629,7 @@ func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.App
 		return errors.Wrap(err, "appointment encode appointment code")
 	}
 
-	if err := sms_tpls.SendAppointmentCode(
+	if err := oSvr.smsTplApi.SendAppointmentCode(
 		appointment.ComID,
 		appointment.Phone,
 		appointment.Username,
