@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gw123/echo-app/external"
+	"github.com/gw123/echo-app/external/sms_tpls"
 
 	"github.com/bsm/redislock"
 
@@ -620,11 +620,17 @@ func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.App
 		return errors.Wrap(err, "appointment save err")
 	}
 
-	// 推送预约信息到旅游局
-	_, err = external.DoPushAppointmentRequest(&external.PushAppointmentRequest{appointment})
-	if err != nil {
-		return errors.Wrap(err, "push appointment request")
+	if err := sms_tpls.SendAppointmentCode(
+		appointment.ComID,
+		appointment.Phone,
+		appointment.Username,
+		"网上",
+		appointment.StartAt.Format(echoapp.TimeDateFormat),
+		appointment.StartAt.Format(echoapp.TimeOnlyHourMinFormat)+"-"+appointment.EndAt.Format(echoapp.TimeOnlyHourMinFormat),
+		appointment.IDCard); err != nil {
+		return errors.Wrap(err, "sms_tpls SendAppointmentCode")
 	}
+
 	return nil
 }
 

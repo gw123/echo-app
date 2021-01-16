@@ -2,13 +2,14 @@ package services
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dysmsapi"
 	"github.com/go-redis/redis/v7"
 	tasksapp "github.com/gw123/echo-app"
 	"github.com/gw123/glog"
 	"github.com/pkg/errors"
-	"strings"
-	"time"
 )
 
 const RedisSmsCode = "Mobile:%d:%s"
@@ -48,10 +49,10 @@ func (sSvr *SmsService) SendVerifyCodeSms(comId uint, phone string, code string)
 	rkey := fmt.Sprintf(RedisSmsCode, comId, phone)
 	duration := sSvr.redis.TTL(rkey).Val()
 	if duration > time.Minute {
-		return errors.New(fmt.Sprintf("请在%d秒后尝试", (duration - time.Minute) / time.Second))
+		return errors.New(fmt.Sprintf("请在%d秒后尝试", (duration-time.Minute)/time.Second))
 	}
-	if err := sSvr.SendMessage(options) ; err != nil{
-		return errors.Wrap(err,"短信发生失败")
+	if err := sSvr.SendMessage(options); err != nil {
+		return errors.Wrap(err, "短信发生失败")
 	}
 	if err := sSvr.redis.Set(rkey, code, 2*time.Minute).Err(); err != nil {
 		return errors.Wrap(err, "cache set")
@@ -74,7 +75,7 @@ func (sSvr SmsService) SendMessage(opt *tasksapp.SendMessageOptions) error {
 	}
 	smsChannel, ok := com.SmsChannels[opt.Type]
 	if !ok {
-		glog.Errorf("sms type: %d not set", opt.Type)
+		glog.Errorf("sms_tpls type: %d not set", opt.Type)
 		return errors.Wrap(err, "请配置smschannel :"+opt.Type)
 	}
 
