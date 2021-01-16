@@ -449,10 +449,15 @@ func (oCtl *OrderController) GetAppointmentDetail(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	appointment, err := oCtl.orderSvr.GetAppointmentDetail(ctx, int(user.Id), id)
+	appointment, err := oCtl.orderSvr.GetAppointmentDetail(ctx, id)
 	if err != nil {
 		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
 	}
+
+	if int64(appointment.UserID) != user.Id {
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", errors.New("没有权限"))
+	}
+
 	return oCtl.Success(ctx, appointment)
 }
 

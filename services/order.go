@@ -620,6 +620,12 @@ func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.App
 		return errors.Wrap(err, "appointment save err")
 	}
 
+	echoapp_util.ExtractEntry(ctx).WithField("appointment", appointment).Info("before SendAppointmentCode")
+	hashCode, err := echoapp_util.EncodeInt64(appointment.ID, echoapp.ConfigOpts.Jws.HashIdsSalt)
+	if err != nil {
+		return errors.Wrap(err, "appointment encode appointment code")
+	}
+
 	if err := sms_tpls.SendAppointmentCode(
 		appointment.ComID,
 		appointment.Phone,
@@ -627,7 +633,8 @@ func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.App
 		"网上",
 		appointment.StartAt.Format(echoapp.TimeDateFormat),
 		appointment.StartAt.Format(echoapp.TimeOnlyHourMinFormat)+"-"+appointment.EndAt.Format(echoapp.TimeOnlyHourMinFormat),
-		appointment.IDCard); err != nil {
+		hashCode,
+	); err != nil {
 		return errors.Wrap(err, "sms_tpls SendAppointmentCode")
 	}
 
@@ -653,10 +660,18 @@ func (oSvr *OrderService) GetAppointmentList(ctx echo.Context, comID, userID, la
 	return appointments, nil
 }
 
-func (oSvr *OrderService) GetAppointmentDetail(ctx echo.Context, userID, appointmentID int) (*echoapp.Appointment, error) {
+func (oSvr *OrderService) GetAppointmentDetail(ctx echo.Context, appointmentID int) (*echoapp.Appointment, error) {
 	appointment := &echoapp.Appointment{}
-	if err := oSvr.db.Where("id = ? and user_id = ?", appointmentID, userID).First(appointment).Error; err != nil {
+	if err := oSvr.db.Where("id = ?", appointmentID).First(appointment).Error; err != nil {
 		return nil, errors.Wrap(err, "GetAppointmentDetail")
 	}
 	return appointment, nil
+}
+
+func (oSvr *OrderService) GetAppointmentByCode(ctx echo.Context, code string) (*echoapp.Appointment, error) {
+	id, err := echoapp_util.DecodeInt64(code, echoapp.ConfigOpts.Jws.HashIdsSalt)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetAppointmentByCode")
+	}
+	return oSvr.GetAppointmentDetail(ctx, int(id))
 }

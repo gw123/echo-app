@@ -252,7 +252,10 @@ type OrderService interface {
 
 	GetAppointmentList(ctx echo.Context, comID, userID, lastID uint, status string) ([]Appointment, error)
 
-	GetAppointmentDetail(ctx echo.Context, userID, appointmentID int) (*Appointment, error)
+	GetAppointmentDetail(ctx echo.Context, appointmentID int) (*Appointment, error)
+
+	GetAppointmentByCode(ctx echo.Context, code string) (*Appointment, error)
+
 	// StatisticComGoodsSalesByDate(start, end string, comId uint) (*GoodsSalesSatistic, error)
 
 	// StatisticCompanySalesByDate(start, end string) (*CompanySalesSatistic, error)
