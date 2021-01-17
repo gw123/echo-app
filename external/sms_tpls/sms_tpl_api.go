@@ -1,13 +1,18 @@
 package sms_tpls
 
-import "github.com/gw123/gworker"
+import (
+	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/gworker"
+)
 
 type SmsTplAPiIpl struct {
 	pusher gworker.Producer
+	smsSvr echoapp.SmsService
 }
 
-func NewSmsTplApi(pusher gworker.Producer) *SmsTplAPiIpl {
+func NewSmsTplApi(pusher gworker.Producer, smsSvr echoapp.SmsService) *SmsTplAPiIpl {
 	return &SmsTplAPiIpl{
 		pusher: pusher,
+		smsSvr: smsSvr,
 	}
 }

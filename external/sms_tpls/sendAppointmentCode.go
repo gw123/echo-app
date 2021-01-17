@@ -20,11 +20,6 @@ https://m.xx.com/appointment/5134233753351226查看您的预约码。
 const SMS_Tpl_Appointment_Code = "appointment_code"
 
 func (s *SmsTplAPiIpl) SendAppointmentCode(comID uint, mobile, username, source, date, timeRange, code string) error {
-	//pusher, err := app.GetJobPusher()
-	//if err != nil {
-	//	return errors.Wrap(err, "SendAppointmentCode GetJobPusher")
-	//}
-
 	params := struct {
 		Username  string `json:"username"`
 		Source    string `json:"source"`
@@ -39,7 +34,11 @@ func (s *SmsTplAPiIpl) SendAppointmentCode(comID uint, mobile, username, source,
 		TimeRange: timeRange,
 	}
 
-	data, _ := json.Marshal(params)
+	data, err := json.Marshal(params)
+	if err != nil {
+		return errors.Wrap(err, SMS_Tpl_Appointment_Code)
+	}
+
 	smsJob := jobs.SendSms{
 		SendMessageOptions: echoapp.SendMessageOptions{
 			ComId:         comID,
@@ -49,6 +48,37 @@ func (s *SmsTplAPiIpl) SendAppointmentCode(comID uint, mobile, username, source,
 		},
 	}
 	if err := s.pusher.PostJob(context.Background(), &smsJob); err != nil {
+		return errors.Wrap(err, SMS_Tpl_Appointment_Code)
+	}
+	return nil
+}
+
+func (s *SmsTplAPiIpl) SendAppointmentCodeSync(comID uint, mobile, username, source, date, timeRange, code string) error {
+	params := struct {
+		Username  string `json:"username"`
+		Source    string `json:"source"`
+		Code      string `json:"code"`
+		Date      string `json:"time"`
+		TimeRange string `json:"timeRange"`
+	}{
+		Username:  username,
+		Source:    source,
+		Code:      code,
+		Date:      date,
+		TimeRange: timeRange,
+	}
+
+	data, err := json.Marshal(params)
+	if err != nil {
+		return errors.Wrap(err, SMS_Tpl_Appointment_Code)
+	}
+
+	if err := s.smsSvr.SendMessage(&echoapp.SendMessageOptions{
+		ComId:         comID,
+		PhoneNumbers:  []string{mobile},
+		Type:          SMS_Tpl_Appointment_Code,
+		TemplateParam: string(data),
+	}); err != nil {
 		return errors.Wrap(err, SMS_Tpl_Appointment_Code)
 	}
 	return nil

@@ -155,6 +155,7 @@ type Appointment struct {
 	GoodsName  string    `json:"goods_name"`
 	UserID     uint      `json:"user_id"`
 	Username   string    `json:"username"`
+	Address    string    `json:"detail_address"`
 	Phone      string    `json:"phone"`
 	IDCard     string    `json:"id_card"`
 	AddressId  int       `json:"address_id"`
@@ -163,6 +164,7 @@ type Appointment struct {
 	CreatedAt  time.Time `json:"created_at"`
 	StartAt    time.Time `json:"start_at"`
 	EndAt      time.Time `json:"end_at"`
+	Code       string    `json:"code" gorm:"-"`
 }
 
 type GetOrderOptions struct {

@@ -414,6 +414,7 @@ func (oCtl *OrderController) Appointment(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
+	echoapp_util.ExtractEntry(ctx).WithField("request", params).Error("appointment entry")
 	comID := echoapp_util.GetCtxComId(ctx)
 	params.ComID = comID
 	params.Username = user.Name
@@ -431,10 +432,31 @@ func (oCtl *OrderController) Appointment(ctx echo.Context) error {
 	params.Status = echoapp.AppointmentStatusUnused
 
 	if err := oCtl.orderSvr.Appointment(ctx, params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("appointment err")
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	return oCtl.Success(ctx, nil)
+	resp := map[string]interface{}{
+		"id":   params.ID,
+		"code": params.Code,
+	}
+	return oCtl.Success(ctx, resp)
+}
+
+func (oCtl *OrderController) GetAppointmentList(ctx echo.Context) error {
+	user, err := echoapp_util.GetCtxtUser(ctx)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeArgument, "获取用户信息失败", err)
+	}
+
+	status := ctx.QueryParam("status")
+	comID := echoapp_util.GetCtxComId(ctx)
+	lastID, _ := echoapp_util.GetCtxListParams(ctx)
+	list, err := oCtl.orderSvr.GetAppointmentList(ctx, comID, uint(user.Id), lastID, status)
+	if err != nil {
+		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
+	}
+	return oCtl.Success(ctx, list)
 }
 
 func (oCtl *OrderController) GetAppointmentDetail(ctx echo.Context) error {
@@ -461,18 +483,36 @@ func (oCtl *OrderController) GetAppointmentDetail(ctx echo.Context) error {
 	return oCtl.Success(ctx, appointment)
 }
 
-func (oCtl *OrderController) GetAppointmentList(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
-	if err != nil {
-		return oCtl.Fail(ctx, echoapp.CodeArgument, "获取用户信息失败", err)
-	}
-
-	status := ctx.QueryParam("status")
-	comID := echoapp_util.GetCtxComId(ctx)
-	lastID, _ := echoapp_util.GetCtxListParams(ctx)
-	list, err := oCtl.orderSvr.GetAppointmentList(ctx, comID, uint(user.Id), lastID, status)
+func (oCtl *OrderController) GetAppointmentByCode(ctx echo.Context) error {
+	code := ctx.QueryParam("code")
+	appointment, err := oCtl.orderSvr.GetAppointmentByCode(ctx, code)
 	if err != nil {
 		return oCtl.Fail(ctx, echoapp.CodeInnerError, "获取预约详情失败", err)
 	}
-	return oCtl.Success(ctx, list)
+
+	return oCtl.Success(ctx, appointment)
+}
+
+// 用户未登录状态下预约, 并且返回预约码
+func (oCtl *OrderController) GetAppointmentCode(ctx echo.Context) error {
+	params := &echoapp.Appointment{}
+	if err := ctx.Bind(params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("GetAppointmentCode argument err")
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	echoapp_util.ExtractEntry(ctx).WithField("request", params).Error("GetAppointmentCode entry")
+	comID := echoapp_util.GetCtxComId(ctx)
+	params.ComID = comID
+	params.Status = echoapp.AppointmentStatusUnused
+
+	if err := oCtl.orderSvr.Appointment(ctx, params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("GetAppointmentCode err")
+		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	}
+
+	resp := map[string]interface{}{
+		"code": params.Code,
+	}
+	return oCtl.Success(ctx, resp)
 }

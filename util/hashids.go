@@ -72,7 +72,7 @@ func DecodeString(input, salt string) (string, error) {
 
 func EncodeInt64(input int64, salt string) (string, error) {
 	hd := hashids.NewData()
-	hd.MinLength = 0
+	hd.MinLength = 8
 	hd.Salt = salt
 	hd.Alphabet = hashids.DefaultAlphabet
 	hashId, err := hashids.NewWithData(hd)
@@ -84,8 +84,9 @@ func EncodeInt64(input int64, salt string) (string, error) {
 
 func DecodeInt64(input, salt string) (int64, error) {
 	hd := hashids.NewData()
-	hd.MinLength = 0
+	hd.MinLength = 8
 	hd.Salt = salt
+	hd.Alphabet = hashids.DefaultAlphabet
 	hashId, err := hashids.NewWithData(hd)
 	if err != nil {
 		return 0, err
