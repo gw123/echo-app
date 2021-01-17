@@ -29,4 +29,5 @@ func init() {
 	// 定时任务
 	RootCmd.AddCommand(crontabs.UpdateCacheCmd)
 	RootCmd.AddCommand(crontabs.ReportTicketCmd)
+	RootCmd.AddCommand(crontabs.ReportBookingPassengerFlowCmd)
 }

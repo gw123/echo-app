@@ -43,10 +43,15 @@ type BookItem struct {
 }
 
 type PushAppointmentRequest struct {
-	ScenicID string
-	BookList []map[string]BookItem
+	ScenicID         string                  `json:"scenic_id"`
+	BookList         []map[string][]BookItem `json:"book_list"`
+	ScenicStatus     int                     `json:"scenic_status"`
+	Notice           string                  `json:"notice"`
+	RealtimeTourists int                     `json:"realtime_tourists"`
+	TotalTourist     int                     `json:"total_tourist"`
 }
 
+//type PushAppointmentRequest = []PushAppointmentReques
 type PushAppointmentResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -54,10 +59,10 @@ type PushAppointmentResponse struct {
 }
 
 // 推送预约信息到旅游局
-func DoPushAppointmentRequest(ctx context.Context, request *PushAppointmentRequest) (*PushAppointmentResponse, error) {
+func DoPushAppointmentRequest(ctx context.Context, request []*PushAppointmentRequest) (*PushAppointmentResponse, error) {
 	glog.ExtractEntry(ctx).WithField("request", request).Infof("DoPushAppointmentRequest request")
 	var response PushAppointmentResponse
-	err := DoPost(appointmentPushUrl, request, response)
+	err := DoPost(appointmentPushUrl, request, &response)
 	if err != nil {
 		glog.ExtractEntry(ctx).WithError(err).Infof("DoPushAppointmentRequest err")
 		return nil, errors.Wrap(err, "DoPushAppointmentRequest marshal")
