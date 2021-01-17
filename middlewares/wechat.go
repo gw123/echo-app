@@ -32,8 +32,7 @@ func NewWechatAuthMiddlewares(
 				return next(c)
 			}
 
-			if clientType != echoapp.ClientWxOfficial ||
-				!company.OpenWxOfficial {
+			if clientType != echoapp.ClientWxOfficial || !company.OpenWxOfficial {
 				return next(c)
 			}
 

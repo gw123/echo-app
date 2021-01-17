@@ -1,0 +1,182 @@
+version: "3"
+services:
+  redis:
+    image: redis:rc-alpine3.11
+    ports:
+      - 6380:6379
+    expose:
+      - 6379
+    volumes:
+      - ./redis:/etc/redis
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
+
+  user:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8881:8881
+    command: echoapp --config-type etcd  user
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  goods:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8882:8882
+    command: echoapp goods --config-type etcd
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  order:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8883:8883
+    command: echoapp order --config-type etcd
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  comment:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8885:8885
+    command: echoapp comment --config-type etcd
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  file:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8888:8888
+    command: echoapp file --config-type etcd
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  message:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8890:8890
+    command: echoapp message --config-type etcd
+    volumes:
+      -  ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  site:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    ports:
+      - 8889:8889
+    command: echoapp site --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  activity:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    container_name: echoapp-activity
+    ports:
+      - 8891:8891
+    command: echoapp activity --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  ####################
+  job-check-ticket:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp check-ticket --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  job-order-create:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp order-create --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  job-order-paid:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp order-paid --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  job-send-sms:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp send-sms --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  job-ticket-sync-code:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp ticket-sync-code --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+
+  job-user-score-change:
+    image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
+    command: echoapp user-score-change --config-type etcd
+    volumes:
+      - ./resources:/usr/local/var/echoapp/resources
+    env_file:
+      - .env
+    depends_on:
+      - redis

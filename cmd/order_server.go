@@ -89,6 +89,9 @@ func startOrderServer() {
 	jwsAuth.POST("/getAppointmentDetail", orderCtl.GetAppointmentDetail)
 	jwsAuth.POST("/getAppointmentList", orderCtl.GetAppointmentList)
 
+	normal.POST("/getAppointmentCode", orderCtl.GetAppointmentCode)
+	normal.GET("/getAppointmentByCode", orderCtl.GetAppointmentByCode)
+
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)
 	jwsAuth.GET("/checkTicketBySelf", orderCtl.CheckTicketBySelf)

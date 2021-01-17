@@ -76,7 +76,14 @@ func GetSmsTplApi() (sms_tpls.SmsTplAPi, error) {
 		glog.Errorf("GetSmsTplApi : %s", err.Error())
 		return nil, err
 	}
-	App.SmsTplApi = sms_tpls.NewSmsTplApi(JobPusher)
+
+	smsSvr, err := GetSmsService()
+	if err != nil {
+		glog.Errorf("GetSmsTplApi : %s", err.Error())
+		return nil, err
+	}
+
+	App.SmsTplApi = sms_tpls.NewSmsTplApi(JobPusher, smsSvr)
 	return App.SmsTplApi, nil
 }
 
@@ -104,9 +111,9 @@ func GetSmsService() (echoapp.SmsService, error) {
 	if App.smsSvc != nil {
 		return App.smsSvc, nil
 	}
-	comSvr := MustGetCompanyService()
+	db := MustGetDb("shop")
 	redis := MustGetRedis("")
-	smsSvc := services.NewSmsService(comSvr, redis)
+	smsSvc := services.NewSmsService(db, redis)
 	App.smsSvc = smsSvc
 	return smsSvc, nil
 }

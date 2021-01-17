@@ -5,8 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jinzhu/gorm"
+
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/dysmsapi"
 	"github.com/go-redis/redis/v7"
+	echoapp "github.com/gw123/echo-app"
 	tasksapp "github.com/gw123/echo-app"
 	"github.com/gw123/glog"
 	"github.com/pkg/errors"
@@ -18,24 +21,22 @@ const RegionId = "cn-hangzhou"
 type SmsService struct {
 	redis  *redis.Client
 	comSvr tasksapp.CompanyService
+	db     *gorm.DB
 }
 
-func NewSmsService(comSvr tasksapp.CompanyService, redis *redis.Client) *SmsService {
+func NewSmsService(db *gorm.DB, redis *redis.Client) *SmsService {
 	return &SmsService{
-		comSvr: comSvr,
-		redis:  redis,
+		db:    db,
+		redis: redis,
 	}
 }
 
-func (sSvr *SmsService) GetCachedCompanyById(comId uint) (*tasksapp.Company, error) {
-	com, err := sSvr.comSvr.GetCachedCompanyById(comId)
-	if err != nil || com == nil {
-		com, err = sSvr.comSvr.GetCompanyById(comId)
-		if err != nil {
-			return nil, errors.Wrap(err, "GetCompanyById")
-		}
+func (sSvr *SmsService) GetChannel(comId uint, smsTpl string) (*echoapp.SmsChannel, error) {
+	var channel echoapp.SmsChannel
+	if err := sSvr.db.Where("com_id = ? and type = ?", comId, smsTpl).Find(&channel).Error; err != nil {
+		return nil, err
 	}
-	return com, nil
+	return &channel, nil
 }
 
 func (sSvr *SmsService) SendVerifyCodeSms(comId uint, phone string, code string) error {
@@ -69,14 +70,9 @@ func (sSvr *SmsService) CheckVerifyCode(comId uint, phone string, code string) b
 }
 
 func (sSvr SmsService) SendMessage(opt *tasksapp.SendMessageOptions) error {
-	com, err := sSvr.GetCachedCompanyById(opt.ComId)
+	smsChannel, err := sSvr.GetChannel(opt.ComId, opt.Type)
 	if err != nil {
-		return errors.Wrap(err, "SendMessage->GetCachedCompanyById")
-	}
-	smsChannel, ok := com.SmsChannels[opt.Type]
-	if !ok {
-		glog.Errorf("sms_tpls type: %d not set", opt.Type)
-		return errors.Wrap(err, "请配置smschannel :"+opt.Type)
+		return errors.Wrap(err, "SendMessage->GetChannel")
 	}
 
 	client, err := dysmsapi.NewClientWithAccessKey(RegionId, smsChannel.Key, smsChannel.Secret)
