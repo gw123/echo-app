@@ -43,7 +43,8 @@ type ConfigOptions struct {
 	Wechat            *Wechat                       `yaml:"wechat" mapstructure:"wechat"`
 	Es                *EsOptions                    `yaml:"es" mapstructure:"es"`
 	Redis             *redis.Options
-	Job               *gworker.Options `yaml:job  mapstructure:"job"`
+	Job               *gworker.Options             `yaml:job  mapstructure:"job"`
+	BookingData       map[string]BookingDataOption `yaml:"booking_data" mapstructure:"booking_data"`
 }
 
 type EsOptions struct {
@@ -132,7 +133,17 @@ type ReportTicketOption struct {
 	LoginName string `yaml:"loginName" mapstructure:"loginName"`
 	Pwd       string `yaml:"pwd" mapstructure:"pwd"`
 }
-
+type BookingDataOption struct {
+	ComId      int    `yaml:"com_id" mapstructure:"com_id"`
+	AppKey     string `yaml:"app_key" mapstructure:"app_key"`
+	Url        string `yaml:"url" mapstructure:"url"`
+	ScenicCode string `yaml:"scenic_code" mapstructure:"scenic_code"`
+	//
+	LoginName string `yaml:"loginName" mapstructure:"loginName"`
+	Pwd       string `yaml:"pwd" mapstructure:"pwd"`
+	Crontab   string `yaml:"crontab" mapstructure:"crontab"`
+	InitUrl   string `yaml:"init_url" mapstructure:"init_url"`
+}
 type DBOption struct {
 	Driver    string `yaml:"dirver" mapstructure:"driver"`
 	DSN       string `yaml:"dsn" mapstructure:"dsn"`
