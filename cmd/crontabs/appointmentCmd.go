@@ -41,11 +41,25 @@ import (
 // 	MaxCapacity int64                  `json:"max_capacity"`
 // }
 
+type Job struct {
+	Shut chan int
+}
+
+func (j *Job) Run() {
+	reportBookingPassengerFlow()
+}
 func cronJobs() {
 	c := cron.New()
-	c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
+	//c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
+	job := Job{make(chan int, 1)}
+	c.AddJob("*/15 8-16 * * *", &job)
 	c.Start()
-	time.Sleep(time.Hour * 4)
+	defer c.Stop()
+	select {
+	case <-job.Shut:
+		return
+	}
+
 }
 
 var (
@@ -116,8 +130,8 @@ func reportBookingPassengerFlow() {
 
 }
 
-var ReportBookingPassengerFlowCmd = &cobra.Command{
-	Use:   "report-booking",
+var AppointmentCmd = &cobra.Command{
+	Use:   "appointment",
 	Short: "报告预订客流",
 	Long:  `定时任务，每15分上报预订客流`,
 	Run: func(cmd *cobra.Command, args []string) {
