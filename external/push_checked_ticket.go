@@ -4,7 +4,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var push_checked_ticket = ""
+var push_checked_ticket_hour = "http://qmt.lyta.com.cn/upload-data/tourist/real-people-number"
+var push_checked_ticket_daily = "http://qmt.lyta.com.cn/upload-data/tourist/real-gate-day"
 
 type ChannelReport struct {
 	InNum      int    `json:"inNum" gorm:"column:in_num" `
@@ -27,7 +28,7 @@ type PushCheckTicketResponse struct {
 // 推送核销门票消息
 func DoPushTicketRequest(request *PushCheckTicketRequest) (*PushCheckTicketResponse, error) {
 	var response PushCheckTicketResponse
-	err := DoPost(push_checked_ticket, request, response)
+	err := DoPost(push_checked_ticket_hour, request, response)
 	if err != nil {
 		return nil, errors.Wrap(err, "DoPushTicketRequest marshal")
 	}

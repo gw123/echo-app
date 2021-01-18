@@ -220,6 +220,16 @@ func reportHourTicketV2() error {
 		for _, channel := range channelHourReports {
 			channel.RecordTime = toTime
 		}
+
+		if len(channelHourReports) == 0 {
+			channelHourReports = append(channelHourReports, &ChannelHourReportV2{
+				InNum:      0,
+				OutNum:     0,
+				ChannelId:  "001",
+				RecordTime: toTime,
+			})
+		}
+
 		reportDataRequest := &ReportHourV2{
 			LoginName: options.LoginName,
 			Pwd:       options.Pwd,
