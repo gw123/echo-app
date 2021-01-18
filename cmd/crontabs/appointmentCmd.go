@@ -52,7 +52,8 @@ func cronJobs() {
 	c := cron.New()
 	//c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
 	job := Job{make(chan int, 1)}
-	c.AddJob("*/15 8-16 * * *", &job)
+	//c.AddJob("*/15 8-17 * * *", &job)
+	c.AddFunc("*/1 * * * *", reportBookingPassengerFlow)
 	c.Start()
 	defer c.Stop()
 	select {
@@ -63,8 +64,34 @@ func cronJobs() {
 }
 
 var (
-	TimeLayout       = "2006-01-02"
-	TimeLayoutL      = "2006-01-02 15:04"
+	N1 = 60000
+	N2 = 60000
+	N3 = 60000
+	N4 = 60000
+)
+
+func currentBookingRemain(label string, bookNum int) int {
+	switch label {
+	case "8:00-10:00":
+		N1 = N1 - bookNum
+		return N1
+	case "10:00-12:00":
+		N2 = N2 - bookNum
+		return N2
+	case "12:00-14:00":
+		N3 = N3 - bookNum
+		return N2
+	case "14:00-17:00":
+		N4 = N4 - bookNum
+		return N2
+	}
+	return 60000
+}
+
+var (
+	TimeLayoutDay    = "2006-01-02"
+	TimeLayoutMinute = "2006-01-02 15:04"
+	TimeLayoutSecond = "2006-01-02 15:04:05"
 	Max              = 100
 	StatusCode       = 1
 	Notice           = "Notice:"
@@ -83,32 +110,47 @@ func reportBookingPassengerFlow() {
 			echoapp_util.DefaultLogger().Error(err)
 			return
 		}
-
+		type DBResponse struct {
+			BookNum int64     `json:"bookNum"`
+			StartAt time.Time `json:"start_at"`
+			EndAt   time.Time `json:"end_at"`
+		}
 		now := time.Now()
-		hourAgo := now.Add(-time.Minute * 15)
-		toTime := now.Format(TimeLayoutL)
-		fromTime := hourAgo.Format(TimeLayoutL)
-		var bookNum int
+		hourAgo := now.Add(-time.Minute * 1)
+		toTimeSecond := now.Format(TimeLayoutSecond)
+
+		fromTimeSecond := hourAgo.Format(TimeLayoutSecond)
+		dbres := []*DBResponse{}
 		if err := db.Debug().Table("appointments").
+			Select("start_at,end_at,count(*) as bookNum").
 			Where("com_id = ?", options.ComId).
-			Where("created_at between ? and ?", fromTime, toTime).
-			Count(&bookNum).Error; err != nil {
+			Where("created_at between ? and ?", fromTimeSecond, toTimeSecond).
+			Group("start_at,end_at").Scan(&dbres).Error; err != nil {
 			echoapp_util.DefaultLogger().Error(err)
 			return
 		}
-		label := fromTime[11:] + "-" + toTime[11:]
-		//label := strconv.Itoa(hourAgo.Hour()) + ":" + strconv.Itoa(hourAgo.Minute()) + "-" + strconv.Itoa(now.Hour()) + ":" + strconv.Itoa(now.Minute())
-		bookItem := external.BookItem{
-			Label:     label,
-			StartTime: int(hourAgo.Unix()),
-			EndTime:   int(now.Unix()),
-			BookNum:   bookNum,
-			//RemainNum: Max - bookNum,
-		}
-		bookMap := make(map[string][]external.BookItem)
-		bookMap[now.Format(TimeLayout)] = append(bookMap[now.Format(TimeLayout)], bookItem)
 		bookList := []map[string][]external.BookItem{}
-		bookList = append(bookList, bookMap)
+
+		bookMap := make(map[string][]external.BookItem)
+		sum := 0
+		for _, v := range dbres {
+			sum += int(v.BookNum)
+			StartTimeMinute := v.StartAt.Format(TimeLayoutMinute)
+			EndTimeMinute := v.EndAt.Format(TimeLayoutMinute)
+			label := StartTimeMinute[11:] + "-" + EndTimeMinute[11:]
+			bookItem := external.BookItem{
+				Label:     label,
+				StartTime: int(v.StartAt.Unix()),
+				EndTime:   int(v.EndAt.Unix()),
+				BookNum:   int(v.BookNum),
+				RemainNum: currentBookingRemain(label, int(v.BookNum)),
+			}
+			bookMap[v.StartAt.Format(TimeLayoutDay)] = append(bookMap[v.StartAt.Format(TimeLayoutDay)], bookItem)
+		}
+		if len(bookMap) > 0 {
+			bookList = append(bookList, bookMap)
+		}
+
 		pushAppointmentRequest := &external.PushAppointmentRequest{
 			ScenicID:         options.ScenicCode,
 			BookList:         bookList,
