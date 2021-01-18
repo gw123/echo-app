@@ -92,11 +92,9 @@ var (
 	TimeLayoutDay    = "2006-01-02"
 	TimeLayoutMinute = "2006-01-02 15:04"
 	TimeLayoutSecond = "2006-01-02 15:04:05"
-	Max              = 100
-	StatusCode       = 1
-	Notice           = "Notice:"
-	RealtimeTourists = 2222
-	TotalTourist     = 1232323
+
+	StatusCode = 1
+	Notice     = "Notice:"
 )
 
 func reportBookingPassengerFlow() {
@@ -111,7 +109,7 @@ func reportBookingPassengerFlow() {
 			return
 		}
 		type DBResponse struct {
-			BookNum int64     `json:"bookNum"`
+			BookNum int64     `json:"book_num" gorm:"column:book_num"`
 			StartAt time.Time `json:"start_at"`
 			EndAt   time.Time `json:"end_at"`
 		}
@@ -122,10 +120,27 @@ func reportBookingPassengerFlow() {
 		fromTimeSecond := hourAgo.Format(TimeLayoutSecond)
 		dbres := []*DBResponse{}
 		if err := db.Debug().Table("appointments").
-			Select("start_at,end_at,count(*) as bookNum").
+			Select("start_at,end_at,count(*) as book_num").
 			Where("com_id = ?", options.ComId).
 			Where("created_at between ? and ?", fromTimeSecond, toTimeSecond).
 			Group("start_at,end_at").Scan(&dbres).Error; err != nil {
+			echoapp_util.DefaultLogger().Error(err)
+			return
+		}
+		var realtimeTourists int
+		if err := db.Debug().Table("appointments").
+			Where("com_id = ?", options.ComId).
+			Where("created_at between ? and ?", fromTimeSecond, toTimeSecond).
+			Count(&realtimeTourists).Error; err != nil {
+			echoapp_util.DefaultLogger().Error(err)
+			return
+		}
+		var totalTourist int
+		timeZero := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		if err := db.Debug().Table("appointments").
+			Where("com_id = ?", options.ComId).
+			Where("created_at between ? and ?", timeZero, toTimeSecond).
+			Count(&totalTourist).Error; err != nil {
 			echoapp_util.DefaultLogger().Error(err)
 			return
 		}
@@ -156,8 +171,8 @@ func reportBookingPassengerFlow() {
 			BookList:         bookList,
 			ScenicStatus:     StatusCode,
 			Notice:           Notice,
-			RealtimeTourists: RealtimeTourists,
-			TotalTourist:     TotalTourist,
+			RealtimeTourists: realtimeTourists,
+			TotalTourist:     totalTourist,
 		}
 
 		pushARequestArr = append(pushARequestArr, pushAppointmentRequest)
