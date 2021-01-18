@@ -45,6 +45,7 @@ func cronJobs() {
 	c := cron.New()
 	c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
 	c.Start()
+	// todo 这里有问题
 	time.Sleep(time.Hour * 4)
 }
 
