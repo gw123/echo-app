@@ -52,8 +52,8 @@ func cronJobs() {
 	c := cron.New()
 	//c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
 	job := Job{make(chan int, 1)}
-	//c.AddJob("*/15 8-17 * * *", &job)
-	c.AddFunc("*/1 * * * *", reportBookingPassengerFlow)
+	c.AddJob("*/15 8-17 * * *", &job)
+	//c.AddFunc("*/1 * * * *", reportBookingPassengerFlow)
 	c.Start()
 	defer c.Stop()
 	select {
@@ -114,7 +114,7 @@ func reportBookingPassengerFlow() {
 			EndAt   time.Time `json:"end_at"`
 		}
 		now := time.Now()
-		hourAgo := now.Add(-time.Minute * 1)
+		hourAgo := now.Add(-time.Minute * 15)
 		toTimeSecond := now.Format(TimeLayoutSecond)
 
 		fromTimeSecond := hourAgo.Format(TimeLayoutSecond)
