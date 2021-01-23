@@ -22,7 +22,7 @@ import (
 	"time"
 
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
+	"github.com/gw123/echo-app/app/app_components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -96,7 +96,7 @@ func reportDailyTicket() error {
 		now := time.Now()
 		today := now.Format("2006-01-02")
 		nextDay := now.Add(time.Hour * 24).Format("2006-01-02")
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}
@@ -140,7 +140,7 @@ func reportHourTicket() error {
 	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("推送%s流量,com_id:%d", key, options.ComId)
 
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}
@@ -200,7 +200,7 @@ func reportHourTicketV2() error {
 	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("推送%s流量,com_id:%d", key, options.ComId)
 
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}

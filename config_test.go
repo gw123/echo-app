@@ -2,6 +2,7 @@ package echoapp
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/gw123/echo-app/libs/etcd"
@@ -50,4 +51,12 @@ func Test_Config(t *testing.T) {
 		return
 	}
 	spew.Dump(ConfigOpts)
+}
+
+func TestIntoStruct(t *testing.T) {
+	eletype := reflect.ValueOf(ConfigOpts)
+	t.Log(eletype.String())
+
+	t.Log(eletype.Field(0).Type().String())
+	t.Log(eletype.Type().Field(0).Tag.Get("json"))
 }

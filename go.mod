@@ -38,6 +38,7 @@ require (
 	github.com/prometheus/common v0.10.0
 	github.com/qiniu/api.v7/v7 v7.4.1
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/shima-park/agollo v1.2.10
 	github.com/silenceper/wechat/v2 v2.0.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/skip2/go-qrcode v0.0.0-20200526175731-7ac0b40b2038

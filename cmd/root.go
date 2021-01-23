@@ -71,6 +71,14 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&etcdNamespace, "etcd-namespace", "", "namespace")
 	RootCmd.PersistentFlags().StringVar(&etcdPath, "etcd-path", "", "etcdPath config data path")
 
+	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.AppID, "app-id", "", "appID")
+	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.IP, "apollo-ip", "", "apollo ip")
+	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.NamespaceName, "apollo-namespace", "", "apollo namespace")
+	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.Secret, "apollo-secret", "", "apollo secret")
+
+	echoapp.ApolloConfig.Cluster = "default"
+	echoapp.ApolloConfig.IsBackupConfig = true
+
 	if len(etcdEndpoints) == 0 {
 		etcdEndpoints = strings.Split(os.Getenv("ETCD_ENDPOINTS"), ",")
 		if len(etcdEndpoints) == 0 {
@@ -98,6 +106,30 @@ func init() {
 		if etcdPath == "" {
 			etcdPath = "/config.yaml"
 		}
+	}
+
+	if echoapp.ApolloConfig.Secret == "" {
+		echoapp.ApolloConfig.Secret = os.Getenv("APOLLO_SECRET")
+	}
+
+	if echoapp.ApolloConfig.AppID == "" {
+		echoapp.ApolloConfig.Secret = os.Getenv("APOLLO_APPID")
+	}
+
+	if echoapp.ApolloConfig.IP == "" {
+		echoapp.ApolloConfig.IP = os.Getenv("APOLLO_IP")
+	}
+
+	if echoapp.ApolloConfig.NamespaceName == "" {
+		echoapp.ApolloConfig.NamespaceName = os.Getenv("APOLLO_NAMESPACE")
+	}
+
+	if echoapp.ApolloConfig.Cluster == "" {
+		echoapp.ApolloConfig.Cluster = os.Getenv("APOLLO_CLUSTER")
+	}
+
+	if echoapp.ApolloConfig.AppID == "" || echoapp.ApolloConfig.Secret == "" {
+		echoapp.ApolloConfig = echoapp.ApolloConfigBackUp
 	}
 }
 

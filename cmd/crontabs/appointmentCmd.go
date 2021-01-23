@@ -6,8 +6,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gw123/echo-app/app/app_components"
+
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/external"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/robfig/cron/v3"
@@ -104,7 +105,7 @@ func reportBookingPassengerFlow() {
 	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("推送%s预约量,com_id:%d", key, options.ComId)
 
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			echoapp_util.DefaultLogger().Error(err)
 			return
