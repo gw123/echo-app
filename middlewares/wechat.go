@@ -24,7 +24,6 @@ func NewWechatAuthMiddlewares(
 				return next(c)
 			}
 			clientType := echoapp_util.GetClientTypeByUA(c.Request().UserAgent())
-			echoapp_util.ExtractEntry(c).Info("Client Type:" + clientType)
 			comId := echoapp_util.GetCtxComId(c)
 			company, err := echoapp_util.GetCtxCompany(c)
 			if err != nil {
@@ -32,6 +31,7 @@ func NewWechatAuthMiddlewares(
 				return next(c)
 			}
 
+			echoapp_util.ExtractEntry(c).Infof("wehchat middle Client Type:%s, openWxOfficial: %t", clientType, company.OpenWxOfficial)
 			if clientType != echoapp.ClientWxOfficial || !company.OpenWxOfficial {
 				return next(c)
 			}

@@ -1,6 +1,7 @@
 package echoapp_middlewares
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gw123/glog"
@@ -56,6 +57,11 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 
 			start := time.Now()
 			req := c.Request()
+			if strings.Contains(req.RequestURI, ".js") ||
+				strings.Contains(req.RequestURI, ".css") {
+				return next(c)
+			}
+
 			rid := req.Header.Get(echo.HeaderXRequestID)
 			if rid == "" {
 				rid = config.Generator()
@@ -72,6 +78,7 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 				//"Referer": req.Referer(),
 				//"UserAgent": req.UserAgent(),
 			}
+
 			logger := echoapp_util.ExtractEntry(c).
 				//WithField("app", config.Name).
 				WithFields(fields).

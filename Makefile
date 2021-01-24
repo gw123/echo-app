@@ -1,4 +1,4 @@
-IMAGE_TAG_VERSION = 1.4.1
+IMAGE_TAG_VERSION = 1.5.6
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 #DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp
@@ -87,6 +87,7 @@ docker-image:
 	mkdir -p $(DOCKER_BUILD_PATH)/resources/views &&\
     mkdir -p $(DOCKER_BUILD_PATH)/resources/storage &&\
 	cp -r resources/views/ $(DOCKER_BUILD_PATH)/resources/views &&\
+    chmod +x upload &&\
     cp upload $(DOCKER_BUILD_PATH)/echoapp &&\
     cp Dockerfile $(DOCKER_BUILD_PATH)/ &&\
     cp -r resources/public/ $(DOCKER_BUILD_PATH)/resources/public &&\

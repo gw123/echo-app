@@ -20,6 +20,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+
 	echoapp "github.com/gw123/echo-app"
 
 	"github.com/gw123/glog"
@@ -113,7 +115,7 @@ func init() {
 	}
 
 	if echoapp.ApolloConfig.AppID == "" {
-		echoapp.ApolloConfig.Secret = os.Getenv("APOLLO_APPID")
+		echoapp.ApolloConfig.AppID = os.Getenv("APOLLO_APPID")
 	}
 
 	if echoapp.ApolloConfig.IP == "" {
@@ -128,9 +130,17 @@ func init() {
 		echoapp.ApolloConfig.Cluster = os.Getenv("APOLLO_CLUSTER")
 	}
 
-	if echoapp.ApolloConfig.AppID == "" || echoapp.ApolloConfig.Secret == "" {
+	fmt.Println(os.Getenv("APOLLO_CLUSTER"))
+	fmt.Println(os.Getenv("APOLLO_NAMESPACE"))
+	fmt.Println(os.Getenv("APOLLO_IP"))
+	fmt.Println(os.Getenv("APOLLO_APPID"))
+	fmt.Println(os.Getenv("APOLLO_SECRET"))
+
+	// todo 零时过渡的方案
+	if echoapp.ApolloConfig.AppID == "" && echoapp.ApolloConfig.Secret == "" {
 		echoapp.ApolloConfig = echoapp.ApolloConfigBackUp
 	}
+	spew.Dump(echoapp.ApolloConfig)
 }
 
 // initConfig reads in config file and ENV variables if set.
