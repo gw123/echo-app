@@ -105,15 +105,14 @@ func NewWechatAuthMiddlewares(
 				}
 
 				echoapp_util.ExtractEntry(c).Info("last visit path", stateOldPath)
-				if c.Request().URL.Path != stateOldPath {
+				if c.Request().RequestURI != stateOldPath {
 					return c.Redirect(http.StatusFound, stateOldPath)
 				} else {
 					return next(c)
 				}
-
 			} else {
 				//如果authtoken不存在或者校验失败， 认为用户未登录跳转到微信授权登录
-				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().URL.Path)
+				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().RequestURI)
 				if err != nil || authUrl == "" {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
 					return c.String(http.StatusInternalServerError, "系统错误请重试: not get auth url")
