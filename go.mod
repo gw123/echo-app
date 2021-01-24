@@ -18,7 +18,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/gw123/glog v1.3.1
+	github.com/gw123/glog v1.3.2
 	github.com/gw123/gworker v1.6.1
 	github.com/iGoogle-ink/gopay v1.5.16-0.20200714134502-68dab747848e
 	github.com/iGoogle-ink/gotil v1.0.3

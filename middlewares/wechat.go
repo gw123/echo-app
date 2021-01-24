@@ -73,14 +73,14 @@ func NewWechatAuthMiddlewares(
 					echoapp_util.ExtractEntry(c).WithError(err).Error("code为空")
 					return c.HTML(http.StatusInternalServerError, "参数错误")
 				}
-				//queryState := queryValues.Get("state")
-				//echoapp_util.ExtractEntry(c).Info("state" + queryState)
+
 				userInfo, err := wechat.GetUserInfo(context.Background(), comId, code)
 				if err != nil {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("微信授权失败")
 					return c.HTML(http.StatusInternalServerError, "授权失败")
 				}
 
+				stateOldPath := queryValues.Get("state")
 				//echoapp_util.ExtractEntry(c).Info("wechatUser: %+v", userInfo)
 				user := &echoapp.User{
 					Nickname: userInfo.Nickname,
@@ -100,17 +100,25 @@ func NewWechatAuthMiddlewares(
 					return c.HTML(http.StatusInternalServerError, "注册新用户失败")
 				} else {
 					echoapp_util.SetCtxUser(c, newUser)
-					echoapp_util.ExtractEntry(c).WithField("new_user", newUser).Infof("自动登录用户")
+					echoapp_util.SetCtxUserId(c, newUser.Id)
+					echoapp_util.ExtractEntry(c).Infof("授权成功 跳转到之前页面")
 				}
-				return next(c)
+
+				echoapp_util.ExtractEntry(c).Info("last visit path", stateOldPath)
+				if c.Request().URL.Path != stateOldPath {
+					return c.Redirect(http.StatusFound, stateOldPath)
+				} else {
+					return next(c)
+				}
+
 			} else {
 				//如果authtoken不存在或者校验失败， 认为用户未登录跳转到微信授权登录
-				authUrl, err := wechat.GetAuthCodeUrl(comId)
+				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().URL.Path)
 				if err != nil || authUrl == "" {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
 					return c.String(http.StatusInternalServerError, "系统错误请重试: not get auth url")
 				}
-				echoapp_util.ExtractEntry(c).WithField("auth_url", authUrl).Infof("jump to wxAuth")
+				echoapp_util.ExtractEntry(c).Infof("jump to wxAuth authUrl %s", authUrl)
 				return c.Redirect(http.StatusFound, authUrl)
 			}
 		}

@@ -69,7 +69,7 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 			}
 			//日志太多了暂时屏蔽掉 requestid
 			//echoapp_util.AddRequestId(c, rid)
-			echoapp_util.ToContext(c, config.Logger)
+			//echoapp_util.ToContext(c, config.Logger)
 
 			fields := logrus.Fields{
 				//"host":   req.Host,
@@ -79,11 +79,10 @@ func NewLoggingMiddleware(config LoggingMiddlewareConfig) echo.MiddlewareFunc {
 				//"UserAgent": req.UserAgent(),
 			}
 
-			logger := echoapp_util.ExtractEntry(c).
-				//WithField("app", config.Name).
+			logger := config.Logger.
 				WithFields(fields).
 				WithField(glogCommon.KeyTraceID, rid).
-				WithField(glogCommon.KeyPathname, req.RequestURI)
+				WithField(glogCommon.KeyPathname, c.Request().URL.Path)
 
 			echoapp_util.ToContext(c, logger)
 			err := next(c)

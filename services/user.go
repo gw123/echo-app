@@ -287,7 +287,7 @@ func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.U
 	user, err = u.GetUserByOpenId(newUser.ComId, newUser.Openid)
 	if err == nil {
 		//用户存在更新jwstoken
-		glog.Infof("用户已经存在 %+v", user)
+		glog.DefaultLogger().Info("用户已经存在 %+v", user)
 		user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
 		if err != nil {
 			return nil, errors.Wrap(err, "createToken")

@@ -212,6 +212,7 @@ func ExtractEntry(ctx echo.Context) glogCommon.Logger {
 	if requestId != "" {
 		fields[ctxRequestIdKey] = requestId
 	}
+
 	return l.logger.WithFields(fields)
 }
 
