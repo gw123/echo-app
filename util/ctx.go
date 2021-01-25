@@ -213,7 +213,8 @@ func ExtractEntry(ctx echo.Context) glogCommon.Logger {
 		fields[ctxRequestIdKey] = requestId
 	}
 
-	return l.logger.WithFields(fields)
+	logger := l.logger
+	return logger.WithFields(fields)
 }
 
 // 选择一个最合适的静态资源前缀 如果是内网访问直接走内网地址 ,如果是外网访问直接走线上的环境
