@@ -178,7 +178,7 @@ func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
 	glog.DefaultLogger().Info("GetWxConfig: " + url)
 	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 	if err != nil {
-		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
+		echoapp_util.ExtractEntry(ctx).Errorf("获取JSconfig失败,%s", err)
 		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
 	}
 	return sCtl.Success(ctx, jsConfig)
