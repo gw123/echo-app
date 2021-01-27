@@ -7,7 +7,7 @@ require (
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/bsm/redislock v0.5.0
 	github.com/chanxuehong/wechat v0.0.0-20200409104612-0a1fd76d7a3a
-	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
+	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

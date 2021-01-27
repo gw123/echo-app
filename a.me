@@ -1,0 +1,170 @@
+
+# kepler
+
+## 设计理念
+
+* 基于成熟的第三方开源库进行整合和无侵入式的二次开发，便于有经验的Go开发者快速上手。
+* 功能模块高内聚，支持独立使用，便于旧项目接入。
+* 功能模块采用可插拔模式，便于模块升级。
+
+## 功能特性
+
+* 配置模块：支持ETCD与file模式。
+* 日志模块：支持日志升降级，零缓存，高效率。
+* 数据库驱动：支持MongoDB，MySQL。
+* 缓存：支持本地缓存Ristretto与远程缓存Redis，包含缓存框架BusCache与分布式锁RedisLock。
+* 消息队列：支持RocketMQ。
+* HTTP：支持Web框架(Gin)与客户端(Resty)。
+* 提供基于Protobuf协议的微服务治理(Grpc)代码生成器，自动生成传输层与中间件层代码，提供负载均衡，熔断限流功能。
+* 监控：支持Prometheus监控。
+* 服务治理框架:Gokit
+* 支持grpc协议转换http协议与生成swagger文档:grpc-gateway
+* 支持熔断限流组件:sentinel-go
+* 支持日志链路:jaeger
+
+## 获取
+
+1. `go version` >= go1.13.10
+2. `go env -w GOPRIVATE=git.100tal.com` (设置私有仓库不走代理)
+3. 为了更好更快的拉共有库的包, 需要设置代理: `export GOPROXY=https://goproxy.io`(写入bashrc/zshrc里面)
+4. 设置代理goland需要单独设置. Preference->Go->Go Modules: `GOPROXY=https://goproxy.io`
+5. `git config --global url."git@git.100tal.com:".insteadOf "https://git.100tal.com/"` (访问git的方式由https转为ssh. 避免访问私有库时输入密码, 以本地公钥替代)
+6. `go get -u git.100tal.com/peiyou_like_shuangshi_zhongtai/kepler` 即可
+
+## 启动命令
+
+现在启动命令行参数保留3个,config,log,source.
+
+* source:配置来源,"etcd"和"file".如果为空,不加载配置
+* config:配置路径,如果为空,不加载配置:
+* 如果source=file.config为配置文件的路径.可以为相对路径.例如"test.toml",具体支持文件类型参考viper
+* 如果source=etcd.config为etcd的地址.
+* log:日志文件保存路径.可以是相对路径.如果为空,日志打印到终端.
+
+## 脚手架
+
+### 依赖版本
+
+```s
+protoc-gen-swagger (版本兼容)
+(go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger)
+```
+
+控制版本的可以通过，以下https的路径的可以通过下载源码进行编译
+
+```s
+protoc v3.11.4
+(https://github.com/protocolbuffers/protobuf/tags?after=v3.12.0)
+
+protoc-gen-go v.1.3.1
+(https://codeload.github.com/golang/protobuf/tar.gz/v1.3.1)
+
+protoc-gen-grpc-gateway v.1.16.0
+(https://github.com/grpc-ecosystem/grpc-gateway/releases/tag/v1.16.0)
+
+protoc-go-inject-tag (版本兼容)
+(https://github.com/favadi/protoc-go-inject-tag)
+
+```
+
+### 安装
+
+```sh
+go get -u git.100tal.com/peiyou_like_shuangshi_zhongtai/kepler/v2/tools/kepler
+```
+
+### 创建service
+
+```sh
+kepler new notificator
+```
+
+```s
+.
+└── notificator
+    ├── go.mod
+    └── internal
+        └── service
+            └── service.go
+
+3 directories, 2 files
+```
+
+service.go编写:
+
+```go
+package service
+
+import "context"
+
+// 通知服务
+type NotificatorService interface {
+	// 在这里添加你自己的方法
+	SendEmail(ctx context.Context, email string, content string) error
+}
+```
+
+### 生成service代码
+
+```sh
+kepler generate notificator
+```
+
+```s
+.
+└── notificator
+    ├── api
+    │   └── pb
+    │       ├── compile.sh
+    │       └── notificator.proto
+    ├── cmd
+    │   └── main.go
+    ├── go.mod
+    ├── internal
+    │   └── service
+    │       ├── middleware.go
+    │       └── service.go
+    └── pkg
+        ├── client
+        │   └── client.go
+        ├── endpoint
+        │   ├── endpoint.go
+        │   └── endpoint_gen.go
+        ├── server
+        │   ├── server.go
+        │   └── server_gen.go
+        └── transport
+            ├── transport.go
+            └── transport_gen.go
+
+11 directories, 13 files
+```
+
+### 编写proto并生成go文件
+
+```protobuf
+syntax = "proto3";
+
+package pb;
+
+
+service Notificator {
+ rpc SendEmail (SendEmailRequest) returns (SendEmailReply);
+}
+
+message SendEmailRequest {
+ string email   = 1;
+ string content = 2;
+}
+
+message SendEmailReply {
+ string id = 1;
+}
+```
+
+执行compile.sh,生成文件
+
+### 实现业务逻辑
+
+按照gokit的标准将todo的部分实现即可.
+
