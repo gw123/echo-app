@@ -3,7 +3,6 @@ package controllers
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -141,15 +140,15 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 
 //todo 这里有302无限循环的风险
 func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
-	if err != nil {
-		return ctx.HTML(502, "授权失败")
-	}
-	ctx.SetCookie(&http.Cookie{
-		Name:    "token",
-		Value:   user.JwsToken,
-		Expires: time.Now().Add(time.Hour * 24 * 30),
-	})
+	//user, err := echoapp_util.GetCtxtUser(ctx)
+	//if err != nil {
+	//	return ctx.HTML(502, "授权失败")
+	//}
+	//ctx.SetCookie(&http.Cookie{
+	//	Name:    "token",
+	//	Value:   user.JwsToken,
+	//	Expires: time.Now().Add(time.Hour * 24 * 30),
+	//})
 	return ctx.Render(http.StatusOK, "callback", nil)
 }
 
@@ -176,7 +175,7 @@ func (sCtl *SiteController) WxMessage(ctx echo.Context) error {
 func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
 	comID := echoapp_util.GetCtxComId(ctx)
 	url := ctx.QueryParam("url")
-	glog.Info("GetWxConfig: " + url)
+	glog.DefaultLogger().Info("GetWxConfig: " + url)
 	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 	if err != nil {
 		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")

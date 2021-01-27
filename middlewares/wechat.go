@@ -2,10 +2,8 @@ package echoapp_middlewares
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -55,15 +53,17 @@ func NewWechatAuthMiddlewares(
 			}
 
 			//授权回调处理
-			var path string
-			if strings.HasPrefix(c.Request().URL.Path, "/index-dev") {
-				path = fmt.Sprintf("/index-dev/%d/wxAuthCallBack", comId)
-			} else {
-				path = fmt.Sprintf("/index/%d/wxAuthCallBack", comId)
-			}
+			//var path string
+			//if strings.HasPrefix(c.Request().URL.Path, "/index-dev") {
+			//	path = fmt.Sprintf("/index-dev/%d/wxAuthCallBack", comId)
+			//} else {
+			//	path = fmt.Sprintf("/index/%d/wxAuthCallBack", comId)
+			//}
 
-			if c.Request().URL.Path == path {
-				queryValues, err := url.ParseQuery(c.Request().URL.RawQuery)
+			queryValues, err := url.ParseQuery(c.Request().URL.RawQuery)
+			//if c.Request().URL.Path == path {
+			if queryValues.Get("state") == "wx_callback" {
+				echoapp_util.ExtractEntry(c).Info("wx_callback")
 				if err != nil {
 					return c.HTML(http.StatusInternalServerError, "url解析失败")
 				}
@@ -80,7 +80,6 @@ func NewWechatAuthMiddlewares(
 					return c.HTML(http.StatusInternalServerError, "授权失败")
 				}
 
-				stateOldPath := queryValues.Get("state")
 				//echoapp_util.ExtractEntry(c).Info("wechatUser: %+v", userInfo)
 				user := &echoapp.User{
 					Nickname: userInfo.Nickname,
@@ -101,24 +100,23 @@ func NewWechatAuthMiddlewares(
 				} else {
 					echoapp_util.SetCtxUser(c, newUser)
 					echoapp_util.SetCtxUserId(c, newUser.Id)
-					echoapp_util.ExtractEntry(c).Infof("授权成功 跳转到之前页面")
+					echoapp_util.ExtractEntry(c).Infof("授权成功")
 				}
 
-				echoapp_util.ExtractEntry(c).Info("last visit path", stateOldPath)
-				if c.Request().RequestURI != stateOldPath {
-					return c.Redirect(http.StatusFound, stateOldPath)
-				} else {
-					return next(c)
-				}
+				return next(c)
 			} else {
 				//如果authtoken不存在或者校验失败， 认为用户未登录跳转到微信授权登录
-				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().RequestURI)
+				//echoapp_util.ExtractEntry(c).WithField("c.request", c.Request().URL).Infof("current page url: %s", c.Request().URL.String())
+				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().URL.Path)
 				if err != nil || authUrl == "" {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
 					return c.String(http.StatusInternalServerError, "系统错误请重试: not get auth url")
 				}
 				echoapp_util.ExtractEntry(c).Infof("jump to wxAuth authUrl %s", authUrl)
-				return c.Redirect(http.StatusFound, authUrl)
+				//return c.Redirect(http.StatusFound, authUrl)
+				data := make(map[string]interface{})
+				data["auth_url"] = authUrl
+				return c.Render(http.StatusOK, "callback", data)
 			}
 		}
 	}

@@ -104,13 +104,13 @@ func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error
 	return cfg, nil
 }
 
-func (we *WechatService) GetAuthCodeUrl(comId uint, state string) (url string, err error) {
+func (we *WechatService) GetAuthCodeUrl(comId uint, path string) (url string, err error) {
 	com, err := we.comSvr.GetCachedCompanyById(comId)
 	if err != nil || com.WxOfficialAppId == "" {
 		return "", errors.Wrapf(err, "WxLogin 获取com.WxOfficialAppId失败: %d", comId)
 	}
-	url = fmt.Sprintf("%s/%d/wxAuthCallBack", we.authRedirectUrl, comId)
-	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", state)
+	url = fmt.Sprintf("%s%s", we.authRedirectUrl, path)
+	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "wx_callback")
 	return
 }
 

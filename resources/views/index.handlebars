@@ -18,6 +18,20 @@
 <body>
 
 <script>
+    function setCookie(name,value,iDay){
+        var oDate=new Date();
+        oDate.setDate(oDate.getDate()+iDay);    //iDay是几天过期
+        document.cookie=name+'='+value+';expires='+oDate;
+    }
+    var returnUrl = window.localStorage.getItem("wx_auth_before_return_url")
+    //console.log('returnUrl', returnUrl)
+    if(returnUrl!= ""){
+        window.localStorage.setItem("wx_auth_before_return_url","")
+        setCookie("token", '{{user.userToken}}', 10)
+        //console.log(document.cookie)
+        window.location.href = returnUrl
+    }
+
     console.log('clientType','{{clientType}}')
         {{#equal clientType "wx_official"}}
         window.userInfo = {
