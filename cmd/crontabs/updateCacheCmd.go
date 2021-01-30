@@ -24,9 +24,45 @@ import (
 	"github.com/gw123/echo-app/app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"github.com/streadway/amqp"
 )
+
+type UpdateJob struct {
+	Shut chan int
+}
+
+func (j *UpdateJob) Run() {
+	quit := make(chan os.Signal, 1)
+	switch updateMethod {
+	case "once":
+		go func() {
+			updateCompanyCache()
+			updateCouponCache()
+			updateUserCache()
+			quit <- os.Interrupt
+		}()
+	case "mq":
+		updateCacheByMq()
+	}
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+}
+func updateCronJobs() {
+	c := cron.New()
+	//c.AddFunc("*/15 8-16 * * *", reportBookingPassengerFlow)
+	job := UpdateJob{make(chan int, 1)}
+	c.AddJob("*/15 * * * *", &job)
+	//c.AddFunc("*/1 * * * *", reportBookingPassengerFlow)
+	c.Start()
+	defer c.Stop()
+	select {
+	case <-job.Shut:
+		return
+	}
+
+}
 
 var updateMethod = ""
 
@@ -197,20 +233,21 @@ var UpdateCacheCmd = &cobra.Command{
 	Short: "cache 更新",
 	Long:  `cache 服务`,
 	Run: func(cmd *cobra.Command, args []string) {
-		quit := make(chan os.Signal, 1)
-		switch updateMethod {
-		case "once":
-			go func() {
-				updateCompanyCache()
-				updateCouponCache()
-				updateUserCache()
-				quit <- os.Interrupt
-			}()
-		case "mq":
-			updateCacheByMq()
-		}
-		signal.Notify(quit, os.Interrupt)
-		<-quit
+		// quit := make(chan os.Signal, 1)
+		// switch updateMethod {
+		// case "once":
+		// 	go func() {
+		// 		updateCompanyCache()
+		// 		updateCouponCache()
+		// 		updateUserCache()
+		// 		quit <- os.Interrupt
+		// 	}()
+		// case "mq":
+		// 	updateCacheByMq()
+		// }
+		// signal.Notify(quit, os.Interrupt)
+		// <-quit
+		updateCronJobs()
 	},
 }
 
