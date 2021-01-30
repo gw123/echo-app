@@ -654,7 +654,18 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 					continue
 				}
-				if err := uSvr.db.Create(resHistory).Error; err != nil {
+				if err := uSvr.db.Where(resHistory).First(resHistory).Error; err != nil {
+					if err == gorm.ErrRecordNotFound {
+						if err := uSvr.db.Create(resHistory).Error; err != nil {
+							glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+							continue
+						}
+					}
+					glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", resHistory)
+					continue
+				}
+				resHistory.Count++
+				if err := uSvr.db.Save(resHistory).Error; err != nil {
 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 					continue
 				}
@@ -696,7 +707,17 @@ func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) 
 	dataArr, err := u.redis.ZRevRange(FormatUserHistoryHotKey(comId, targetType), 0, setLen-1).Result()
 	return dataArr, err
 }
-
+func (u *UserService) GetUserHistory(comID, userID, targetID int, targettype string) (*echoapp.History, error) {
+	history := &echoapp.History{}
+	if err := u.db.Debug().
+		Table("user_history").
+		Where("user_id=? AND com_id =? AND target_id=? AND type=?", userID, comID, targetID, targettype).
+		Find(history).
+		Error; err != nil {
+		return nil, err
+	}
+	return history, nil
+}
 func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
 	if err := u.db.Debug().
@@ -712,6 +733,7 @@ func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) (
 }
 
 func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err error) {
+
 	data, err := json.Marshal(history)
 	if err != nil {
 		return errors.Wrap(err, "redis set")

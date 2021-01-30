@@ -210,7 +210,7 @@ type GoodsService interface {
 type GoodsSeckillingParam struct {
 	ID      int       `json:"id" `
 	ComID   int       `json:"com_id"`
-	GoodsID int       `json:"good_id"`
+	GoodsID int       `json:"goods_id"`
 	StartAt time.Time `json:"start_at"`
 	EndAt   time.Time `json:"end_at"`
 	Crontab string    `json:"crontab"`
@@ -220,7 +220,7 @@ type GoodsSeckillingParam struct {
 
 //SeckillingGoodsRespose : 返回的秒杀商品字段
 type SeckillingGoodsRespose struct {
-	GoodsID    int     `json:"good_id"`
+	GoodsID    int     `json:"goods_id"`
 	StartAt    string  `json:"start_at"`
 	Name       string  `json:"name"`
 	SmallCover string  `json:"small_cover"`
