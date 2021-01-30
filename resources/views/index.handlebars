@@ -29,7 +29,7 @@
         window.localStorage.setItem("wx_auth_before_return_url","")
         setCookie("token", '{{user.userToken}}', 10)
         //console.log(document.cookie)
-        //window.location.href = returnUrl
+        window.location.href = returnUrl
     }
 
     console.log('clientType','{{clientType}}')

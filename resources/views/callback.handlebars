@@ -10,7 +10,10 @@
     var url = window.location.href
     window.localStorage.setItem("wx_auth_before_return_url", url)
     // handlebar 转义问题
-    window.location.href = "{{{auth_url}}}"
+    var authUrl =  "{{{auth_url}}}"
+    setTimeout(function (){
+        window.location.href = authUrl
+    }, 1000)
 </script>
 </body>
 </html>
