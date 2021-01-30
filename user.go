@@ -99,12 +99,14 @@ func (*UserRole) TableName() string {
 
 type History struct {
 	ID        uint `gorm:"primary_key"`
+	UpdatedAt time.Time
 	CreatedAt time.Time
 	DeletedAt *time.Time `sql:"index"`
 	Type      string     `json:"type"`
 	TargetId  uint       `json:"target_id"`
 	UserID    int64      `json:"user_id"`
 	ComId     uint       `json:"com_id"`
+	Count     int        `json:"count"`
 }
 
 func (*History) TableName() string {
