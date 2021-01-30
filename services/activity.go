@@ -681,6 +681,57 @@ func (aSvr ActivityService) GetUserAwards(userID, lastID, limit uint) ([]*echoap
 	return userAwards, nil
 }
 
+// 获取用户的奖品
+func (aSvr ActivityService) GetUserAward(awardID uint) (*echoapp.UserAward, error) {
+	var userAwards echoapp.UserAward
+	if err := aSvr.db.Where("id = ?", awardID).Find(&userAwards).Error; err != nil {
+		return nil, errors.Wrap(err, "getUserAward")
+	}
+	return &userAwards, nil
+}
+
+// 核销用户的商品 staffID 核销员工ID, userAwardID 用户奖品表主键 , num 核销数量
+func (aSvr ActivityService) CheckUserAward(staffID, userAwardID uint, num int) error {
+	var userAwards echoapp.UserAward
+	if err := aSvr.db.Where("id = ?", userAwardID).Find(&userAwards).Error; err != nil {
+		return errors.Wrap(err, "getUserAward")
+	}
+
+	if userAwards.Num < uint(num) {
+		return errors.New("超过可以核销的上限")
+	}
+
+	tx := aSvr.db.Begin()
+
+	userAwards.Num = userAwards.Num - uint(num)
+	glog.DefaultLogger().WithField("arawd", userAwards).Info("user award")
+	if err := tx.Save(&userAwards).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "save UserAward")
+	}
+
+	history := &echoapp.AwardHistory{
+		UserID:    userAwards.UserID,
+		StaffID:   staffID,
+		ComID:     userAwards.ComID,
+		GoodsID:   userAwards.GoodsID,
+		Method:    "grapAward",
+		Num:       -num,
+		CreatedAt: time.Now(),
+	}
+
+	glog.DefaultLogger().WithField("history", history).Info("award history")
+	if err := tx.Debug().Save(history).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "save UserAward")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return errors.Wrap(err, "tx commit err")
+	}
+	return nil
+}
+
 // 用户奖品历史获得和领取的记录
 func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
 	var awardHistories []*echoapp.AwardHistory
@@ -693,8 +744,36 @@ func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) 
 		limit = 10
 	}
 
-	query.Limit(limit).Order("id desc")
-	if err := query.Find(&awardHistories).Error; err != nil {
+	query = query.Limit(limit).Order("id desc")
+	if err := query.Debug().Find(&awardHistories).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+
+	for _, award := range awardHistories {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrap(err, "db exec")
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+
+	return awardHistories, nil
+}
+
+//staffCheckedAwards
+func (aSvr ActivityService) StaffCheckedAwards(comID, staffID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
+	var awardHistories []*echoapp.AwardHistory
+	query := aSvr.db.Debug().Where("com_id = ? and staff_id = ? and method = 'grapAward' ", comID, staffID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	query = query.Limit(limit).Order("id desc")
+	if err := query.Debug().Find(&awardHistories).Error; err != nil {
 		return nil, errors.Wrap(err, "db exec")
 	}
 

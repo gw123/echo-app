@@ -55,22 +55,23 @@ func (a AwardActivityDriver) Fail(userActivity *echoapp.UserActivity) error {
 }
 
 func (a AwardActivityDriver) SendUserAward(userActivity *echoapp.UserActivity) error {
-	glog.Info("发送活动奖品")
+	glog.DefaultLogger().Info("发送活动奖品")
 	activity, err := a.Dao.GetActivity(userActivity.ActivityID)
 	if err != nil {
 		return err
 	}
 	for _, award := range activity.Rewards {
-		if err := a.Dao.AddUserAward(userActivity.UserID, award.GoodsId, award.Num); err != nil {
+		if err := a.Dao.AddUserAward(activity.ComId, userActivity.UserID, award.GoodsId, award.Num); err != nil {
 			return err
 		}
 		awardHistory := &echoapp.AwardHistory{
+			ComID:          activity.ComId,
 			UserID:         userActivity.UserID,
 			GoodsID:        award.GoodsId,
 			UserActivityID: userActivity.ID,
 			ActivityID:     userActivity.ActivityID,
 			Method:         echoapp.AwardHistoryTypeActivity,
-			Num:            award.Num,
+			Num:            int(award.Num),
 		}
 		if err := a.Record(awardHistory); err != nil {
 			return err
