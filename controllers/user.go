@@ -355,6 +355,7 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
+	limitint = 10
 	hisList, err := sCtl.userSvr.GetUserHistoryList(userId, lastId, limitint)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
@@ -370,6 +371,10 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	hisResMap := make(map[string][]*GoodsInfo)
 	var goodslist []*GoodsInfo
 	hisListLen := len(hisList)
+	if hisListLen == 0 {
+		return sCtl.Success(ctx, hisResMap)
+	}
+
 	browseTime := hisList[0].CreatedAt.Format("2006-01-02")
 	goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
 	//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[0].TargetId)
@@ -386,7 +391,7 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	for i := 1; i < hisListLen; i++ {
 		tempGoods := &GoodsInfo{}
 		//if hisList[i].Type=="goods"{
-		goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
+		goods, err := sCtl.goodSvr.GetGoodsById(hisList[i].TargetId)
 		//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[i].TargetId)
 		if err != nil {
 			glog.Info("sCtl.goodSvr.GetGoodsById")
