@@ -87,7 +87,7 @@ func startUserServer() {
 		Skipper: middleware.DefaultSkipper,
 		Jws:     app.MustGetJwsHelper(),
 		//IgnoreAuth: true,
-		//MockUserId: 59,
+		//MockUserId: 58,
 	}
 
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)
