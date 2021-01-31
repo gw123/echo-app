@@ -219,7 +219,7 @@ type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
 
 	//
-	UniPreOrder(order *Order, user *User) (*UnifiedOrderResp, error)
+	UniPreOrder(ctx echo.Context, order *Order, user *User) (*UnifiedOrderResp, error)
 	//预下单校验订单的接口
 	PreCheckOrder(order *Order) error
 

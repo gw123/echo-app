@@ -80,7 +80,7 @@ type WechatService interface {
 	GetOfficialServer(ctx echo.Context, comID uint) (*server.Server, error)
 	GetAuthCodeUrl(comId uint, uri string) (url string, err error)
 	GetUserInfo(ctx context.Context, comId uint, code string) (*mpoauth2.UserInfo, error)
-	UnifiedOrder(order *Order, openId string) (*WxPreOrderResponse, error)
+	UnifiedOrder(ctx echo.Context, order *Order, openId string) (*WxPreOrderResponse, error)
 	QueryOrder(order *Order) (string, error)
 	PayCallback(r *http.Request) (*wechat.NotifyRequest, error)
 	GetJsConfig(comID uint, url string) (*js.Config, error)

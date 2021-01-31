@@ -144,7 +144,7 @@ func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) (
 
 func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	if err := gSvr.db.Debug().Where(" id = ?", goodsId).First(goods).Error; err != nil {
+	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
 	return goods, nil
@@ -226,7 +226,7 @@ func (gSvr *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
 
 func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Cart, error) {
 	cart := &echoapp.Cart{}
-	if err := gSvr.db.Debug().Where("com_id = ? and  user_id = ?", comID, userID).
+	if err := gSvr.db.Where("com_id = ? and  user_id = ?", comID, userID).
 		First(cart).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			cart.Content = []*echoapp.CartGoodsItem{}
@@ -341,7 +341,7 @@ func (gSvr *GoodsService) IsValidCartGoods(item *echoapp.CartGoodsItem) error {
 		}
 
 		if item.RealPrice != goods.RealPrice {
-			glog.Errorf("cart price:%f, realPrice:%f", item.RealPrice, goods.RealPrice)
+			glog.DefaultLogger().Errorf("cart price:%f, realPrice:%f", item.RealPrice, goods.RealPrice)
 			return errors.New(item.SkuName + "商品价格发生变动")
 		}
 

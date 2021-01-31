@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	echoapp_util "github.com/gw123/echo-app/util"
+
 	"github.com/silenceper/wechat/v2/officialaccount/message"
 
 	"github.com/silenceper/wechat/v2/officialaccount"
@@ -290,7 +292,11 @@ func (we *WechatService) getRequest(method string, u string, data map[string]str
 }
 
 /****/
-func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
+func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
+	if len(order.GoodsList) == 0 {
+		return nil, errors.New("订单中缺少商品")
+	}
+
 	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
 	if err != nil {
 		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
@@ -328,10 +334,16 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*ech
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
 	if !ok {
-		glog.Infof("weixin unified order 签名验证失败")
+		echoapp_util.ExtractEntry(ctx).Error("weixin unified order 签名验证失败")
 		return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
 	}
 
+	if resp.ResultCode == "FAIL" {
+		echoapp_util.ExtractEntry(ctx).Errorf("weixin unified order %s", resp.ErrCodeDes)
+		return nil, errors.New("预下单失败" + resp.ErrCodeDes)
+	}
+
+	echoapp_util.ExtractEntry(ctx).Infof("wx unified order resp %+v", resp)
 	// 微信统一下单后，获取微信小程序支付、APP支付、微信内H5支付所需要的 paySign
 	//(这里改sdk 不太友好 需要自己对返回结果再次签名算出paySign，前面接口返回的sign 是请求的签名和paySign不是一回事)
 	timeStamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -376,7 +388,7 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
 
-	glog.Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal)))
+	glog.DefaultLogger().Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal)))
 	if resp.ResultCode == "SUCCESS" {
 		if resp.TradeState == "SUCCESS" {
 			if resp.TotalFee == strconv.Itoa(int(order.RealTotal)) {

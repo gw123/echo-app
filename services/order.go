@@ -121,12 +121,14 @@ func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, err
 	return codeTicket, nil
 }
 
-func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {
+func (oSvr *OrderService) UniPreOrder(ctx echo.Context, order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {
 	///glog.DefaultLogger().Infof("user: %+v,openid:%s", user, user.Openid)
-	resp, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
+	resp, err := oSvr.wechat.UnifiedOrder(ctx, order, user.Openid)
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")
 	}
+
+	echoapp_util.ExtractEntry(ctx).Infof("add fetchOrderJob")
 	// 拉取订单支付状态
 	fetchJob := &jobs.OrderCreate{Order: order}
 	oSvr.jobPusher.PostJob(context.Background(), fetchJob)

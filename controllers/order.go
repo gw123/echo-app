@@ -105,6 +105,7 @@ func (oCtl *OrderController) PreOrder(ctx echo.Context) error {
 	}
 
 	oCtl.setOrderInfoFromCtx(ctx, params)
+	echoapp_util.ExtractEntry(ctx).Infof("preOrder order: %+v", params)
 
 	addr, err := oCtl.userSvr.GetUserAddrById(int64(params.AddressId))
 	if err != nil {
@@ -112,13 +113,14 @@ func (oCtl *OrderController) PreOrder(ctx echo.Context) error {
 	}
 	params.Address = addr
 
+	echoapp_util.ExtractEntry(ctx).Infof("to preCheckOrder")
 	if err := oCtl.orderSvr.PreCheckOrder(params); err != nil {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
 	params.ExpressStatus = echoapp.OrderStatusToShip
-	glog.Info("begin uniPreOrder")
-	resp, err := oCtl.orderSvr.UniPreOrder(params, user)
+	echoapp_util.ExtractEntry(ctx).Infof("to uniPreOrder")
+	resp, err := oCtl.orderSvr.UniPreOrder(ctx, params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return oCtl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
@@ -154,7 +156,7 @@ func (oCtl *OrderController) OpenVip(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	resp, err := oCtl.orderSvr.UniPreOrder(params, user)
+	resp, err := oCtl.orderSvr.UniPreOrder(nil, params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return oCtl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)
