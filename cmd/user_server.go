@@ -84,10 +84,10 @@ func startUserServer() {
 	// jwsAuth := e.Group("/v1/user")
 	jwsAuth := e.Group("/" + mode + "/user/:com_id")
 	jwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
-		MockUserId: 59,
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//IgnoreAuth: true,
+		//MockUserId: 58,
 	}
 
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(jwsOpt)

@@ -630,87 +630,87 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 }
 
 //redis
-func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
-	if history.TargetId <= 0 {
-		return errors.New("目标不存在")
-	}
-	if err := uSvr.UpdateCacheUserHistory(history); err != nil {
-		return errors.Wrap(err, "UpdateCacheUserHistory")
-	}
-	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
-	//fmt.Println(len)
-	if err != nil {
-		if len == 0 {
-			return errors.Wrap(err, "redis Llen is nil")
-		}
-		return errors.Wrap(err, "resdis LLen")
-	}
-	if len >= 1 {
-		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Millisecond*5).Val(); ok {
-			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
-			if err != nil {
-				uSvr.redis.Del(RedisUserHistoryLockKey)
-				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
-			}
-			for _, val := range targetArr {
-				var resHistory = &echoapp.History{}
-				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
-					continue
-				}
-				//storehis := &echoapp.History{}
-				if err := uSvr.db.Where(resHistory).First(resHistory).Error; err != nil {
-					if err == gorm.ErrRecordNotFound {
-						resHistory.Count++
-						resHistory.UpdatedAt = time.Now()
-						if err := uSvr.db.Create(resHistory).Error; err != nil {
-							glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
-							continue
-						}
-						continue
-					}
-					glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", resHistory)
-					continue
-				}
-				resHistory.Count++
-				if err := uSvr.db.Save(resHistory).Error; err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
-					continue
-				}
-				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
-				if err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
-					continue
-				}
-			}
-			uSvr.redis.Del(RedisUserHistoryLockKey)
-		} else {
-			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
-		}
-	}
-	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
-		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
-	}
-	return nil
-}
-
 // func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 // 	if history.TargetId <= 0 {
 // 		return errors.New("目标不存在")
 // 	}
-// 	if err := uSvr.db.Where(history).First(history).Error; err != nil {
-// 		if err == gorm.ErrRecordNotFound {
-// 			history.Count++
-// 			history.UpdatedAt = time.Now()
-// 			return uSvr.db.Create(history).Error
-
-// 		}
-// 		glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", history)
-// 		return errors.Wrap(err, "db query")
+// 	if err := uSvr.UpdateCacheUserHistory(history); err != nil {
+// 		return errors.Wrap(err, "UpdateCacheUserHistory")
 // 	}
-// 	history.Count++
-// 	return uSvr.db.Save(history).Error
+// 	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
+// 	//fmt.Println(len)
+// 	if err != nil {
+// 		if len == 0 {
+// 			return errors.Wrap(err, "redis Llen is nil")
+// 		}
+// 		return errors.Wrap(err, "resdis LLen")
+// 	}
+// 	if len >= 1 {
+// 		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Millisecond*5).Val(); ok {
+// 			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
+// 			if err != nil {
+// 				uSvr.redis.Del(RedisUserHistoryLockKey)
+// 				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
+// 			}
+// 			for _, val := range targetArr {
+// 				var resHistory = &echoapp.History{}
+// 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 					continue
+// 				}
+// 				//storehis := &echoapp.History{}
+// 				if err := uSvr.db.Where(resHistory).First(resHistory).Error; err != nil {
+// 					if err == gorm.ErrRecordNotFound {
+// 						resHistory.Count++
+// 						resHistory.UpdatedAt = time.Now()
+// 						if err := uSvr.db.Create(resHistory).Error; err != nil {
+// 							glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 							continue
+// 						}
+// 						continue
+// 					}
+// 					glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", resHistory)
+// 					continue
+// 				}
+// 				resHistory.Count++
+// 				if err := uSvr.db.Save(resHistory).Error; err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 					continue
+// 				}
+// 				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
+// 				if err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
+// 					continue
+// 				}
+// 			}
+// 			uSvr.redis.Del(RedisUserHistoryLockKey)
+// 		} else {
+// 			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
+// 		}
+// 	}
+// 	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
+// 		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
+// 	}
+// 	return nil
 // }
+
+func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
+	if history.TargetId <= 0 {
+		return errors.New("目标不存在")
+	}
+	if err := uSvr.db.Where(history).First(history).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			history.Count++
+			history.UpdatedAt = time.Now()
+			return uSvr.db.Create(history).Error
+
+		}
+		glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", history)
+		return errors.Wrap(err, "db query")
+	}
+	history.Count++
+	return uSvr.db.Save(history).Error
+}
 
 func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
 	if length > 500 {
