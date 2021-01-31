@@ -629,9 +629,13 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 	return errors.Wrap(err, "UpdateCacheUserCollection:sadd")
 }
 
+//redis
 func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 	if history.TargetId <= 0 {
 		return errors.New("目标不存在")
+	}
+	if err := uSvr.UpdateCacheUserHistory(history); err != nil {
+		return errors.Wrap(err, "UpdateCacheUserHistory")
 	}
 	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
 	//fmt.Println(len)
@@ -641,8 +645,8 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 		}
 		return errors.Wrap(err, "resdis LLen")
 	}
-	if len >= 2 {
-		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); ok {
+	if len >= 1 {
+		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Millisecond*5).Val(); ok {
 			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
 			if err != nil {
 				uSvr.redis.Del(RedisUserHistoryLockKey)
@@ -654,12 +658,16 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 					continue
 				}
+				//storehis := &echoapp.History{}
 				if err := uSvr.db.Where(resHistory).First(resHistory).Error; err != nil {
 					if err == gorm.ErrRecordNotFound {
+						resHistory.Count++
+						resHistory.UpdatedAt = time.Now()
 						if err := uSvr.db.Create(resHistory).Error; err != nil {
 							glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
 							continue
 						}
+						continue
 					}
 					glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", resHistory)
 					continue
@@ -683,8 +691,26 @@ func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
 		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
 	}
-	return uSvr.UpdateCacheUserHistory(history)
+	return nil
 }
+
+// func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
+// 	if history.TargetId <= 0 {
+// 		return errors.New("目标不存在")
+// 	}
+// 	if err := uSvr.db.Where(history).First(history).Error; err != nil {
+// 		if err == gorm.ErrRecordNotFound {
+// 			history.Count++
+// 			history.UpdatedAt = time.Now()
+// 			return uSvr.db.Create(history).Error
+
+// 		}
+// 		glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", history)
+// 		return errors.Wrap(err, "db query")
+// 	}
+// 	history.Count++
+// 	return uSvr.db.Save(history).Error
+// }
 
 func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
 	if length > 500 {
@@ -718,13 +744,13 @@ func (u *UserService) GetUserHistory(comID, userID, targetID int, targettype str
 	}
 	return history, nil
 }
-func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
+func (u *UserService) GetUserHistoryList(userId, comID int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
 	if err := u.db.Debug().
 		Table("user_history").
-		Where("user_id=? AND id>?", userId, lastId).
+		Where("user_id=? AND com_id=? AND id>?", userId, comID, lastId).
 		Limit(limit).
-		Order("created_at asc").
+		Order("updated_at desc").
 		Find(&historyList).
 		Error; err != nil {
 		return nil, errors.Wrap(err, "GetUserCollectList")
