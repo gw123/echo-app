@@ -161,7 +161,7 @@ type UserService interface {
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
 	// History 用户历史记录
 	UpdateCacheUserHistory(history *History) (err error)
-	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
+	GetUserHistoryList(userId, comID int64, lastId uint, limit int) ([]*History, error)
 	GetCacheUserHistoryList(len uint) ([]string, error)
 	CreateUserHistory(history *History) error
 	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)
