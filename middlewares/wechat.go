@@ -3,6 +3,7 @@ package echoapp_middlewares
 import (
 	"context"
 	"net/http"
+	"time"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -90,6 +91,11 @@ func NewWechatAuthMiddlewares(
 					echoapp_util.SetCtxUser(c, newUser)
 					echoapp_util.SetCtxUserId(c, newUser.Id)
 					echoapp_util.ExtractEntry(c).Infof("授权成功")
+					c.SetCookie(&http.Cookie{
+						Name:    "token",
+						Value:   newUser.JwsToken,
+						Expires: time.Now().Add(time.Hour * 72),
+					})
 				}
 
 				return next(c)

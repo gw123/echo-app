@@ -27,8 +27,9 @@
     //console.log('returnUrl', returnUrl)
     if(returnUrl!= ""){
         window.localStorage.setItem("wx_auth_before_return_url","")
-        setCookie("token", '{{user.userToken}}', 10)
+        //setCookie("token", '{{user.userToken}}', 1)
         //console.log(document.cookie)
+        alert('returnUrl ' + returnUrl )
         window.location.href = returnUrl
     }
 
