@@ -12,7 +12,7 @@ RUN apk add --update --no-cache \
     && rm -rf /var/cache/apk/*
 
 COPY resources/views /usr/local/var/echoapp/resources/views
-#COPY resources/public /usr/local/var/echoapp/resources/public
+COPY resources/public /usr/local/var/echoapp/resources/public
 COPY echoapp /usr/local/bin/echoapp
 RUN  chmod +x /usr/local/bin/echoapp
 #COPY docker-entrypoint /usr/local/bin/

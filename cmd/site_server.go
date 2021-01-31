@@ -71,9 +71,10 @@ func startSiteServer() {
 	)
 
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//IgnoreAuth: true,
+		IsTry: true,
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, videoSvr, echoapp.ConfigOpts.Asset)

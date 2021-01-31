@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -134,7 +135,15 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			data["vip_level"] = user.VipLevel
 			response["user"] = data
 		}
+
+		ctx.SetCookie(&http.Cookie{
+			Name:    "token",
+			Value:   user.JwsToken,
+			Expires: time.Now().Add(time.Hour * 100),
+		})
 	}
+
+	echoapp_util.ExtractEntry(ctx).Info("index response: %+v", response["user"])
 	return ctx.Render(http.StatusOK, "index", response)
 }
 

@@ -3,7 +3,7 @@ package echoapp_middlewares
 import (
 	"context"
 	"net/http"
-	"net/url"
+	"time"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
@@ -52,23 +52,13 @@ func NewWechatAuthMiddlewares(
 				}
 			}
 
-			//授权回调处理
-			//var path string
-			//if strings.HasPrefix(c.Request().URL.Path, "/index-dev") {
-			//	path = fmt.Sprintf("/index-dev/%d/wxAuthCallBack", comId)
-			//} else {
-			//	path = fmt.Sprintf("/index/%d/wxAuthCallBack", comId)
-			//}
-
-			queryValues, err := url.ParseQuery(c.Request().URL.RawQuery)
+			state := c.QueryParam("state")
+			echoapp_util.ExtractEntry(c).Info("params state is ", state)
 			//if c.Request().URL.Path == path {
-			if queryValues.Get("state") == "wx_callback" {
+			if state == "wx_callback" {
 				echoapp_util.ExtractEntry(c).Info("wx_callback")
-				if err != nil {
-					return c.HTML(http.StatusInternalServerError, "url解析失败")
-				}
 
-				code := queryValues.Get("code")
+				code := c.QueryParam("code")
 				if code == "" {
 					echoapp_util.ExtractEntry(c).WithError(err).Error("code为空")
 					return c.HTML(http.StatusInternalServerError, "参数错误")
@@ -101,6 +91,11 @@ func NewWechatAuthMiddlewares(
 					echoapp_util.SetCtxUser(c, newUser)
 					echoapp_util.SetCtxUserId(c, newUser.Id)
 					echoapp_util.ExtractEntry(c).Infof("授权成功")
+					c.SetCookie(&http.Cookie{
+						Name:    "token",
+						Value:   newUser.JwsToken,
+						Expires: time.Now().Add(time.Hour * 72),
+					})
 				}
 
 				return next(c)

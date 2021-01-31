@@ -1,4 +1,4 @@
-IMAGE_TAG_VERSION = 1.5.6
+IMAGE_TAG_VERSION = 1.8.4
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/echoapp:$(IMAGE_TAG_VERSION)"
 DEFAULT_BUILD_TAG = "1.10.1-alpine"
 #DOCKER_BUILD_PATH=/Users/mac/code/docker/images/echoapp
@@ -65,6 +65,9 @@ upload-user-config:
 file-dir:
 	ssh root@sh2 mkdir -p /data/apps/file
 	ssh root@sh2 mkdir -p /data/apps/file/resources/storage
+
+upload-view:
+	scp -r resources/views/ root@sh2:/data/apps/echoapp/resources/views
 
 build:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags  '-w -s' -o echoapp ./entry/main.go &&\

@@ -356,7 +356,9 @@ func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
+	limitint = 10
 	hisList, err := sCtl.userSvr.GetUserHistoryList(userId, int64(comID), lastId, limitint)
+
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
