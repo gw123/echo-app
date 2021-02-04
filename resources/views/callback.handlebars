@@ -13,12 +13,33 @@
     // handlebar 转义问题
     var authUrl =  "{{{auth_url}}}"
     //alert("authUrl " + authUrl)
-    function setCookie(name,value,iDay){
-        var oDate=new Date();
-        oDate.setDate(oDate.getDate()+iDay);    //iDay是几天过期
-        document.cookie=name+'='+value+';expires='+oDate;
+    // 获取cookie
+    function getCookie (name) {
+        var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)")
+        if (arr = document.cookie.match(reg)) {
+            return unescape(arr[2])
+        } else {
+            return null
+        }
     }
-    setCookie("token", '', 1)
+
+    // 设置cookie
+    function setCookie (c_name, value, days) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() + days*24*60*60*1000);
+        document.cookie = c_name + "=" + escape(value) + ";expires=" + exp.toGMTString()
+    }
+
+    // 删除cookie
+    function delCookie (name) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() - 1)
+        var cval = getCookie(name)
+        if (cval != null)
+            document.cookie = name + "=" + cval + ";expires=" + exp.toGMTString()
+    }
+
+    delCookie("token")
 
     setTimeout(function (){
         window.location.href = authUrl

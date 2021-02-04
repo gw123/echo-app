@@ -44,8 +44,13 @@ func NewWechatAuthMiddlewares(
 					return next(c)
 				} else {
 					if user, err = userSvr.GetUserById(userId); err == nil {
-						echoapp_util.SetCtxUser(c, user)
-						return next(c)
+						// 校验一下用户是不是当前公司的用户
+						if user.ComId == comId {
+							echoapp_util.SetCtxUser(c, user)
+							return next(c)
+						} else {
+							echoapp_util.ExtractEntry(c).Errorf("获取到的user comID ！= request comID", user.ComId, comId)
+						}
 					} else {
 						echoapp_util.ExtractEntry(c).WithError(err).Errorf("获取用户信息失败UserId:%d", userId)
 					}

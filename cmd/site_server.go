@@ -80,12 +80,12 @@ func startSiteServer() {
 	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, videoSvr, echoapp.ConfigOpts.Asset)
 
 	wechatGroup := e.Group("/index-dev")
-	wechatGroup.Use(tryJwsMiddle, companyMiddleware, weChatMiddle)
+	wechatGroup.Use(companyMiddleware, tryJwsMiddle, weChatMiddle)
 	wechatGroup.GET("/:com_id", siteCtl.Index)
 	wechatGroup.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
 
 	wechatGroup2 := e.Group("/index")
-	wechatGroup2.Use(tryJwsMiddle, companyMiddleware, weChatMiddle)
+	wechatGroup2.Use(companyMiddleware, tryJwsMiddle, weChatMiddle)
 	wechatGroup2.GET("/:com_id", siteCtl.Index)
 	wechatGroup2.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
 

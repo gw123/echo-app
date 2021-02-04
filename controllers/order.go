@@ -156,7 +156,7 @@ func (oCtl *OrderController) OpenVip(ctx echo.Context) error {
 		return oCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 
-	resp, err := oCtl.orderSvr.UniPreOrder(nil, params, user)
+	resp, err := oCtl.orderSvr.UniPreOrder(ctx, params, user)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return oCtl.Fail(ctx, echoapp.CodeArgument, "用户不存在", err)

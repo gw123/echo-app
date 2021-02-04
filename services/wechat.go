@@ -297,11 +297,11 @@ func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, op
 		return nil, errors.New("订单中缺少商品")
 	}
 
-	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	//com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	com, err := we.comSvr.GetCompanyById(order.ComId)
 	if err != nil {
 		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
 	}
-
 	var appID string
 	if order.ClientType == echoapp.ClientWxOfficial {
 		appID = com.WxOfficialAppId
@@ -329,6 +329,12 @@ func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, op
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
 
+	echoapp_util.ExtractEntry(ctx).Infof("wx unified order resp %+v", resp)
+	if resp.ResultCode == "FAIL" {
+		echoapp_util.ExtractEntry(ctx).Errorf("weixin unified order %s", resp.ErrCodeDes)
+		return nil, errors.New("预下单失败" + resp.ErrCodeDes + resp.ReturnMsg)
+	}
+
 	ok, err := wechat.VerifySign(com.WxPaymentKey, wechat.SignType_MD5, resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "UnifiedOrder")
@@ -338,12 +344,6 @@ func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, op
 		return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
 	}
 
-	if resp.ResultCode == "FAIL" {
-		echoapp_util.ExtractEntry(ctx).Errorf("weixin unified order %s", resp.ErrCodeDes)
-		return nil, errors.New("预下单失败" + resp.ErrCodeDes)
-	}
-
-	echoapp_util.ExtractEntry(ctx).Infof("wx unified order resp %+v", resp)
 	// 微信统一下单后，获取微信小程序支付、APP支付、微信内H5支付所需要的 paySign
 	//(这里改sdk 不太友好 需要自己对返回结果再次签名算出paySign，前面接口返回的sign 是请求的签名和paySign不是一回事)
 	timeStamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -362,7 +362,7 @@ func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, op
 
 /***/
 func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
-	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	com, err := we.comSvr.GetCompanyById(order.ComId)
 	if err != nil {
 		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
 	}
@@ -373,7 +373,6 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 	} else {
 		appID = com.WxMiniAppId
 	}
-	//glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
 
 	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, true)
 	client.SetCountry(wechat.China)
@@ -388,13 +387,13 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
 
-	glog.DefaultLogger().Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal)))
+	glog.DefaultLogger().Info("queryOrder", resp.ReturnCode+" -- "+resp.TradeState+" -- "+resp.TotalFee+" -- "+strconv.Itoa(int(order.RealTotal)))
 	if resp.ResultCode == "SUCCESS" {
 		if resp.TradeState == "SUCCESS" {
 			if resp.TotalFee == strconv.Itoa(int(order.RealTotal)) {
 				return echoapp.OrderPayStatusPaid, nil
 			} else {
-				glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
+				glog.DefaultLogger().Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
 				return echoapp.OrderPayStatusUnpay, errors.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
 			}
 		} else if resp.TradeState == "REFUND" {
