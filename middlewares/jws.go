@@ -50,7 +50,7 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			l := len(authScheme)
 			if token == "" {
 				if !(len(auth) > l+1 && auth[:l] == authScheme) {
-					echoapp_util.ExtractEntry(c).Error("未设置token")
+					echoapp_util.ExtractEntry(c).Error("获取请求token失败")
 					if opt.IsTry {
 						return next(c)
 					} else {

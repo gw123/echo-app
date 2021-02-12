@@ -109,7 +109,7 @@ func NewWechatAuthMiddlewares(
 				//echoapp_util.ExtractEntry(c).WithField("c.request", c.Request().URL).Infof("current page url: %s", c.Request().URL.String())
 				authUrl, err := wechat.GetAuthCodeUrl(comId, c.Request().URL.Path)
 				if err != nil || authUrl == "" {
-					echoapp_util.ExtractEntry(c).WithError(err).Error("获取授权Url失败")
+					echoapp_util.ExtractEntry(c).Errorf("获取授权Url失败 %v", err)
 					return c.String(http.StatusInternalServerError, "系统错误请重试: not get auth url")
 				}
 				echoapp_util.ExtractEntry(c).Infof("jump to wxAuth authUrl %s", authUrl)
