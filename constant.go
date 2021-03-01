@@ -46,15 +46,16 @@ const (
 )
 
 const (
-	CodeNotFound   = 400
-	CodeNoLogin    = 401
-	CodeNoAuth     = 402
-	CodeDBError    = 403
-	CodeCacheError = 404
-	CodeArgument   = 405
-	CodeNotAllow   = 406
-	CodeEtcdError  = 407
-	CodeInnerError = 501
+	CodeNotFound                = 400
+	CodeNoLogin                 = 401
+	CodeNoAuth                  = 402
+	CodeDBError                 = 403
+	CodeCacheError              = 404
+	CodeArgument                = 405
+	CodeNotAllow                = 406
+	CodeEtcdError               = 407
+	CodeInnerError              = 501
+	CodeCartItemNeedRemoveError = 502
 )
 
 var ErrNotFoundCache = errors.New("缓冲不存在或者已经过期")
@@ -71,6 +72,7 @@ var ErrTicketOverdue = errors.New("门票已经过期")
 var ErrTicketUsed = errors.New("门票已经被使用")
 var ErrTicketNotEnough = errors.New("已购门票数量不足,请核对数量")
 var ErrOrderFormat = errors.New("订单格式不对")
+var ErrCartItemNeedRemove = errors.New("购物车数据异常，需要删除当前数据")
 
 type AppError interface {
 	error
@@ -132,6 +134,7 @@ var AppErrTicketOverdue = NewAppError(CodeNotAllow, "", ErrTicketOverdue)
 var AppErrTicketUsed = NewAppError(CodeNotAllow, "", ErrTicketUsed)
 var AppErrTicketNotEnough = NewAppError(CodeNotAllow, "", ErrTicketNotEnough)
 var AppErrOrderFromat = NewAppError(CodeArgument, "", ErrOrderFormat)
+var AppErrCartItemNeedRemove = NewAppError(CodeCartItemNeedRemoveError, "购物车数据失效需要删除", ErrCartItemNeedRemove)
 
 // 微信模板消息
 /***

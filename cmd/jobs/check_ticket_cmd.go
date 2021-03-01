@@ -49,7 +49,7 @@ var CheckTicketDaemonCmd = &cobra.Command{
 		opt := echoapp.ConfigOpts.Job
 		taskManager, err := gworker.NewConsumer(opt, model)
 		if err != nil {
-			glog.Errorf("NewTaskManager : %s", err.Error())
+			glog.DefaultLogger().Errorf("NewTaskManager : %s", err.Error())
 			return
 		}
 		taskManager.StartWork("xyt", 1)

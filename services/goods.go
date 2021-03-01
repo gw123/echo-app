@@ -244,6 +244,20 @@ func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Ca
 	return cart, nil
 }
 
+func (gSvr *GoodsService) GetCartGoodsNum(comID uint, userID uint) (uint, error) {
+	cart := &echoapp.Cart{}
+	if err := gSvr.db.Where("com_id = ? and  user_id = ?", comID, userID).
+		First(cart).Error; err != nil {
+		return 0, err
+	}
+
+	var num uint = 0
+	for _, item := range cart.Content {
+		num += item.Num
+	}
+	return num, nil
+}
+
 func (gSvr *GoodsService) DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error {
 	item := &echoapp.CartGoodsItem{GoodsId: goodsID, SkuID: skuID}
 	return gSvr.updateCartGoods(comID, userID, item, "del")
@@ -256,7 +270,8 @@ func (gSvr *GoodsService) AddCartGoods(comID uint, userID uint, goodsItem *echoa
 func (gSvr *GoodsService) updateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem, action string) error {
 	if action != "del" {
 		if err := gSvr.IsValidCartGoods(goodsItem); err != nil {
-			return errors.Wrap(err, "商品校验失败")
+			return echoapp.AppErrCartItemNeedRemove
+			//return errors.Wrap(err, "商品校验失败")
 		}
 	}
 
@@ -265,7 +280,7 @@ func (gSvr *GoodsService) updateCartGoods(comID uint, userID uint, goodsItem *ec
 		return errors.Wrap(err, "GetCartGoodsList")
 	}
 
-	if err != nil && gorm.IsRecordNotFoundError(err) {
+	if gorm.IsRecordNotFoundError(err) {
 		cart = &echoapp.Cart{
 			ComId:  comID,
 			UserID: userID,

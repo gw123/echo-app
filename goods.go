@@ -192,6 +192,7 @@ type GoodsService interface {
 	GetCachedGoodsById(goodsId uint) (*Goods, error)
 	//购物车
 	GetCartGoodsList(comID uint, userID uint) (*Cart, error)
+	GetCartGoodsNum(comID uint, userID uint) (uint, error)
 	DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error
 	AddCartGoods(comID uint, userID uint, goods *CartGoodsItem) error
 	UpdateCartGoods(comID uint, userID uint, goods *CartGoodsItem) error

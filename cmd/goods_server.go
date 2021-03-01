@@ -84,6 +84,9 @@ func startGoodsServer() {
 	})
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
+	//todo cartgoods num
+	jwsAuth.GET("/getCartGoodsNum", goodsCtl.GetCartGoodsNum)
+
 	jwsAuth.POST("/addCartGoods", goodsCtl.AddCartGoods)
 	jwsAuth.POST("/delCartGoods", goodsCtl.DelCartGoods)
 	jwsAuth.POST("/clearCart", goodsCtl.ClearCart)

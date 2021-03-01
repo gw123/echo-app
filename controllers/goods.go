@@ -135,10 +135,11 @@ func (sCtl *GoodsController) AddCartGoods(ctx echo.Context) error {
 	if err := ctx.Bind(&goosdItem); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
+	echoapp_util.ExtractEntry(ctx).Infof("addCartGoods goodsItem : %+v", goosdItem)
 	//强制新加时数量为1
 	goosdItem.Num = 1
 	if err := sCtl.goodsSvr.AddCartGoods(comID, uint(userId), goosdItem); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
+		return sCtl.AppErr(ctx, echoapp.AppErrCartItemNeedRemove)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -177,7 +178,7 @@ func (sCtl *GoodsController) UpdateCartGoods(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 	if err := sCtl.goodsSvr.UpdateCartGoods(comID, uint(userID), goosdItem); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
+		return sCtl.AppErr(ctx, echoapp.AppErrCartItemNeedRemove)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -284,4 +285,18 @@ func (sCtl *GoodsController) GetSeckillingGoodsByQueryTime(ctx echo.Context) err
 
 	}
 	return sCtl.Success(ctx, seckillingGoodsList)
+}
+
+func (sCtl *GoodsController) GetCartGoodsNum(ctx echo.Context) error {
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
+	}
+	comID := echoapp_util.GetCtxComId(ctx)
+
+	num, err := sCtl.goodsSvr.GetCartGoodsNum(comID, uint(userID))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取购物车失败", err)
+	}
+	return sCtl.Success(ctx, map[string]interface{}{"num": num})
 }
