@@ -110,6 +110,19 @@ func (cmtCtrl *CommentController) ThumbUpComment(ctx echo.Context) error {
 	}
 	return cmtCtrl.Success(ctx, nil)
 }
+func (cmtCtrl *CommentController)GetGoodsApprovalRate(ctx echo.Context)  error {
+	goodsIDint,err:=strconv.ParseInt(ctx.QueryParam("goods_id"),10,64)
+	if err!=nil{
+		return cmtCtrl.Fail(ctx, echoapp.CodeArgument,"参数错误",err)
+	}
+	approvalRate,err:=cmtCtrl.commentSvc.GetGoodsApprovalRate(goodsIDint)
+	if err!=nil{
+		return cmtCtrl.Fail(ctx, echoapp.CodeDBError, "查询失败", err)
+	}
+	return cmtCtrl.Success(ctx,map[string]interface{}{
+		"approvalRate":		approvalRate,
+	})
+}
 
 func (cmtCtrl *CommentController) GetGoodsCommentNum(ctx echo.Context) error {
 	goodsIdint, err := strconv.ParseInt(ctx.QueryParam("goods_id"), 10, 64)

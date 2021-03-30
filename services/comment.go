@@ -70,7 +70,23 @@ func (cmtSvc *CommentService) GetGoodsCommentNum(goodsId int64) (int, error) {
 	}
 	return total, nil
 }
-
+func (cmtSvc *CommentService) GetGoodsApprovalRate(goodsId int64) (float64, error) {
+	var rate float64 = 0
+	type res struct {
+		Score float64 `json:"score"`
+	}
+	var scoreres []res
+	if err := cmtSvc.db.Table("comments").Select("score").Where("goods_id=?", goodsId).Find(&scoreres).Error; err != nil {
+		return 0, errors.Wrap(err, "getGoodsApprovalRate")
+	}
+	if len(scoreres) == 0 {
+		return 0, nil
+	}
+	for _, v := range scoreres {
+		rate += v.Score
+	}
+	return rate / float64(len(scoreres)), nil
+}
 func (cmtSvc *CommentService) GetSubCommentList(commentId int64, lastId uint, limit int) ([]*echoapp.Comment, error) {
 	var commentList []*echoapp.Comment
 	query := cmtSvc.db.Where("pid =?", commentId)

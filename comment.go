@@ -68,4 +68,5 @@ type CommentService interface {
 	GetGoodsCommentNum(goodsId int64) (int, error)
 	GetSubCommentList(id int64, lastId uint, limit int) ([]*Comment, error)
 	GetGoodsGoodCommentNum(goodsId int64) (int, error)
+	GetGoodsApprovalRate(goodsId int64) (float64, error)
 }

@@ -84,6 +84,7 @@ func startCommentServer() {
 	normal.GET("/getGoodsCommentNum", commentCtl.GetGoodsCommentNum)
 	normal.GET("/getSubCommentList", commentCtl.GetSubCommentList)
 	normal.GET("/upComment", commentCtl.ThumbUpComment)
+	normal.GET("/getGoodsApprovalRate", commentCtl.GetGoodsApprovalRate)
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.CommentServer.Addr); err != nil {
 			echoapp_util.DefaultLogger().WithError(err).Error("服务启动异常")

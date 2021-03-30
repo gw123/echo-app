@@ -61,22 +61,43 @@ func WFGHM(a, b float64, Ptheta, wight []float64) (float64, error) {
 // 	fmt.Println(res)
 // }
 
+// func LinguisticToTFS(value int) []float64 {
+// 	if value == 0 {
+// 		return []float64{0, 0, 0.25}
+// 	} else if value == 1 {
+// 		return []float64{0, 0.25, 0.5}
+// 	} else if value == 2 {
+// 		return []float64{0.25, 0.5, 0.75}
+// 	} else if value == 3 {
+// 		return []float64{0.5, 0.75, 1}
+// 	} else {
+// 		return []float64{0.75, 1, 1}
+// 	}
+// 	return nil
+// }
+//LinguisticToTFS 评分共0-6七个级别
 func LinguisticToTFS(value int) []float64 {
+
 	if value == 0 {
-		return []float64{0, 0, 0.25}
+		return []float64{0, 0, 0}
 	} else if value == 1 {
-		return []float64{0, 0.25, 0.5}
+		return []float64{0, 0, 0.25}
 	} else if value == 2 {
-		return []float64{0.25, 0.5, 0.75}
+		return []float64{0, 0.25, 0.5}
 	} else if value == 3 {
+		return []float64{0.25, 0.5, 0.75}
+	} else if value == 4 {
 		return []float64{0.5, 0.75, 1}
-	} else {
+	} else if value == 5 {
 		return []float64{0.75, 1, 1}
 	}
-	return nil
-}
+	return []float64{1, 1, 1}
 
+}
 func TFSToFS(tfn []float64) float64 {
+	if tfn[2] == 0 {
+		return 0
+	}
 	c_mean := tfn[2]
 	return ((tfn[0] + tfn[1] + tfn[2]) / c_mean) / 3
 }
