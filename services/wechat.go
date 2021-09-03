@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
+
 	echoapp_util "github.com/gw123/echo-app/util"
 
 	"github.com/silenceper/wechat/v2/officialaccount/message"
@@ -111,7 +113,9 @@ func (we *WechatService) GetAuthCodeUrl(comId uint, path string) (url string, er
 	if err != nil || com.WxOfficialAppId == "" {
 		return "", errors.Wrapf(err, "WxLogin 获取com.WxOfficialAppId失败: %d", comId)
 	}
-	url = fmt.Sprintf("%s%s", we.authRedirectUrl, path)
+
+	authRedirectUrl := viper.GetString("wechat.auth_redirect_url")
+	url = fmt.Sprintf("%s%s", authRedirectUrl, path)
 	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "wx_callback")
 	return
 }
@@ -135,25 +139,44 @@ func (we *WechatService) GetClient(comId uint) (*mpoauth2.Endpoint, error) {
 }
 
 func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code string) (*mpoauth2.UserInfo, error) {
-	endPoint, err := we.GetEndPoint(comId)
-	if err != nil {
-		return nil, errors.Wrap(err, "GetEndPoint")
+	userCache := we.reids.Get(code).Val()
+	var userinfo = &mpoauth2.UserInfo{}
+	if userCache == "" {
+		endPoint, err := we.GetEndPoint(comId)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetEndPoint")
+		}
+
+		oauth2Client := oauth2.Client{
+			Endpoint: endPoint,
+		}
+		token, err := oauth2Client.ExchangeToken(code)
+		if err != nil {
+			return nil, errors.Wrap(err, "ExchangeToken")
+		}
+
+		glog.DefaultLogger().Infof("get token: %+v\r\n", token)
+
+		userinfo, err = mpoauth2.GetUserInfo(token.AccessToken, token.OpenId, "", nil)
+		if err != nil {
+			//echoapp_util.ExtractEntry(ctx).WithError(err).Error("code为空")
+			return nil, errors.Wrap(err, "ExchangeToken")
+		}
+
+		data, err := json.Marshal(userinfo)
+		if err != nil {
+			err = we.reids.Set(code, string(data), time.Minute).Err()
+			if err != nil {
+				glog.DefaultLogger().WithError(err).Error("set key err")
+			}
+		}
+
+	} else {
+		if err := json.Unmarshal([]byte(userCache), userinfo); err != nil {
+			return nil, errors.Wrap(err, "decode userinfo from cache")
+		}
 	}
 
-	oauth2Client := oauth2.Client{
-		Endpoint: endPoint,
-	}
-	token, err := oauth2Client.ExchangeToken(code)
-	if err != nil {
-		return nil, errors.Wrap(err, "ExchangeToken")
-	}
-	glog.Infof("token: %+v\r\n", token)
-
-	userinfo, err := mpoauth2.GetUserInfo(token.AccessToken, token.OpenId, "", nil)
-	if err != nil {
-		//echoapp_util.ExtractEntry(ctx).WithError(err).Error("code为空")
-		return nil, errors.Wrap(err, "ExchangeToken")
-	}
 	return userinfo, nil
 }
 

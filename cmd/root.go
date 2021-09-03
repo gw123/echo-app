@@ -20,8 +20,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-
 	echoapp "github.com/gw123/echo-app"
 
 	"github.com/gw123/glog"
@@ -65,7 +63,7 @@ func init() {
 	// will be global for your application.
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
-	RootCmd.PersistentFlags().StringVar(&cfgType, "config-type", "file", "local|etcd")
+	RootCmd.PersistentFlags().StringVar(&cfgType, "config-type", "apollo", "local|etcd")
 
 	RootCmd.PersistentFlags().StringSliceVar(&etcdEndpoints, "etcd-endpoints", []string{}, "endpoints")
 	RootCmd.PersistentFlags().StringVar(&etcdUsername, "etcd-username", "", "username")
@@ -73,85 +71,24 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&etcdNamespace, "etcd-namespace", "", "namespace")
 	RootCmd.PersistentFlags().StringVar(&etcdPath, "etcd-path", "", "etcdPath config data path")
 
-	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.AppID, "app-id", "", "appID")
-	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.IP, "apollo-ip", "", "apollo ip")
-	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.NamespaceName, "apollo-namespace", "", "apollo namespace")
-	RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.Secret, "apollo-secret", "", "apollo secret")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.AppID, "app-id", "", "appID")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.IP, "apollo-ip", "", "apollo ip")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.NamespaceName, "apollo-namespace", "", "apollo namespace")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.Secret, "apollo-secret", "", "apollo secret")
 
-	echoapp.ApolloConfig.Cluster = "default"
-	echoapp.ApolloConfig.IsBackupConfig = true
-
-	if len(etcdEndpoints) == 0 {
-		etcdEndpoints = strings.Split(os.Getenv("ETCD_ENDPOINTS"), ",")
-		if len(etcdEndpoints) == 0 {
-			etcdEndpoints = append(etcdEndpoints, "http://127.0.0.1:2379")
-		}
-	}
-
-	if etcdUsername == "" {
-		etcdUsername = os.Getenv("ETCD_USERNAME")
-	}
-
-	if etcdPassword == "" {
-		etcdPassword = os.Getenv("ETCD_PASSWORD")
-	}
-
-	if etcdNamespace == "" {
-		etcdNamespace = os.Getenv("ETCD_NAMESPACE")
-		if etcdNamespace == "" {
-			etcdNamespace = "/xyt"
-		}
-	}
-
-	if etcdPath == "" {
-		etcdPath = os.Getenv("ETCD_PATH")
-		if etcdPath == "" {
-			etcdPath = "/config.yaml"
-		}
-	}
-
-	if echoapp.ApolloConfig.Secret == "" {
-		echoapp.ApolloConfig.Secret = os.Getenv("APOLLO_SECRET")
-	}
-
-	if echoapp.ApolloConfig.AppID == "" {
-		echoapp.ApolloConfig.AppID = os.Getenv("APOLLO_APPID")
-	}
-
-	if echoapp.ApolloConfig.IP == "" {
-		echoapp.ApolloConfig.IP = os.Getenv("APOLLO_IP")
-	}
-
-	if echoapp.ApolloConfig.NamespaceName == "" {
-		echoapp.ApolloConfig.NamespaceName = os.Getenv("APOLLO_NAMESPACE")
-	}
-
-	if echoapp.ApolloConfig.Cluster == "" {
-		echoapp.ApolloConfig.Cluster = os.Getenv("APOLLO_CLUSTER")
-	}
-
-	fmt.Println(os.Getenv("APOLLO_CLUSTER"))
-	fmt.Println(os.Getenv("APOLLO_NAMESPACE"))
-	fmt.Println(os.Getenv("APOLLO_IP"))
-	fmt.Println(os.Getenv("APOLLO_APPID"))
-	fmt.Println(os.Getenv("APOLLO_SECRET"))
-
-	// todo 零时过渡的方案
-	if echoapp.ApolloConfig.AppID == "" && echoapp.ApolloConfig.Secret == "" {
-		echoapp.ApolloConfig = echoapp.ApolloConfigBackUp
-	}
-	spew.Dump(echoapp.ApolloConfig)
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	glog.DefaultLogger().Infof("load config config type %s", cfgType)
 	if cfgType == "file" {
-		glog.Info("load config from file")
 		echoapp.LoadFromFile(cfgFile)
-	} else {
+	} else if cfgType == "etcd" {
 		glog.Infof("load config from etcd addr:%s ,username:%s", strings.Join(etcdEndpoints, ","), etcdUsername)
 		glog.Infof("load config from etcd: namespace:%s ,path:%s", etcdNamespace, etcdPath)
 		echoapp.LoadFromEtcd(etcdEndpoints, etcdNamespace, etcdPath, etcdUsername, etcdPassword)
+	} else {
+		echoapp.LoadFromApollo()
 	}
 }
 

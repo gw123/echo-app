@@ -3,9 +3,8 @@ package app_components
 import (
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 
-	echoapp "github.com/gw123/echo-app"
 	"github.com/jinzhu/gorm"
 )
 
@@ -13,14 +12,9 @@ var shopDb *gorm.DB
 var shopDbOnce sync.Once
 
 func GetShopDb() (*gorm.DB, error) {
-	client, err := echoapp.GetApolloClient()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "getShopDb")
-	}
-
+	var err error
 	shopDbOnce.Do(func() {
-		dsn := client.GetStringValue("database.shop.dsn", "")
+		dsn := viper.GetString("database.shop.dsn")
 		shopDb, err = gorm.Open("mysql", dsn)
 	})
 
@@ -31,14 +25,10 @@ var userDb *gorm.DB
 var userDbOnce sync.Once
 
 func GetUserDb() (*gorm.DB, error) {
-	client, err := echoapp.GetApolloClient()
-
-	if err != nil {
-		return nil, errors.Wrap(err, "getUserDb")
-	}
+	var err error
 
 	userDbOnce.Do(func() {
-		dsn := client.GetStringValue("database.user.dsn", "")
+		dsn := viper.GetString("database.user.dsn")
 		userDb, err = gorm.Open("mysql", dsn)
 	})
 	return userDb, err

@@ -7,6 +7,7 @@ import (
 	"github.com/gw123/echo-app/app/app_components"
 	"github.com/gw123/echo-app/components"
 	"github.com/gw123/echo-app/external/sms_tpls"
+	"github.com/gw123/echo-app/libs/emails"
 	"github.com/gw123/echo-app/services"
 	"github.com/gw123/echo-app/services/activity"
 	"github.com/gw123/glog"
@@ -540,4 +541,22 @@ func GetEs() (*es7.Client, error) {
 	clientOptions = append(clientOptions, es7.SetScheme("http"))
 	clientOptions = append(clientOptions, es7.SetHealthcheck(false))
 	return es7.NewClient(clientOptions...)
+}
+
+// todo 代码不完善
+func GetMailService() (emails.MailService, error) {
+	serverHost := "smtp.ym.163.com"
+	serverPort := 25
+	fromEmail := "robot@xytschool.com"
+	fromPasswd := "oWVeEpdjoc"
+	mail := emails.NewGoMail(serverHost, serverPort, fromEmail, fromPasswd)
+	return mail, nil
+}
+
+func MustGetMailService() emails.MailService {
+	mail, err := GetMailService()
+	if err != nil {
+		panic(err)
+	}
+	return mail
 }

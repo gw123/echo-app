@@ -25,9 +25,13 @@ func startSiteServer() {
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
+
+	e.GET("/debug", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, "1.9.24.2222")
+	})
 	//前端入口
-	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	e.Static("/dev/public", echoapp.ConfigOpts.Asset.PublicRoot)
+	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
@@ -107,6 +111,9 @@ func startSiteServer() {
 	normal.GET("/getNavList", siteCtl.GetQuickNav)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
 	normal.GET("/getVideoList", siteCtl.GetVideoList)
+	//
+	normal.POST("/sendMailCode", siteCtl.SendMailCode)
+	normal.POST("/sendRawMail", siteCtl.SendRawMail)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.SiteServer.Addr); err != nil {

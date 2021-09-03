@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	_ "github.com/spf13/viper/remote"
+
 	"github.com/gw123/echo-app/libs/etcd"
 
 	"github.com/spf13/viper"
@@ -59,4 +61,17 @@ func TestIntoStruct(t *testing.T) {
 
 	t.Log(eletype.Field(0).Type().String())
 	t.Log(eletype.Type().Field(0).Tag.Get("json"))
+}
+
+func TestGetApolloClient(t *testing.T) {
+	client, err := GetApolloClient()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err := client.GetCache().Get("api_version")
+	if err != nil {
+		panic(err)
+	}
+	t.Log(val)
 }

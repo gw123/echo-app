@@ -4,7 +4,7 @@ services:
            image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
            ports:
              - 8881:8881
-           command: echoapp --config-type etcd  user
+           command: echoapp --config-type apollo  user
            volumes:
              -  ./resources:/usr/local/var/echoapp/resources
            env_file:
@@ -14,7 +14,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8882:8882
-          command: echoapp goods --config-type etcd
+          command: echoapp goods --config-type apollo
           volumes:
             -  ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -24,7 +24,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8883:8883
-          command: echoapp order --config-type etcd
+          command: echoapp order --config-type apollo
           volumes:
             -  ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -34,7 +34,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8885:8885
-          command: echoapp comment --config-type etcd
+          command: echoapp comment --config-type apollo
           volumes:
             -  ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -44,7 +44,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8888:8888
-          command: echoapp file --config-type etcd
+          command: echoapp file --config-type apollo
           volumes:
             -  ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -54,7 +54,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8890:8890
-          command: echoapp message --config-type etcd
+          command: echoapp message --config-type apollo
           volumes:
             -  ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -64,7 +64,7 @@ services:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
           ports:
             - 8889:8889
-          command: echoapp site --config-type etcd
+          command: echoapp site --config-type apollo
           volumes:
              - ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -75,7 +75,7 @@ services:
           container_name: echoapp-activity
           ports:
             - 8891:8891
-          command: echoapp activity --config-type etcd
+          command: echoapp activity --config-type apollo
           volumes:
             - ./resources:/usr/local/var/echoapp/resources
           env_file:
@@ -84,25 +84,25 @@ services:
 ####################
         job-check-ticket:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp check-ticket --config-type etcd
+          command: echoapp check-ticket --config-type apollo
           env_file:
             - .env
 
         job-order-create:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp order-create --config-type etcd
+          command: echoapp order-create --config-type apollo
           env_file:
             - .env
 
         job-order-paid:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp order-paid --config-type etcd
+          command: echoapp order-paid --config-type apollo
           env_file:
             - .env
 
         job-send-sms:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp send-sms --config-type etcd
+          command: echoapp send-sms --config-type apollo
           volumes:
             - ./conf/config.yaml:/etc/echoapp/config.yaml
           env_file:
@@ -110,13 +110,13 @@ services:
 
         job-ticket-sync-code:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp ticket-sync-code --config-type etcd
+          command: echoapp ticket-sync-code --config-type apollo
           env_file:
             - .env
 
         job-user-score-change:
           image: registry.cn-beijing.aliyuncs.com/gapi/echoapp:${ECHOAPP_TAG:-latest}
-          command: echoapp user-score-change --config-type etcd
+          command: echoapp user-score-change --config-type apollo
           env_file:
             - .env
 

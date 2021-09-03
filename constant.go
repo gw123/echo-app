@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	APPNAME               = "echoapp"
 	ServerIndex           = "http://m.xytschool.com/index-dev/%d#%s"
 	TimeFormat            = "2006-01-02 15:04:05"
 	TimeHourMinFormat     = "2006-01-02 15:04"

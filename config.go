@@ -1,14 +1,9 @@
 package echoapp
 
 import (
-	"errors"
 	"strings"
-	"sync"
 
-	"github.com/zouyx/agollo/v4/storage"
-
-	"github.com/zouyx/agollo/v4"
-	"github.com/zouyx/agollo/v4/env/config"
+	"github.com/gw123/gutils/apollo"
 
 	"github.com/gw123/glog"
 
@@ -90,10 +85,16 @@ type JwsHelperOpt struct {
 	Issuer   string `json:"issuer"`
 	//单位秒
 	Timeout int64 `json:"timeout"`
-	//接受者需要提供公钥(不需要提供私钥)
-	PublicKeyPath string `json:"public_key_path" yaml:"public_key_path"  mapstructure:"public_key_path"`
+	////接受者需要提供公钥(不需要提供私钥)
+	//PublicKeyPath string `json:"public_key_path" yaml:"public_key_path"  mapstructure:"public_key_path"`
+	////签发者需要知道私钥
+	//PrivateKeyPath string `json:"private_key_path" yaml:"private_key_path" mapstructure:"private_key_path"`
+
+	////接受者需要提供公钥(不需要提供私钥)
+	PublicKey string `json:"public_key" yaml:"public_key"  mapstructure:"public_key"`
 	//签发者需要知道私钥
-	PrivateKeyPath string `json:"private_key_path" yaml:"private_key_path" mapstructure:"private_key_path"`
+	PrivateKey string `json:"private_key" yaml:"private_key" mapstructure:"private_key"`
+
 	//配置后使用hashIds　混淆UserId
 	HashIdsSalt string `json:"hash_ids_salt" yaml:"hash_ids_salt" mapstructure:"hash_ids_salt"`
 }
@@ -214,41 +215,15 @@ func LoadFromEtcd(endpoints []string, namespace, configPath, username, password 
 	}
 }
 
-//获取Apollo对象
-var apolloClient *agollo.Client
-var apolloStorage *storage.Config
-var apolloClientOnce sync.Once
-var ApolloConfig = config.AppConfig{
-	AppID:          "echoapp",
-	Cluster:        "default",
-	IP:             "http://sh2:18080",
-	NamespaceName:  "dev.yaml",
-	IsBackupConfig: true,
-	Secret:         "272ff4640d0549c9a4d13e91cb29e03a",
-}
-var ApolloConfigBackUp = config.AppConfig{
-	AppID:          "echoapp",
-	Cluster:        "default",
-	IP:             "http://sh2:18080",
-	NamespaceName:  "dev.yaml",
-	IsBackupConfig: true,
-	Secret:         "272ff4640d0549c9a4d13e91cb29e03a",
-}
-
-func GetApolloClient() (*storage.Config, error) {
-	var err error
-	apolloClientOnce.Do(func() {
-		c := &ApolloConfig
-		logger := glog.DefaultLogger().WithField("component", "log")
-		agollo.SetLogger(logger)
-		apolloClient, err = agollo.StartWithConfig(func() (*config.AppConfig, error) {
-			return c, nil
-		})
-		apolloStorage = apolloClient.GetConfig(c.NamespaceName)
-		if apolloStorage == nil {
-			err = errors.New("apolloClient.GetConfig nil")
+func LoadFromApollo() {
+	apollo.InitApolloFromDefaultEnv(APPNAME, func(viper *viper.Viper) {
+		err := viper.Unmarshal(&ConfigOpts)
+		if err != nil {
+			glog.DefaultLogger().Fatal(err)
+			return
 		}
+		//glog.DefaultLogger().Infof("configOpts %+v", ConfigOpts)
+	}, func(key string, newVal, oldVal interface{}) {
+		glog.DefaultLogger().Infof("loadFromApollo config change key:%s ,val %+v", key, newVal)
 	})
-
-	return apolloStorage, err
 }

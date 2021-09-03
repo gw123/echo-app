@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gw123/echo-app/app"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
@@ -143,7 +145,7 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 		})
 	}
 
-	echoapp_util.ExtractEntry(ctx).Info("index response: %+v", response["user"])
+	echoapp_util.ExtractEntry(ctx).Infof("index response: %+v", response["user"])
 	return ctx.Render(http.StatusOK, "index", response)
 }
 
@@ -216,4 +218,46 @@ func (sCtl *SiteController) GetVideoDetail(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}
 	return ctx.Render(http.StatusOK, "video", video)
+}
+
+func (sCtl *SiteController) SendMailCode(ctx echo.Context) error {
+	type Params struct {
+		Code   string `json:"code"`
+		ToUser string `json:"to_user"`
+	}
+
+	params := Params{}
+	if err := ctx.Bind(&params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+
+	mailService := app.MustGetMailService()
+
+	if err := mailService.SendHtmlMail([]string{params.ToUser}, "注册验证码", "code:"+params.Code); err != nil {
+		return err
+	}
+	return sCtl.Success(ctx, nil)
+}
+
+func (sCtl *SiteController) SendRawMail(ctx echo.Context) error {
+	type Params struct {
+		Body    string `json:"body"`
+		Subject string `json:"subject"`
+		ToUser  string `json:"to_user"`
+	}
+
+	params := Params{}
+	if err := ctx.Bind(&params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+
+	mailService := app.MustGetMailService()
+	if err := mailService.SendHtmlMail([]string{params.ToUser}, params.Subject, params.Body); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+	echoapp_util.ExtractEntry(ctx).Infof("发送邮件 touser " + params.ToUser)
+	return sCtl.Success(ctx, nil)
 }
