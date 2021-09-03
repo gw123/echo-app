@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace 
+metadata:
+  name: echoapp 
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-echoapp-env
+  namespace: echoapp 
+data:
+  ETCD_ENDPOINTS: "http://127.0.0.1:2379"
+  ETCD_USERNAME: "user"
+  ETCD_PASSWORD: "123455"
+  ETCD_NAMESPACE: "/xyt"
+  ETCD_PATH: "/config.docker.yaml"
+  APOLLO_ECHOAPP_APPID: "echoapp"
+  APOLLO_ECHOAPP_IP: "http://127.0.0.1:8080"
+  APOLLO_ECHOAPP_NAMESPACE: "dev.yaml,application"
+  APOLLO_ECHOAPP_SECRET: "000000000000xxxxxxxxx"
+  APOLLO_ECHOAPP_IS_BACKUP_CONFIG: "false"
+  APOLLO_ECHOAPP_BACKUP_CONFIG_PATH: "./tmp"
