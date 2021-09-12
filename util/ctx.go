@@ -1,6 +1,7 @@
 package echoapp_util
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -39,6 +40,7 @@ const (
 	ctxUserRolesKey  = "&userRolesKey{}"
 	ctxLoggerKey     = "&loggerKey{}"
 	ctxJwtPayloadKey = "&jwtPayloadKey{}"
+	ctxContextKey    = "&context{}"
 )
 
 func GetCtxComId(c echo.Context) uint {
@@ -137,6 +139,18 @@ func GetCtxtJwsPayload(ctx echo.Context) (string, error) {
 		return "", errors.New("get ctxPayload flied")
 	}
 	return payload, nil
+}
+
+func SetCtxContext(ctx echo.Context, context context.Context) {
+	ctx.Set(ctxAddrIdKey, context)
+}
+
+func GetCtxContext(ctx echo.Context) (context.Context, error) {
+	context, ok := ctx.Get(ctxAddrIdKey).(context.Context)
+	if !ok {
+		return nil, errors.New("get ctxAddrId flied")
+	}
+	return context, nil
 }
 
 func SetDebug(flag bool) {

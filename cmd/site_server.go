@@ -7,6 +7,10 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/spf13/viper"
+
+	"github.com/gw123/glog"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -36,6 +40,7 @@ func startSiteServer() {
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
 	origins := echoapp.ConfigOpts.SiteServer.Origins
+	glog.DefaultLogger().Infof("origins [%+v]", origins)
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -44,11 +49,14 @@ func startSiteServer() {
 		}))
 	}
 
+	glog.DefaultLogger().Infof("ConfigTraceAgentHostPort %s", viper.GetString(echoapp.ConfigTraceAgentHostPort))
 	loggerMiddleware := echoapp_middlewares.NewLoggingMiddleware(echoapp_middlewares.LoggingMiddlewareConfig{
 		Skipper: func(ctx echo.Context) bool {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
+		EnableTrace:        true,
+		TraceAgentHostPort: viper.GetString(echoapp.ConfigTraceAgentHostPort),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{

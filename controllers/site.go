@@ -68,7 +68,8 @@ func (sCtl *SiteController) GetNotifyDetail(ctx echo.Context) error {
 
 func (sCtl *SiteController) GetIndexPageBanners(ctx echo.Context) error {
 	comId := echoapp_util.GetCtxComId(ctx)
-	pageBanners, err := sCtl.bannerSvr.GetIndexPageBanners(comId)
+	c, _ := echoapp_util.GetCtxContext(ctx)
+	pageBanners, err := sCtl.bannerSvr.GetIndexPageBanners(c, comId)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}
@@ -79,7 +80,9 @@ func (sCtl *SiteController) GetBannerList(ctx echo.Context) error {
 	position := ctx.QueryParam("position")
 	page := ctx.QueryParam("page")
 	comId := echoapp_util.GetCtxComId(ctx)
-	banner, err := sCtl.bannerSvr.GetBannerList(comId, page, position, 8)
+
+	context, _ := echoapp_util.GetCtxContext(ctx)
+	banner, err := sCtl.bannerSvr.GetBannerList(context, comId, page, position, 8)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}

@@ -69,5 +69,6 @@ spec:
                        operator: "In"
                        values:
                         - "k8s-node1"
+                        - "k8s-node02"
                              
       

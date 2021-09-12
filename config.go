@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	DefaultConfigFile = "config.yaml"
+	DefaultConfigFile        = "config.yaml"
+	ConfigTraceAgentHostPort = "trace.agent_host_port"
 )
 
 var ConfigOpts ConfigOptions

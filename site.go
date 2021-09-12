@@ -1,6 +1,7 @@
 package echoapp
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -70,10 +71,10 @@ type SiteService interface {
 	GetNotifyList(comId uint, lastId, limit int) ([]*Notify, error)
 	GetNotifyDetail(id int) (*Notify, error)
 	//
-	GetBannerList(comId uint, page, position string, limit int) ([]*BannerBrief, error)
-	UpdateCachedBannerList(comId uint, position string) error
-	GetCachedBannerList(comId uint, position string) ([]*BannerBrief, error)
+	GetBannerList(ctx context.Context, comId uint, page, position string, limit int) ([]*BannerBrief, error)
+	UpdateCachedBannerList(ctx context.Context, comId uint, position string) error
+	GetCachedBannerList(ctx context.Context, comId uint, position string) ([]*BannerBrief, error)
 	GetIndexBanner(comId uint) ([]*BannerBrief, error)
-	GetIndexPageBanners(comId uint) (*PageBanners, error)
+	GetIndexPageBanners(ctx context.Context, comId uint) (*PageBanners, error)
 	//GetActivityById(id int) (*Banner, error)
 }

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
+
+	"github.com/opentracing/opentracing-go"
 
 	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
@@ -45,7 +48,7 @@ func (aSvr SiteService) GetActivityDetail(id uint) (*echoapp.Activity, error) {
 	return &activity, nil
 }
 
-func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*echoapp.BannerBrief, error) {
+func (aSvr *SiteService) GetCachedBannerList(ctx context.Context, comId uint, position string) ([]*echoapp.BannerBrief, error) {
 	bannerList, err := func() ([]*echoapp.BannerBrief, error) {
 		var bannerList []*echoapp.BannerBrief
 		data, err := aSvr.redis.Get(echoapp.FormatBannerListRedisKey(comId, position)).Result()
@@ -67,7 +70,7 @@ func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*ec
 	}
 
 	if len(bannerList) == 0 {
-		bannerList, err = aSvr.GetBannerList(comId, "index", position, 6)
+		bannerList, err = aSvr.GetBannerList(ctx, comId, "index", position, 6)
 		if err != nil {
 			return bannerList, errors.Wrap(err, "GetCachedBannerList->GetBannerList")
 		}
@@ -76,8 +79,8 @@ func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*ec
 	return bannerList, nil
 }
 
-func (aSvr *SiteService) UpdateCachedBannerList(comId uint, position string) error {
-	bannerList, err := aSvr.GetBannerList(comId, "index", position, 6)
+func (aSvr *SiteService) UpdateCachedBannerList(ctx context.Context, comId uint, position string) error {
+	bannerList, err := aSvr.GetBannerList(ctx, comId, "index", position, 6)
 	if err != nil {
 		return err
 	}
@@ -136,7 +139,16 @@ func (aSvr SiteService) GetNotifyList(comId uint, lastId, limit int) ([]*echoapp
 	return list, nil
 }
 
-func (aSvr SiteService) GetBannerList(comId uint, page, position string, limit int) ([]*echoapp.BannerBrief, error) {
+func (aSvr SiteService) GetBannerList(ctx context.Context, comId uint, page, position string, limit int) ([]*echoapp.BannerBrief, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "GetBannerList")
+	defer func() {
+		// 4. 接口调用完，在tag中设置request和reply
+		span.SetTag("com_id", comId)
+		span.SetTag("page", page)
+		span.SetTag("position", position)
+		span.Finish()
+	}()
+
 	if position == "" {
 		position = "index"
 	}
@@ -156,20 +168,20 @@ func (aSvr SiteService) GetBannerList(comId uint, page, position string, limit i
 	return banners, nil
 }
 
-func (aSvr SiteService) GetIndexPageBanners(comId uint) (*echoapp.PageBanners, error) {
+func (aSvr SiteService) GetIndexPageBanners(ctx context.Context, comId uint) (*echoapp.PageBanners, error) {
 	var err error
 	pageBanners := &echoapp.PageBanners{}
-	pageBanners.Scroll1, err = aSvr.GetBannerList(comId, "index", echoapp.BannerPositionScroll1, 6)
+	pageBanners.Scroll1, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionScroll1, 6)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetIndexPageBanners")
 	}
 
-	pageBanners.ADs, err = aSvr.GetBannerList(comId, "index", echoapp.BannerPositionAD, 1)
+	pageBanners.ADs, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionAD, 1)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetIndexPageBanners")
 	}
 
-	pageBanners.Categories, err = aSvr.GetBannerList(comId, "index", echoapp.BannerPositionCategory, 6)
+	pageBanners.Categories, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionCategory, 6)
 	if err != nil {
 		return nil, errors.Wrap(err, "GetIndexPageBanners")
 	}

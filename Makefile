@@ -1,5 +1,5 @@
 APPNAME=echoapp
-IMAGE_TAG_VERSION = 1.9.24
+IMAGE_TAG_VERSION = 1.9.25
 
 REMOTE_USER_API_TAG = "registry.cn-beijing.aliyuncs.com/gapi/$(APPNAME):$(IMAGE_TAG_VERSION)"
 REMOTE_USER_API_LATEST_TAG = "registry.cn-beijing.aliyuncs.com/gapi/$(APPNAME):latest"
@@ -118,6 +118,10 @@ update-k8s:
 	kubectl replace --force -f $(K8S_PATH)order-svr.yaml&&\
 	kubectl replace --force -f $(K8S_PATH)user-svr.yaml&&\
 	kubectl replace --force -f $(K8S_PATH)comment-svr.yaml
+
+tail-k8s:
+	#kubectl get pods -nechoapp |grep site |awk  '{print $1}' | kubectl logs -f -nechoapp
+	kubectl get pods -nechoapp |grep site |awk   '{print $$1}'
 
 .PHONY: all
 all: docker-all docker-compose-up-remote
