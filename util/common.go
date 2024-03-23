@@ -1,8 +1,9 @@
 package echoapp_util
 
 import (
-	echoapp "github.com/gw123/echo-app"
 	"strings"
+
+	echoapp "github.com/gw123/echo-app"
 )
 
 //parse clientType by userAgent

@@ -58,7 +58,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	glog.SetDefaultLoggerFormatter(glog.GetDefaultJsonLoggerFormatter())
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
@@ -72,45 +71,24 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&etcdNamespace, "etcd-namespace", "", "namespace")
 	RootCmd.PersistentFlags().StringVar(&etcdPath, "etcd-path", "", "etcdPath config data path")
 
-	if len(etcdEndpoints) == 0 {
-		etcdEndpoints = strings.Split(os.Getenv("ETCD_ENDPOINTS"), ",")
-		if len(etcdEndpoints) == 0 {
-			etcdEndpoints = append(etcdEndpoints, "http://127.0.0.1:2379")
-		}
-	}
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.AppID, "app-id", "", "appID")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.IP, "apollo-ip", "", "apollo ip")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.NamespaceName, "apollo-namespace", "", "apollo namespace")
+	//RootCmd.PersistentFlags().StringVar(&echoapp.ApolloConfig.Secret, "apollo-secret", "", "apollo secret")
 
-	if etcdUsername == "" {
-		etcdUsername = os.Getenv("ETCD_USERNAME")
-	}
-
-	if etcdPassword == "" {
-		etcdPassword = os.Getenv("ETCD_PASSWORD")
-	}
-
-	if etcdNamespace == "" {
-		etcdNamespace = os.Getenv("ETCD_NAMESPACE")
-		if etcdNamespace == "" {
-			etcdNamespace = "/xyt"
-		}
-	}
-
-	if etcdPath == "" {
-		etcdPath = os.Getenv("ETCD_PATH")
-		if etcdPath == "" {
-			etcdPath = "/config.yaml"
-		}
-	}
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	glog.DefaultLogger().Infof("load config config type %s", cfgType)
 	if cfgType == "file" {
-		glog.Info("load config from file")
 		echoapp.LoadFromFile(cfgFile)
-	} else {
+	} else if cfgType == "etcd" {
 		glog.Infof("load config from etcd addr:%s ,username:%s", strings.Join(etcdEndpoints, ","), etcdUsername)
 		glog.Infof("load config from etcd: namespace:%s ,path:%s", etcdNamespace, etcdPath)
 		echoapp.LoadFromEtcd(etcdEndpoints, etcdNamespace, etcdPath, etcdUsername, etcdPassword)
+	} else {
+		echoapp.LoadFromApollo()
 	}
 }
 

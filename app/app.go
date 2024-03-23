@@ -4,7 +4,10 @@ import (
 	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
+	"github.com/gw123/echo-app/app/app_components"
 	"github.com/gw123/echo-app/components"
+	"github.com/gw123/echo-app/external/sms_tpls"
+	"github.com/gw123/echo-app/libs/emails"
 	"github.com/gw123/echo-app/services"
 	"github.com/gw123/echo-app/services/activity"
 	"github.com/gw123/glog"
@@ -38,6 +41,7 @@ type EchoApp struct {
 	TongchengSvr          echoapp.TongchengService
 	ActivityDriverFactory echoapp.ActivityDriverFactory
 	VideoSvr              echoapp.VideoService
+	SmsTplApi             sms_tpls.SmsTplAPi
 }
 
 func init() {
@@ -68,6 +72,23 @@ func MustGetJopPusherService() gworker.Producer {
 	return psuher
 }
 
+func GetSmsTplApi() (sms_tpls.SmsTplAPi, error) {
+	JobPusher, err := GetJobPusher()
+	if err != nil {
+		glog.Errorf("GetSmsTplApi : %s", err.Error())
+		return nil, err
+	}
+
+	smsSvr, err := GetSmsService()
+	if err != nil {
+		glog.Errorf("GetSmsTplApi : %s", err.Error())
+		return nil, err
+	}
+
+	App.SmsTplApi = sms_tpls.NewSmsTplApi(JobPusher, smsSvr)
+	return App.SmsTplApi, nil
+}
+
 func GetAreaService() (echoapp.AreaService, error) {
 	if App.areaSvc != nil {
 		return App.areaSvc, nil
@@ -92,12 +113,19 @@ func GetSmsService() (echoapp.SmsService, error) {
 	if App.smsSvc != nil {
 		return App.smsSvc, nil
 	}
-	comSvr := MustGetCompanyService()
-	redis := MustGetRedis("")
-	smsSvc := services.NewSmsService(comSvr, redis)
+	db, err := app_components.GetShopDb()
+	if err != nil {
+		return nil, err
+	}
+	redis, err := app_components.GetRedis()
+	if err != nil {
+		return nil, err
+	}
+	smsSvc := services.NewSmsService(db, redis)
 	App.smsSvc = smsSvc
 	return smsSvc, nil
 }
+
 func MustGetSmsService() echoapp.SmsService {
 	areaSvc, err := GetSmsService()
 	if err != nil {
@@ -130,11 +158,14 @@ func GetRedis(dbname string) (*redis.Client, error) {
 	if dbname == "" {
 		dbname = "default"
 	}
+
 	if App.redisPool != nil {
 		return App.redisPool.Redis(dbname)
 	}
+
 	redisPool := components.NewRedisPool(echoapp.ConfigOpts.RedisMap)
 	App.redisPool = redisPool
+
 	return redisPool.Redis(dbname)
 }
 
@@ -171,12 +202,12 @@ func GetUserService() (echoapp.UserService, error) {
 	if App.UserSvr != nil {
 		return App.UserSvr, nil
 	}
-	userDb, err := GetDb("user")
+	userDb, err := app_components.GetUserDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetUserSerevice->GetDb")
 	}
 
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -206,19 +237,14 @@ func GetGoodsService() (echoapp.GoodsService, error) {
 	if App.GoodsSvr != nil {
 		return App.GoodsSvr, nil
 	}
-	goodsDb, err := GetDb("goods")
+	goodsDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
-
-	//es, err := GetEs()
-	//if err != nil {
-	//	return nil, errors.Wrap(err, "GetEs")
-	//}
 
 	App.GoodsSvr = services.NewGoodsService(goodsDb, redis, nil)
 	return App.GoodsSvr, nil
@@ -236,11 +262,11 @@ func GetCompanyService() (echoapp.CompanyService, error) {
 	if App.CompanySvr != nil {
 		return App.CompanySvr, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -251,7 +277,7 @@ func GetCompanyService() (echoapp.CompanyService, error) {
 func MustGetCompanyService() echoapp.CompanyService {
 	company, err := GetCompanyService()
 	if err != nil {
-		panic(errors.Wrap(err, "GetUserSvr"))
+		panic(errors.Wrap(err, "GetCompanySvr"))
 	}
 	return company
 }
@@ -260,11 +286,11 @@ func GetResourceService() (echoapp.ResourceService, error) {
 	if App.ResourceService != nil {
 		return App.ResourceService, nil
 	}
-	shopDb, err := GetDb("resource")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	// redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	// redis, err := app_components.GetRedis()
 	// if err != nil {
 	// 	return nil, errors.Wrap(err, "GetRedis")
 	// }
@@ -285,7 +311,7 @@ func GetCommentService() (echoapp.CommentService, error) {
 	if App.CompanySvr != nil {
 		return App.CommentSvr, nil
 	}
-	commentDb, err := GetDb("goods")
+	commentDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -305,7 +331,7 @@ func GetTicketService() (echoapp.TicketService, error) {
 	if App.TicketService != nil {
 		return App.TicketService, nil
 	}
-	orderDb, err := GetDb("goods")
+	orderDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -325,11 +351,11 @@ func GetOrderService() (echoapp.OrderService, error) {
 	if App.OrderSvr != nil {
 		return App.OrderSvr, nil
 	}
-	goodsDb, err := GetDb("goods")
+	goodsDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -339,7 +365,11 @@ func GetOrderService() (echoapp.OrderService, error) {
 	wechatSvr := MustGetWechatService()
 	ticketSvr := MustGetTicketService()
 	pusher := MustGetJopPusherService()
-	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher)
+	smsTplApi, err := GetSmsTplApi()
+	if err != nil {
+		return nil, errors.Wrap(err, "getOrderService")
+	}
+	App.OrderSvr = services.NewOrderService(goodsDb, redis, goodsSvr, actSvr, wechatSvr, ticketSvr, pusher, smsTplApi)
 	return App.OrderSvr, nil
 }
 
@@ -355,11 +385,11 @@ func GetActivityService() (echoapp.ActivityService, error) {
 	if App.ActivitySvr != nil {
 		return App.ActivitySvr, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -382,11 +412,11 @@ func GetSiteService() (echoapp.SiteService, error) {
 	if App.SiteSvr != nil {
 		return App.SiteSvr, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -407,11 +437,11 @@ func GetVideoService() (echoapp.VideoService, error) {
 	if App.VideoSvr != nil {
 		return App.VideoSvr, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -453,7 +483,7 @@ func GetTestpaperService() (echoapp.TestpaperService, error) {
 	if App.TestpaperSvr != nil {
 		return App.TestpaperSvr, nil
 	}
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
@@ -478,11 +508,11 @@ func GetTongchengService() echoapp.TongchengService {
 }
 
 func GetActivityDriverFactory() (echoapp.ActivityDriverFactory, error) {
-	shopDb, err := GetDb("shop")
+	shopDb, err := app_components.GetShopDb()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetDb")
 	}
-	redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+	redis, err := app_components.GetRedis()
 	if err != nil {
 		return nil, errors.Wrap(err, "GetRedis")
 	}
@@ -511,4 +541,22 @@ func GetEs() (*es7.Client, error) {
 	clientOptions = append(clientOptions, es7.SetScheme("http"))
 	clientOptions = append(clientOptions, es7.SetHealthcheck(false))
 	return es7.NewClient(clientOptions...)
+}
+
+// todo 代码不完善
+func GetMailService() (emails.MailService, error) {
+	serverHost := "smtp.ym.163.com"
+	serverPort := 25
+	fromEmail := "robot@xytschool.com"
+	fromPasswd := "oWVeEpdjoc"
+	mail := emails.NewGoMail(serverHost, serverPort, fromEmail, fromPasswd)
+	return mail, nil
+}
+
+func MustGetMailService() emails.MailService {
+	mail, err := GetMailService()
+	if err != nil {
+		panic(err)
+	}
+	return mail
 }

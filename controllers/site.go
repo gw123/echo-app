@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gw123/echo-app/app"
+
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/gw123/glog"
@@ -64,10 +66,23 @@ func (sCtl *SiteController) GetNotifyDetail(ctx echo.Context) error {
 	return sCtl.Success(ctx, notify)
 }
 
+func (sCtl *SiteController) GetIndexPageBanners(ctx echo.Context) error {
+	comId := echoapp_util.GetCtxComId(ctx)
+	c, _ := echoapp_util.GetCtxContext(ctx)
+	pageBanners, err := sCtl.bannerSvr.GetIndexPageBanners(c, comId)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
+	}
+	return sCtl.Success(ctx, pageBanners)
+}
+
 func (sCtl *SiteController) GetBannerList(ctx echo.Context) error {
 	position := ctx.QueryParam("position")
+	page := ctx.QueryParam("page")
 	comId := echoapp_util.GetCtxComId(ctx)
-	banner, err := sCtl.bannerSvr.GetBannerList(comId, position, 8)
+
+	context, _ := echoapp_util.GetCtxContext(ctx)
+	banner, err := sCtl.bannerSvr.GetBannerList(context, comId, page, position, 8)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}
@@ -125,21 +140,29 @@ func (sCtl *SiteController) Index(ctx echo.Context) error {
 			data["vip_level"] = user.VipLevel
 			response["user"] = data
 		}
+
+		ctx.SetCookie(&http.Cookie{
+			Name:    "token",
+			Value:   user.JwsToken,
+			Expires: time.Now().Add(time.Hour * 100),
+		})
 	}
+
+	echoapp_util.ExtractEntry(ctx).Infof("index response: %+v", response["user"])
 	return ctx.Render(http.StatusOK, "index", response)
 }
 
 //todo 这里有302无限循环的风险
 func (sCtl *SiteController) WxAuthCallBack(ctx echo.Context) error {
-	user, err := echoapp_util.GetCtxtUser(ctx)
-	if err != nil {
-		return ctx.HTML(502, "授权失败")
-	}
-	ctx.SetCookie(&http.Cookie{
-		Name:    "token",
-		Value:   user.JwsToken,
-		Expires: time.Now().Add(time.Hour * 24 * 30),
-	})
+	//user, err := echoapp_util.GetCtxtUser(ctx)
+	//if err != nil {
+	//	return ctx.HTML(502, "授权失败")
+	//}
+	//ctx.SetCookie(&http.Cookie{
+	//	Name:    "token",
+	//	Value:   user.JwsToken,
+	//	Expires: time.Now().Add(time.Hour * 24 * 30),
+	//})
 	return ctx.Render(http.StatusOK, "callback", nil)
 }
 
@@ -166,10 +189,10 @@ func (sCtl *SiteController) WxMessage(ctx echo.Context) error {
 func (sCtl *SiteController) GetWxConfig(ctx echo.Context) error {
 	comID := echoapp_util.GetCtxComId(ctx)
 	url := ctx.QueryParam("url")
-	glog.Info("GetWxConfig: " + url)
+	glog.DefaultLogger().Info("GetWxConfig: " + url)
 	jsConfig, err := sCtl.wxSvr.GetJsConfig(comID, url)
 	if err != nil {
-		echoapp_util.ExtractEntry(ctx).WithError(err).Error("获取JSconfig失败")
+		echoapp_util.ExtractEntry(ctx).Errorf("获取JSconfig失败,%s", err)
 		return sCtl.AppErr(ctx, echoapp.AppErrArgument)
 	}
 	return sCtl.Success(ctx, jsConfig)
@@ -198,4 +221,46 @@ func (sCtl *SiteController) GetVideoDetail(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "系统错误", err)
 	}
 	return ctx.Render(http.StatusOK, "video", video)
+}
+
+func (sCtl *SiteController) SendMailCode(ctx echo.Context) error {
+	type Params struct {
+		Code   string `json:"code"`
+		ToUser string `json:"to_user"`
+	}
+
+	params := Params{}
+	if err := ctx.Bind(&params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+
+	mailService := app.MustGetMailService()
+
+	if err := mailService.SendHtmlMail([]string{params.ToUser}, "注册验证码", "code:"+params.Code); err != nil {
+		return err
+	}
+	return sCtl.Success(ctx, nil)
+}
+
+func (sCtl *SiteController) SendRawMail(ctx echo.Context) error {
+	type Params struct {
+		Body    string `json:"body"`
+		Subject string `json:"subject"`
+		ToUser  string `json:"to_user"`
+	}
+
+	params := Params{}
+	if err := ctx.Bind(&params); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+
+	mailService := app.MustGetMailService()
+	if err := mailService.SendHtmlMail([]string{params.ToUser}, params.Subject, params.Body); err != nil {
+		echoapp_util.ExtractEntry(ctx).WithError(err).Error("发送邮件失败")
+		return err
+	}
+	echoapp_util.ExtractEntry(ctx).Infof("发送邮件 touser " + params.ToUser)
+	return sCtl.Success(ctx, nil)
 }

@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gw123/glog"
-
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -44,7 +42,6 @@ func startOrderServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
 	})
 	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -88,6 +85,14 @@ func startOrderServer() {
 	jwsAuth.POST("/queryRefund", orderCtl.QueryRefund)
 	jwsAuth.POST("/cancelOrder", orderCtl.CancelOrder)
 	jwsAuth.POST("/openVip", orderCtl.OpenVip)
+
+	//
+	jwsAuth.POST("/appointment", orderCtl.Appointment)
+	jwsAuth.POST("/getAppointmentDetail", orderCtl.GetAppointmentDetail)
+	jwsAuth.POST("/getAppointmentList", orderCtl.GetAppointmentList)
+
+	normal.POST("/getAppointmentCode", orderCtl.GetAppointmentCode)
+	normal.GET("/getAppointmentByCode", orderCtl.GetAppointmentByCode)
 
 	//ticket
 	jwsAuth.GET("/checkTicketByStaff", orderCtl.CheckTicketByStaff)

@@ -3,8 +3,10 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gw123/glog"
+	"github.com/labstack/echo"
 	"github.com/olivere/elastic/v7"
 
 	"github.com/go-redis/redis/v7"
@@ -17,8 +19,15 @@ import (
 const (
 	//redis 相关的key
 	RedisGoodsKey = "Goods:%d"
+	NowTime       = "NowTime:%s"
 )
 
+func GetNow() time.Time {
+	return time.Now()
+}
+func FormatNowTime() string {
+	return fmt.Sprintf(NowTime, GetNow())
+}
 func FormatGoodsRedisKey(goodsId uint) string {
 	return fmt.Sprintf(RedisGoodsKey, goodsId)
 }
@@ -135,7 +144,7 @@ func (gSvr *GoodsService) GetRecommendGoodsList(comId, lastId uint, limit int) (
 
 func (gSvr *GoodsService) GetGoodsById(goodsId uint) (*echoapp.Goods, error) {
 	goods := &echoapp.Goods{}
-	if err := gSvr.db.Debug().Where(" id = ?", goodsId).First(goods).Error; err != nil {
+	if err := gSvr.db.Where(" id = ?", goodsId).First(goods).Error; err != nil {
 		return nil, err
 	}
 	return goods, nil
@@ -217,7 +226,7 @@ func (gSvr *GoodsService) GetTagByName(name string) (*echoapp.GoodsTag, error) {
 
 func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Cart, error) {
 	cart := &echoapp.Cart{}
-	if err := gSvr.db.Debug().Where("com_id = ? and  user_id = ?", comID, userID).
+	if err := gSvr.db.Where("com_id = ? and  user_id = ?", comID, userID).
 		First(cart).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			cart.Content = []*echoapp.CartGoodsItem{}
@@ -235,6 +244,20 @@ func (gSvr *GoodsService) GetCartGoodsList(comID uint, userID uint) (*echoapp.Ca
 	return cart, nil
 }
 
+func (gSvr *GoodsService) GetCartGoodsNum(comID uint, userID uint) (uint, error) {
+	cart := &echoapp.Cart{}
+	if err := gSvr.db.Where("com_id = ? and  user_id = ?", comID, userID).
+		First(cart).Error; err != nil {
+		return 0, err
+	}
+
+	var num uint = 0
+	for _, item := range cart.Content {
+		num += item.Num
+	}
+	return num, nil
+}
+
 func (gSvr *GoodsService) DelCartGoods(comID uint, userID uint, goodsID uint, skuID uint) error {
 	item := &echoapp.CartGoodsItem{GoodsId: goodsID, SkuID: skuID}
 	return gSvr.updateCartGoods(comID, userID, item, "del")
@@ -247,7 +270,8 @@ func (gSvr *GoodsService) AddCartGoods(comID uint, userID uint, goodsItem *echoa
 func (gSvr *GoodsService) updateCartGoods(comID uint, userID uint, goodsItem *echoapp.CartGoodsItem, action string) error {
 	if action != "del" {
 		if err := gSvr.IsValidCartGoods(goodsItem); err != nil {
-			return errors.Wrap(err, "商品校验失败")
+			return echoapp.AppErrCartItemNeedRemove
+			//return errors.Wrap(err, "商品校验失败")
 		}
 	}
 
@@ -256,7 +280,7 @@ func (gSvr *GoodsService) updateCartGoods(comID uint, userID uint, goodsItem *ec
 		return errors.Wrap(err, "GetCartGoodsList")
 	}
 
-	if err != nil && gorm.IsRecordNotFoundError(err) {
+	if gorm.IsRecordNotFoundError(err) {
 		cart = &echoapp.Cart{
 			ComId:  comID,
 			UserID: userID,
@@ -332,7 +356,7 @@ func (gSvr *GoodsService) IsValidCartGoods(item *echoapp.CartGoodsItem) error {
 		}
 
 		if item.RealPrice != goods.RealPrice {
-			glog.Errorf("cart price:%f, realPrice:%f", item.RealPrice, goods.RealPrice)
+			glog.DefaultLogger().Errorf("cart price:%f, realPrice:%f", item.RealPrice, goods.RealPrice)
 			return errors.New(item.SkuName + "商品价格发生变动")
 		}
 
@@ -382,4 +406,15 @@ func (gSvr *GoodsService) GetSkuById(goodsId uint, labelCombine map[string]strin
 		}
 	}
 	return nil, errors.New("not found")
+}
+
+func (s *GoodsService) GetSeckillingGoodsList(ctx echo.Context, nowTime time.Time) ([]*echoapp.GoodsSeckillingParam, error) {
+	// nTimeZero := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(), 0, 0, 0, 0, nowTime.Location())
+	// nextTimeZero := nTimeZero.AddDate(0, 0, 1)
+	goodsSeckillingParamList := []*echoapp.GoodsSeckillingParam{}
+	res := s.db.Table("seckilling_goods").Where("end_at > ?  and start_at< ?", nowTime, nowTime).Order("start_at ASC").Find(&goodsSeckillingParamList)
+	if res.Error != nil {
+		return nil, errors.Wrap(res.Error, "GoodsService->GetCurrTimeSeckillingGoodsList")
+	}
+	return goodsSeckillingParamList, nil
 }

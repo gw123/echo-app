@@ -18,6 +18,41 @@
 <body>
 
 <script>
+    function getCookie (name) {
+        var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)")
+        if (arr = document.cookie.match(reg)) {
+            return unescape(arr[2])
+        } else {
+            return null
+        }
+    }
+
+    // 设置cookie
+    function setCookie (c_name, value, days) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() + days*24*60*60*1000);
+        document.cookie = c_name + "=" + escape(value) + ";expires=" + exp.toGMTString()
+    }
+
+    // 删除cookie
+    function delCookie (name) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() - 1)
+        var cval = getCookie(name)
+        if (cval != null)
+            document.cookie = name + "=" + cval + ";expires=" + exp.toGMTString()
+    }
+
+    var returnUrl = window.localStorage.getItem("wx_auth_before_return_url")
+    //console.log('returnUrl', returnUrl)
+    if(returnUrl!= ""){
+        window.localStorage.setItem("wx_auth_before_return_url","")
+        //setCookie("token", '{{user.userToken}}', 1)
+        //console.log(document.cookie)
+        //alert('returnUrl ' + returnUrl )
+        window.location.href = returnUrl
+    }
+
     console.log('clientType','{{clientType}}')
         {{#equal clientType "wx_official"}}
         window.userInfo = {

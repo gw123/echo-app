@@ -23,6 +23,18 @@ const (
 	OrderPayStatusUnpay  = "unpay"
 	OrderPayStatusPaid   = "paid"
 	OrderPayStatusRefund = "refund"
+
+	//证件类型 id','passport','officers','other
+	IDCardTypeID       = "ID"
+	IDCardTypePassport = "passport"
+	IDCardTypeOfficers = "officers"
+	IDCardTypeOther    = "other"
+
+	//appointment 状态
+	AppointmentStatusUnused  = "unused"
+	AppointmentStatusUsed    = "used"
+	AppointmentStatusOverdue = "overdue"
+	AppointmentStatusAll     = "all"
 )
 
 type Order struct {
@@ -135,6 +147,26 @@ type OrderGoods struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Appointment struct {
+	ID         int64     `json:"id"`
+	ComID      uint      `json:"com_id"`
+	GoodsID    uint      `json:"goods_id"`
+	OrderID    uint      `json:"order_id"`
+	GoodsName  string    `json:"goods_name"`
+	UserID     uint      `json:"user_id"`
+	Username   string    `json:"username"`
+	Address    string    `json:"detail_address"`
+	Phone      string    `json:"phone"`
+	IDCard     string    `json:"id_card"`
+	AddressId  int       `json:"address_id"`
+	IDCardType string    `json:"id_card_type"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"created_at"`
+	StartAt    time.Time `json:"start_at"`
+	EndAt      time.Time `json:"end_at"`
+	Code       string    `json:"code" gorm:"-"`
+}
+
 type GetOrderOptions struct {
 	PayMethod     string    `json:"pay_method"`
 	ShopId        int       `json:"shop_id"`
@@ -187,7 +219,7 @@ type OrderService interface {
 	GetTicketByCode(code string) (*CodeTicket, error)
 
 	//
-	UniPreOrder(order *Order, user *User) (*UnifiedOrderResp, error)
+	UniPreOrder(ctx echo.Context, order *Order, user *User) (*UnifiedOrderResp, error)
 	//预下单校验订单的接口
 	PreCheckOrder(order *Order) error
 
@@ -217,6 +249,14 @@ type OrderService interface {
 	WxRefundCallback(ctx echo.Context) error
 
 	QueryRefundOrderAndUpdate(order *Order) (*Order, error)
+
+	Appointment(ctx echo.Context, params *Appointment) error
+
+	GetAppointmentList(ctx echo.Context, comID, userID, lastID uint, status string) ([]Appointment, error)
+
+	GetAppointmentDetail(ctx echo.Context, appointmentID int) (*Appointment, error)
+
+	GetAppointmentByCode(ctx echo.Context, code string) (*Appointment, error)
 
 	// StatisticComGoodsSalesByDate(start, end string, comId uint) (*GoodsSalesSatistic, error)
 

@@ -20,6 +20,7 @@ import (
 
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
+	"github.com/gw123/echo-app/app/app_components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -83,7 +84,7 @@ func statisticDailyHistory(start, end string) error {
 func statisticCompanySales(start, end string) error {
 	echoapp_util.DefaultLogger().Infof("统计Company销量")
 	salesStatistic := []*echoapp.CompanySalesSatistic{}
-	db, err := app.GetDb("shop")
+	db, err := app_components.GetShopDb()
 	if err != nil {
 		return errors.Wrap(err, ".GetDb")
 	}
@@ -107,7 +108,7 @@ func statisticCompanySales(start, end string) error {
 func statisticComGoodsSales(start, end string, comId uint) error {
 	echoapp_util.DefaultLogger().Infof("统计商品销量")
 	salesStatistic := []*echoapp.GoodsSalesSatistic{}
-	db, err := app.GetDb("shop")
+	db, err := app_components.GetShopDb()
 	if err != nil {
 		return errors.Wrap(err, ".GetDb")
 	}

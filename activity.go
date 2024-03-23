@@ -132,6 +132,7 @@ type UserActivity struct {
 // 用户通过参加活动领取的奖品
 type UserAward struct {
 	ID        uint        `json:"id"`
+	ComID     uint        `json:"com_id"`
 	UserID    uint        `json:"user_id"`
 	GoodsID   uint        `json:"goods_id"`
 	Num       uint        `json:"num"`
@@ -143,12 +144,14 @@ type UserAward struct {
 // 用户领取和核销商品的历史记录表
 type AwardHistory struct {
 	ID             uint        `json:"id"`
+	ComID          uint        `json:"com_id"`
 	UserID         uint        `json:"user_id"`
+	StaffID        uint        `json:"staff_id"`
 	GoodsID        uint        `json:"goods_id"`
 	UserActivityID uint        `json:"user_activity_id"`
 	ActivityID     uint        `json:"activity_id"`
 	Method         string      `json:"method"`
-	Num            uint        `json:"num"`
+	Num            int         `json:"num"`
 	CreatedAt      time.Time   `json:"created_at"`
 	Goods          *GoodsBrief `gorm:"-" json:"goods"`
 }
@@ -195,8 +198,16 @@ type ActivityService interface {
 
 	// 获取用户获得的奖品列表
 	GetUserAwards(userId, lastId, limit uint) ([]*UserAward, error)
+
+	//获取用户的奖品
+	GetUserAward(awardID uint) (*UserAward, error)
+
+	CheckUserAward(userID, awardID uint, num int) error
+
 	// 获取用户领取奖品的历史记录
 	GetAwardHistoryByUserID(userId, lastId, limit uint) ([]*AwardHistory, error)
+	// 获取员工验票记录
+	StaffCheckedAwards(comID, staffID, lastID, limit uint) ([]*AwardHistory, error)
 }
 
 //

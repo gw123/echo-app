@@ -22,7 +22,7 @@ import (
 	"time"
 
 	echoapp "github.com/gw123/echo-app"
-	"github.com/gw123/echo-app/app"
+	"github.com/gw123/echo-app/app/app_components"
 	echoapp_util "github.com/gw123/echo-app/util"
 	"github.com/labstack/echo"
 	"github.com/pkg/errors"
@@ -70,8 +70,8 @@ func doReportHttpRequest(url, app_key string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
 	}
-	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 	req.Header.Set("appKey", app_key)
 
 	res, err := http.DefaultClient.Do(req)
@@ -96,7 +96,7 @@ func reportDailyTicket() error {
 		now := time.Now()
 		today := now.Format("2006-01-02")
 		nextDay := now.Add(time.Hour * 24).Format("2006-01-02")
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}
@@ -120,7 +120,7 @@ func reportDailyTicket() error {
 			return errors.Wrap(err, "json.Marshal")
 		}
 		echoapp_util.DefaultLogger().Info(string(data))
-		url := options.BaseUrl + "/upload-data/tourist/real-gate-day"
+		url := options.BaseUrl + "/data-api/api/daySummary"
 		responseData, err := doReportHttpRequest(url, options.AppKey, data)
 		if err != nil {
 			return errors.Wrap(err, "doReportHttpRequest")
@@ -140,7 +140,7 @@ func reportHourTicket() error {
 	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("推送%s流量,com_id:%d", key, options.ComId)
 
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}
@@ -200,7 +200,7 @@ func reportHourTicketV2() error {
 	for key, options := range clientMap {
 		echoapp_util.DefaultLogger().Infof("推送%s流量,com_id:%d", key, options.ComId)
 
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			return errors.Wrap(err, "GetDb")
 		}
@@ -220,6 +220,16 @@ func reportHourTicketV2() error {
 		for _, channel := range channelHourReports {
 			channel.RecordTime = toTime
 		}
+
+		if len(channelHourReports) == 0 {
+			channelHourReports = append(channelHourReports, &ChannelHourReportV2{
+				InNum:      0,
+				OutNum:     0,
+				ChannelId:  "001",
+				RecordTime: toTime,
+			})
+		}
+
 		reportDataRequest := &ReportHourV2{
 			LoginName: options.LoginName,
 			Pwd:       options.Pwd,

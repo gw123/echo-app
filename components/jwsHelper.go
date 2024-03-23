@@ -2,7 +2,6 @@ package components
 
 import (
 	"crypto/rsa"
-	"io/ioutil"
 	"strconv"
 	"time"
 
@@ -20,19 +19,17 @@ type JwsHelper struct {
 
 func NewJwsHelper(opt echoapp.JwsHelperOpt) (*JwsHelper, error) {
 	jwsHelper := &JwsHelper{opt: opt}
-	if opt.PrivateKeyPath != "" {
-		keyData, _ := ioutil.ReadFile(opt.PrivateKeyPath)
+	if opt.PrivateKey != "" {
 		var err error
-		jwsHelper.privateKey, err = jwt.ParseRSAPrivateKeyFromPEM(keyData)
+		jwsHelper.privateKey, err = jwt.ParseRSAPrivateKeyFromPEM([]byte(opt.PrivateKey))
 		if err != nil {
 			return nil, errors.Wrap(err, "ParseRSAPrivateKeyFromPEM")
 		}
 	}
 
-	if opt.PublicKeyPath != "" {
-		keyData, _ := ioutil.ReadFile(opt.PublicKeyPath)
+	if opt.PublicKey != "" {
 		var err error
-		jwsHelper.publicKey, err = jwt.ParseRSAPublicKeyFromPEM(keyData)
+		jwsHelper.publicKey, err = jwt.ParseRSAPublicKeyFromPEM([]byte(opt.PublicKey))
 		if err != nil {
 			return nil, errors.Wrap(err, "ParseRSAPublicKeyFromPEM")
 		}

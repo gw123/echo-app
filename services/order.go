@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gw123/echo-app/external/sms_tpls"
+
 	"github.com/bsm/redislock"
 
 	"github.com/go-redis/redis/v7"
@@ -30,6 +32,7 @@ type OrderService struct {
 	tkSvr     echoapp.TicketService
 	jobPusher gworker.Producer
 	lock      *redislock.Client
+	smsTplApi sms_tpls.SmsTplAPi
 }
 
 func NewOrderService(db *gorm.DB,
@@ -39,6 +42,7 @@ func NewOrderService(db *gorm.DB,
 	wechat echoapp.WechatService,
 	tkSvr echoapp.TicketService,
 	jobPusher gworker.Producer,
+	smsTplApi sms_tpls.SmsTplAPi,
 ) *OrderService {
 	lock := redislock.New(redis)
 	help := &OrderService{
@@ -49,6 +53,7 @@ func NewOrderService(db *gorm.DB,
 		wechat:    wechat,
 		tkSvr:     tkSvr,
 		jobPusher: jobPusher,
+		smsTplApi: smsTplApi,
 		lock:      lock,
 	}
 	return help
@@ -116,12 +121,14 @@ func (oSvr *OrderService) GetTicketByCode(code string) (*echoapp.CodeTicket, err
 	return codeTicket, nil
 }
 
-func (oSvr *OrderService) UniPreOrder(order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {
+func (oSvr *OrderService) UniPreOrder(ctx echo.Context, order *echoapp.Order, user *echoapp.User) (*echoapp.UnifiedOrderResp, error) {
 	///glog.DefaultLogger().Infof("user: %+v,openid:%s", user, user.Openid)
-	resp, err := oSvr.wechat.UnifiedOrder(order, user.Openid)
+	resp, err := oSvr.wechat.UnifiedOrder(ctx, order, user.Openid)
 	if err != nil {
 		return nil, errors.Wrap(err, "下单失败")
 	}
+
+	echoapp_util.ExtractEntry(ctx).Infof("add fetchOrderJob")
 	// 拉取订单支付状态
 	fetchJob := &jobs.OrderCreate{Order: order}
 	oSvr.jobPusher.PostJob(context.Background(), fetchJob)
@@ -272,7 +279,7 @@ func (oSvr *OrderService) QueryOrderAndUpdate(order *echoapp.Order, shouldStatus
 
 func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 	//todo 校验ip , 校验客户端类型
-	glog.JsonLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
+	glog.DefaultLogger().WithField("coupons", order.Coupons).Info("订单优惠券")
 	//oSvr.db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&echoapp.Order{})
 	order.PayStatus = echoapp.OrderStatusUnpay
 	order.OrderNo = fmt.Sprintf("%d%d%d", time.Now().Unix()/3600, order.UserId%9999, rand.Int31n(80000)+10000)
@@ -289,23 +296,23 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 	}
 
 	if len(order.Coupons) > 0 {
-		glog.JsonLogger().Info("校验优惠券")
+		glog.DefaultLogger().Info("校验优惠券")
 		for _, coupon := range order.Coupons {
 			realCoupon, err := oSvr.actSvr.GetUserCouponById(order.ComId, order.UserId, coupon.Id)
 			if err != nil {
-				glog.JsonLogger().Error("下单失败,优惠券校验失败")
+				glog.DefaultLogger().Error("下单失败,优惠券校验失败")
 				return errors.Wrap(err, "下单失败,优惠券校验失败")
 			}
 			if realCoupon.Amount != coupon.Amount {
-				glog.JsonLogger().Error("下单失败,优惠券金额校验错误")
+				glog.DefaultLogger().Error("下单失败,优惠券金额校验错误")
 				return errors.New("下单失败,优惠券金额校验错误")
 			}
 			if float32(realCoupon.MinConsume) > order.RealTotal {
-				glog.JsonLogger().Error("下单失败,优惠券最低消费金额未满足")
+				glog.DefaultLogger().Error("下单失败,优惠券最低消费金额未满足")
 				return errors.New("下单失败,优惠券最低消费金额未满足")
 			}
 			if realCoupon.IsExpire() {
-				glog.JsonLogger().Error("下单失败,优惠券已经过期")
+				glog.DefaultLogger().Error("下单失败,优惠券已经过期")
 				return errors.New("下单失败,优惠券已经过期")
 			}
 			if realCoupon.RangeType == echoapp.CouponRangeTypeAll {
@@ -317,16 +324,16 @@ func (oSvr *OrderService) PreCheckOrder(order *echoapp.Order) error {
 
 	realTotal := totalGoodsAmount - totalCouponAmount
 	if realTotal != order.RealTotal {
-		glog.JsonLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
+		glog.DefaultLogger().Info("订单金额校验失败 %f , %f", realTotal, order.RealTotal)
 		return errors.New("订单金额校验失败")
 	}
 
 	tx := oSvr.db.Begin()
 	var userCoupon echoapp.UserCoupon
 	if len(order.Coupons) > 0 {
-		glog.JsonLogger().Info("开始核销优惠券")
+		glog.DefaultLogger().Info("开始核销优惠券")
 		for _, coupon := range order.Coupons {
-			glog.JsonLogger().WithField("coupon", coupon).Info("核销优惠券")
+			glog.DefaultLogger().WithField("coupon", coupon).Info("核销优惠券")
 			if err := tx.Model(&userCoupon).
 				Where("id = ?", coupon.Id).
 				Update("used_at", time.Now()).Error; err != nil {
@@ -591,4 +598,88 @@ func (oSvr *OrderService) GetOrderPayStatusByOrderNo(orderNo string) (string, er
 		return "", errors.Wrap(err, "GetOrderPayStatusByOrderNo")
 	}
 	return order.PayStatus, nil
+}
+
+func (oSvr *OrderService) Appointment(ctx echo.Context, appointment *echoapp.Appointment) error {
+	//时间判断
+	now := time.Now()
+	if appointment.StartAt.IsZero() {
+		appointment.StartAt = time.Now().Add(time.Hour * 24)
+	}
+
+	if appointment.StartAt.Before(now) {
+		return errors.New("预约开始时间必须大于当前时间")
+	}
+
+	if appointment.EndAt.IsZero() {
+		appointment.EndAt = appointment.StartAt.Add(time.Hour * 24)
+	}
+	//商品冗余字段
+	goods, err := oSvr.GetGoodsById(appointment.GoodsID)
+	if err != nil {
+		return errors.Wrap(err, "appointment get goods err")
+	}
+
+	appointment.GoodsName = goods.Name
+	if err := oSvr.db.Save(appointment).Error; err != nil {
+		return errors.Wrap(err, "appointment save err")
+	}
+
+	echoapp_util.ExtractEntry(ctx).WithField("appointment", appointment).Info("before SendAppointmentCode")
+	hashCode, err := echoapp_util.EncodeInt64(appointment.ID, echoapp.ConfigOpts.Jws.HashIdsSalt)
+	if err != nil {
+		return errors.Wrap(err, "appointment encode appointment code")
+	}
+
+	appointment.Code = hashCode
+	if err := oSvr.smsTplApi.SendAppointmentCodeSync(
+		appointment.ComID,
+		appointment.Phone,
+		appointment.Username,
+		"网上",
+		appointment.StartAt.Format(echoapp.TimeDateFormat),
+		appointment.StartAt.Format(echoapp.TimeOnlyHourMinFormat)+"-"+appointment.EndAt.Format(echoapp.TimeOnlyHourMinFormat),
+		hashCode,
+	); err != nil {
+		echoapp_util.ExtractEntry(ctx).Error("sms SendAppointmentCode")
+		return errors.Wrap(err, "sms_tpls SendAppointmentCode")
+	}
+	return nil
+}
+
+func (oSvr *OrderService) GetAppointmentList(ctx echo.Context, comID, userID, lastID uint, status string) ([]echoapp.Appointment, error) {
+	if status != echoapp.AppointmentStatusOverdue &&
+		status != echoapp.AppointmentStatusUnused &&
+		status != echoapp.AppointmentStatusUsed {
+		return nil, errors.New("GetAppointmentDetail unKnow status")
+	}
+
+	var appointments []echoapp.Appointment
+	if err := oSvr.db.Where("user_id = ?", userID).
+		Where("com_id = ?", comID).
+		Where("id < ?", lastID).
+		Where("status = ?", status).
+		Limit(10).
+		Find(appointments).Error; err != nil {
+		return nil, errors.Wrap(err, "GetAppointmentDetail")
+	}
+	return appointments, nil
+}
+
+func (oSvr *OrderService) GetAppointmentDetail(ctx echo.Context, appointmentID int) (*echoapp.Appointment, error) {
+	appointment := &echoapp.Appointment{}
+	if err := oSvr.db.Where("id = ?", appointmentID).First(appointment).Error; err != nil {
+		echoapp_util.ExtractEntry(ctx).Error(err)
+		return nil, errors.Wrap(err, "GetAppointmentDetail")
+	}
+	return appointment, nil
+}
+
+func (oSvr *OrderService) GetAppointmentByCode(ctx echo.Context, code string) (*echoapp.Appointment, error) {
+	id, err := echoapp_util.DecodeInt64(code, echoapp.ConfigOpts.Jws.HashIdsSalt)
+	if err != nil {
+		echoapp_util.ExtractEntry(ctx).Error(err)
+		return nil, errors.Wrap(err, "GetAppointmentByCode")
+	}
+	return oSvr.GetAppointmentDetail(ctx, int(id))
 }

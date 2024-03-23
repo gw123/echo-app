@@ -9,7 +9,7 @@ import (
 type Dao interface {
 	CreateUserActivity(userActivity *echoapp.UserActivity) error
 	UpdateUserActivity(userActivity *echoapp.UserActivity) error
-	AddUserAward(userId uint, goodsId uint, num uint) error
+	AddUserAward(comID, userId uint, goodsId uint, num uint) error
 	AddAwardHistory(awardHistory *echoapp.AwardHistory) error
 	GetActivity(ActivityID uint) (*echoapp.Activity, error)
 	RecordAwardHistory(awardHistory *echoapp.AwardHistory) error
@@ -33,7 +33,7 @@ func (a ActivityDao) UpdateUserActivity(userActivity *echoapp.UserActivity) erro
 	return a.db.Save(userActivity).Error
 }
 
-func (a ActivityDao) AddUserAward(userId uint, goodsId uint, num uint) error {
+func (a ActivityDao) AddUserAward(comID, userId uint, goodsId uint, num uint) error {
 	userAward := &echoapp.UserAward{}
 	if err := a.db.Where("user_id = ? and goods_id = ?", userId, goodsId).First(userAward).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
@@ -42,6 +42,7 @@ func (a ActivityDao) AddUserAward(userId uint, goodsId uint, num uint) error {
 			//
 			userAward.UserID = userId
 			userAward.GoodsID = goodsId
+			userAward.ComID = comID
 		}
 	}
 	userAward.Num += num

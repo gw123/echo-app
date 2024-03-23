@@ -13,7 +13,7 @@ import (
 )
 
 func TestSendOrderPaidTplMsg(t *testing.T) {
-	echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
+	//echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
 	msg := &echoapp.TplMsgCreateTicket{
 		BaseTemplateMessage: echoapp.BaseTemplateMessage{
 			ComID:  14,
@@ -63,7 +63,7 @@ func TestSendMsg(t *testing.T) {
 }
 
 func TestTicketeSyncCode(t *testing.T) {
-	echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
+	//echoapp.InitConfig("/Users/mac/code/go/src/github.com/gw123/echo-app/config.yaml")
 	pusher := app.MustGetJopPusherService()
 	job := jobs.TicketSyncCode{
 		ComID: 14,

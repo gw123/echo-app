@@ -7,12 +7,15 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/spf13/viper"
+
+	"github.com/gw123/glog"
+
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
 	echoapp_middlewares "github.com/gw123/echo-app/middlewares"
 	echoapp_util "github.com/gw123/echo-app/util"
-	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/spf13/cobra"
@@ -26,13 +29,18 @@ func startSiteServer() {
 	e.HTTPErrorHandler = func(err error, ctx echo.Context) {
 		ctx.JSON(http.StatusInternalServerError, map[string]string{"msg": err.Error()})
 	}
+
+	e.GET("/debug", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, "1.9.24.2222")
+	})
 	//前端入口
-	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	e.Static("/dev/public", echoapp.ConfigOpts.Asset.PublicRoot)
+	e.Static("/", echoapp.ConfigOpts.Asset.PublicRoot)
 	assetConfig := echoapp.ConfigOpts.Asset
 	e.Renderer = echoapp_util.NewTemplateRenderer(assetConfig.ViewRoot, assetConfig.PublicHost, assetConfig.Version)
 
 	origins := echoapp.ConfigOpts.SiteServer.Origins
+	glog.DefaultLogger().Infof("origins [%+v]", origins)
 	if len(origins) > 0 {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 			AllowOrigins: origins,
@@ -41,12 +49,14 @@ func startSiteServer() {
 		}))
 	}
 
+	glog.DefaultLogger().Infof("ConfigTraceAgentHostPort %s", viper.GetString(echoapp.ConfigTraceAgentHostPort))
 	loggerMiddleware := echoapp_middlewares.NewLoggingMiddleware(echoapp_middlewares.LoggingMiddlewareConfig{
 		Skipper: func(ctx echo.Context) bool {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
+		EnableTrace:        true,
+		TraceAgentHostPort: viper.GetString(echoapp.ConfigTraceAgentHostPort),
 	})
 	e.Use(loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -73,27 +83,35 @@ func startSiteServer() {
 	)
 
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
-		Skipper:    middleware.DefaultSkipper,
-		Jws:        app.MustGetJwsHelper(),
-		IgnoreAuth: true,
+		Skipper: middleware.DefaultSkipper,
+		Jws:     app.MustGetJwsHelper(),
+		//IgnoreAuth: true,
+		IsTry: true,
 	}
 	tryJwsMiddle := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
 	siteCtl := controllers.NewSiteController(comSvr, actSvr, siteSvr, wechatSvr, videoSvr, echoapp.ConfigOpts.Asset)
-	e.GET("/index/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
-	e.GET("/index/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
+
+	wechatGroup := e.Group("/index-dev")
+	wechatGroup.Use(companyMiddleware, tryJwsMiddle, weChatMiddle)
+	wechatGroup.GET("/:com_id", siteCtl.Index)
+	wechatGroup.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
+
+	wechatGroup2 := e.Group("/index")
+	wechatGroup2.Use(companyMiddleware, tryJwsMiddle, weChatMiddle)
+	wechatGroup2.GET("/:com_id", siteCtl.Index)
+	wechatGroup2.GET("/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack)
+
+	e.GET("/index-dev/:com_id/video/:id", siteCtl.GetVideoDetail)
 	e.GET("/index/:com_id/video/:id", siteCtl.GetVideoDetail)
 
-	e.GET("/index-dev/:com_id", siteCtl.Index, tryJwsMiddle, weChatMiddle)
-	e.GET("/index-dev/:com_id/wxAuthCallBack", siteCtl.WxAuthCallBack, tryJwsMiddle, weChatMiddle)
-	e.GET("/index-dev/:com_id/video/:id", siteCtl.GetVideoDetail)
-
 	normal := e.Group("/" + mode + "/site/:com_id")
-
 	normal.Use(companyMiddleware, limitMiddleware)
 	//首页显示
 	normal.GET("/getWxConfig", siteCtl.GetWxConfig, tryJwsMiddle)
 	normal.GET("/wxMessage", siteCtl.WxMessage)
 	normal.GET("/getBannerList", siteCtl.GetBannerList)
+	normal.GET("/getIndexPageBanners", siteCtl.GetIndexPageBanners)
+
 	normal.GET("/getNotifyList", siteCtl.GetNotifyList)
 	normal.GET("/getNotifyDetail", siteCtl.GetNotifyDetail)
 	normal.GET("/getActivityList", siteCtl.GetActivityList)
@@ -101,6 +119,9 @@ func startSiteServer() {
 	normal.GET("/getNavList", siteCtl.GetQuickNav)
 	normal.GET("/getCompany", companyCtl.GetCompanyInfo)
 	normal.GET("/getVideoList", siteCtl.GetVideoList)
+	//
+	normal.POST("/sendMailCode", siteCtl.SendMailCode)
+	normal.POST("/sendRawMail", siteCtl.SendRawMail)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.SiteServer.Addr); err != nil {

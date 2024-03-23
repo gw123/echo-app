@@ -76,6 +76,9 @@ func startActivityServer() {
 	// 用户的奖品列表
 	normal.GET("/getUserAwards", actCtl.GetUserAwards)
 	normal.GET("/getUserAwardHistories", actCtl.GetUserAwardHistories)
+	normal.GET("/getStaffCheckedAwards", actCtl.StaffCheckedAwards)
+	normal.GET("/getUserAwardCode", actCtl.GetUserAwardCode)
+	normal.GET("/checkAwardByCode", actCtl.CheckAwardByCode)
 
 	go func() {
 		if err := e.Start(echoapp.ConfigOpts.ActivityServer.Addr); err != nil {

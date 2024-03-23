@@ -35,14 +35,14 @@ type User struct {
 	Score    int    `json:"score"`
 	Password string `gorm:"column:password" json:"-"`
 	//MiniOpenid string     `gorm:"xcx_openid" json:"mini_openid"`
-	Openid     string     `gorm:"openid" json:"openid"`
-	Unionid    string     `gorm:"unionid" json:"unionid"`
-	IsStaff    bool       `json:"is_staff"`
-	VipLevel   int16      `json:"vip_level"`
-	JwsToken   string     `gorm:"jws_token" json:"jws_token"`
-	SessionKey string     `gorm:"session_key" json:"-"`
-	Roles      []*Role    `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
-	Address    []*Address `json:"address" gorm :"ForeignKey:UserID" `
+	Openid     string  `gorm:"openid" json:"openid"`
+	Unionid    string  `gorm:"unionid" json:"unionid"`
+	IsStaff    bool    `json:"is_staff"`
+	VipLevel   int16   `json:"vip_level"`
+	JwsToken   string  `gorm:"jws_token" json:"jws_token"`
+	SessionKey string  `gorm:"session_key" json:"-"`
+	Roles      []*Role `json:"roles" gorm:"many2many:model_has_roles;ForeignKey:model_id;AssociationForeignKey:role_id"`
+	//Address    []*Address `json:"address" gorm:"-" `
 }
 
 type Address struct {
@@ -99,12 +99,14 @@ func (*UserRole) TableName() string {
 
 type History struct {
 	ID        uint `gorm:"primary_key"`
+	UpdatedAt time.Time
 	CreatedAt time.Time
 	DeletedAt *time.Time `sql:"index"`
 	Type      string     `json:"type"`
 	TargetId  uint       `json:"target_id"`
 	UserID    int64      `json:"user_id"`
 	ComId     uint       `json:"com_id"`
+	Count     int        `json:"count"`
 }
 
 func (*History) TableName() string {
@@ -159,7 +161,7 @@ type UserService interface {
 	GetCachedUserCollectionTypeSet(userId int64, targetType string) ([]string, error)
 	// History 用户历史记录
 	UpdateCacheUserHistory(history *History) (err error)
-	GetUserHistoryList(userId int64, lastId uint, limit int) ([]*History, error)
+	GetUserHistoryList(userId, comID int64, lastId uint, limit int) ([]*History, error)
 	GetCacheUserHistoryList(len uint) ([]string, error)
 	CreateUserHistory(history *History) error
 	GetCacheUserHistoryHotZset(comId uint, targetYype string) ([]string, error)

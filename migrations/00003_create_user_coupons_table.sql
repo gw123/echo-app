@@ -15,4 +15,4 @@ CREATE TABLE `user_coupons`
   DEFAULT CHARSET = utf8;
 
 -- +goose Down
-DROP TABLE `user_coupons`;
+DROP TABLE `user_coupons`

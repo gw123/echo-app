@@ -7,7 +7,7 @@ import (
 
 type CommentDetail struct {
 	Comment
-	Express                int        `json:"express" `
+	Express int `json:"express" `
 }
 
 type Comment struct {

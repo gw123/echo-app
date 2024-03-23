@@ -11,6 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
+
+	echoapp_util "github.com/gw123/echo-app/util"
+
 	"github.com/silenceper/wechat/v2/officialaccount/message"
 
 	"github.com/silenceper/wechat/v2/officialaccount"
@@ -104,13 +108,15 @@ func (we *WechatService) GetComOfficialCfg(comID uint) (*offConfig.Config, error
 	return cfg, nil
 }
 
-func (we *WechatService) GetAuthCodeUrl(comId uint) (url string, err error) {
+func (we *WechatService) GetAuthCodeUrl(comId uint, path string) (url string, err error) {
 	com, err := we.comSvr.GetCachedCompanyById(comId)
 	if err != nil || com.WxOfficialAppId == "" {
 		return "", errors.Wrapf(err, "WxLogin 获取com.WxOfficialAppId失败: %d", comId)
 	}
-	url = fmt.Sprintf("%s/%d/wxAuthCallBack", we.authRedirectUrl, comId)
-	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "")
+
+	authRedirectUrl := viper.GetString("wechat.auth_redirect_url")
+	url = fmt.Sprintf("%s%s", authRedirectUrl, path)
+	url = mpoauth2.AuthCodeURL(com.WxOfficialAppId, url, "snsapi_userinfo", "wx_callback")
 	return
 }
 
@@ -133,25 +139,44 @@ func (we *WechatService) GetClient(comId uint) (*mpoauth2.Endpoint, error) {
 }
 
 func (we *WechatService) GetUserInfo(ctx context.Context, comId uint, code string) (*mpoauth2.UserInfo, error) {
-	endPoint, err := we.GetEndPoint(comId)
-	if err != nil {
-		return nil, errors.Wrap(err, "GetEndPoint")
+	userCache := we.reids.Get(code).Val()
+	var userinfo = &mpoauth2.UserInfo{}
+	if userCache == "" {
+		endPoint, err := we.GetEndPoint(comId)
+		if err != nil {
+			return nil, errors.Wrap(err, "GetEndPoint")
+		}
+
+		oauth2Client := oauth2.Client{
+			Endpoint: endPoint,
+		}
+		token, err := oauth2Client.ExchangeToken(code)
+		if err != nil {
+			return nil, errors.Wrap(err, "ExchangeToken")
+		}
+
+		glog.DefaultLogger().Infof("get token: %+v\r\n", token)
+
+		userinfo, err = mpoauth2.GetUserInfo(token.AccessToken, token.OpenId, "", nil)
+		if err != nil {
+			//echoapp_util.ExtractEntry(ctx).WithError(err).Error("code为空")
+			return nil, errors.Wrap(err, "ExchangeToken")
+		}
+
+		data, err := json.Marshal(userinfo)
+		if err != nil {
+			err = we.reids.Set(code, string(data), time.Minute).Err()
+			if err != nil {
+				glog.DefaultLogger().WithError(err).Error("set key err")
+			}
+		}
+
+	} else {
+		if err := json.Unmarshal([]byte(userCache), userinfo); err != nil {
+			return nil, errors.Wrap(err, "decode userinfo from cache")
+		}
 	}
 
-	oauth2Client := oauth2.Client{
-		Endpoint: endPoint,
-	}
-	token, err := oauth2Client.ExchangeToken(code)
-	if err != nil {
-		return nil, errors.Wrap(err, "ExchangeToken")
-	}
-	glog.Infof("token: %+v\r\n", token)
-
-	userinfo, err := mpoauth2.GetUserInfo(token.AccessToken, token.OpenId, "", nil)
-	if err != nil {
-		//echoapp_util.ExtractEntry(ctx).WithError(err).Error("code为空")
-		return nil, errors.Wrap(err, "ExchangeToken")
-	}
 	return userinfo, nil
 }
 
@@ -290,12 +315,16 @@ func (we *WechatService) getRequest(method string, u string, data map[string]str
 }
 
 /****/
-func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
-	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+func (we *WechatService) UnifiedOrder(ctx echo.Context, order *echoapp.Order, openId string) (*echoapp.WxPreOrderResponse, error) {
+	if len(order.GoodsList) == 0 {
+		return nil, errors.New("订单中缺少商品")
+	}
+
+	//com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	com, err := we.comSvr.GetCompanyById(order.ComId)
 	if err != nil {
 		return nil, errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
 	}
-
 	var appID string
 	if order.ClientType == echoapp.ClientWxOfficial {
 		appID = com.WxOfficialAppId
@@ -323,12 +352,18 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*ech
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
 
+	echoapp_util.ExtractEntry(ctx).Infof("wx unified order resp %+v", resp)
+	if resp.ResultCode == "FAIL" {
+		echoapp_util.ExtractEntry(ctx).Errorf("weixin unified order %s", resp.ErrCodeDes)
+		return nil, errors.New("预下单失败" + resp.ErrCodeDes + resp.ReturnMsg)
+	}
+
 	ok, err := wechat.VerifySign(com.WxPaymentKey, wechat.SignType_MD5, resp)
 	if err != nil {
 		return nil, errors.Wrap(err, "UnifiedOrder")
 	}
 	if !ok {
-		glog.Infof("weixin unified order 签名验证失败")
+		echoapp_util.ExtractEntry(ctx).Error("weixin unified order 签名验证失败")
 		return nil, errors.New(resp.ReturnCode + ":" + resp.ReturnMsg)
 	}
 
@@ -350,7 +385,7 @@ func (we *WechatService) UnifiedOrder(order *echoapp.Order, openId string) (*ech
 
 /***/
 func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
-	com, err := we.comSvr.GetCachedCompanyById(order.ComId)
+	com, err := we.comSvr.GetCompanyById(order.ComId)
 	if err != nil {
 		return "", errors.Wrapf(err, "GetEndPoint 获取com失败：%d", order.ComId)
 	}
@@ -361,7 +396,6 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 	} else {
 		appID = com.WxMiniAppId
 	}
-	//glog.Infof("clientType: %s , appId: %s ", order.ClientType, appID)
 
 	client := wechat.NewClient(appID, com.WxPaymentMchId, com.WxPaymentKey, true)
 	client.SetCountry(wechat.China)
@@ -376,13 +410,13 @@ func (we *WechatService) QueryOrder(order *echoapp.Order) (string, error) {
 		return echoapp.OrderStatusUnpay, errors.Wrap(err, "queryOrder")
 	}
 
-	glog.Info(resp.ReturnCode + " -- " + resp.TradeState + " -- " + resp.TotalFee + " -- " + strconv.Itoa(int(order.RealTotal)))
+	glog.DefaultLogger().Info("queryOrder", resp.ReturnCode+" -- "+resp.TradeState+" -- "+resp.TotalFee+" -- "+strconv.Itoa(int(order.RealTotal)))
 	if resp.ResultCode == "SUCCESS" {
 		if resp.TradeState == "SUCCESS" {
 			if resp.TotalFee == strconv.Itoa(int(order.RealTotal)) {
 				return echoapp.OrderPayStatusPaid, nil
 			} else {
-				glog.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
+				glog.DefaultLogger().Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
 				return echoapp.OrderPayStatusUnpay, errors.Errorf("查询成功但系统订单金额和微信订单金额不一致:orderNo %s,wxRes %s ,local %s", order.OrderNo, resp.TotalFee, strconv.Itoa(int(order.RealTotal)))
 			}
 		} else if resp.TradeState == "REFUND" {

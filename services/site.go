@@ -1,7 +1,11 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
+
+	"github.com/opentracing/opentracing-go"
+
 	"github.com/bsm/redislock"
 	"github.com/go-redis/redis/v7"
 	echoapp "github.com/gw123/echo-app"
@@ -44,26 +48,7 @@ func (aSvr SiteService) GetActivityDetail(id uint) (*echoapp.Activity, error) {
 	return &activity, nil
 }
 
-func (aSvr SiteService) GetBannerList(comId uint, position string, limit int) ([]*echoapp.BannerBrief, error) {
-	if position == "" {
-		position = "index"
-	}
-	if limit == 0 || limit > 12 {
-		limit = 6
-	}
-	var banners []*echoapp.BannerBrief
-
-	if err := aSvr.db.Where("com_id = ? and status ='publish'", comId).
-		Where("type in ('goods','activity')").
-		Where("position = ?", position).
-		Limit(limit).Find(&banners).Error; err != nil {
-		return nil, errors.Wrap(err, "getIndexBanner")
-	}
-
-	return banners, nil
-}
-
-func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*echoapp.BannerBrief, error) {
+func (aSvr *SiteService) GetCachedBannerList(ctx context.Context, comId uint, position string) ([]*echoapp.BannerBrief, error) {
 	bannerList, err := func() ([]*echoapp.BannerBrief, error) {
 		var bannerList []*echoapp.BannerBrief
 		data, err := aSvr.redis.Get(echoapp.FormatBannerListRedisKey(comId, position)).Result()
@@ -85,7 +70,7 @@ func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*ec
 	}
 
 	if len(bannerList) == 0 {
-		bannerList, err = aSvr.GetBannerList(comId, position, 6)
+		bannerList, err = aSvr.GetBannerList(ctx, comId, "index", position, 6)
 		if err != nil {
 			return bannerList, errors.Wrap(err, "GetCachedBannerList->GetBannerList")
 		}
@@ -94,8 +79,8 @@ func (aSvr *SiteService) GetCachedBannerList(comId uint, position string) ([]*ec
 	return bannerList, nil
 }
 
-func (aSvr *SiteService) UpdateCachedBannerList(comId uint, position string) error {
-	bannerList, err := aSvr.GetBannerList(comId, position, 6)
+func (aSvr *SiteService) UpdateCachedBannerList(ctx context.Context, comId uint, position string) error {
+	bannerList, err := aSvr.GetBannerList(ctx, comId, "index", position, 6)
 	if err != nil {
 		return err
 	}
@@ -152,4 +137,54 @@ func (aSvr SiteService) GetNotifyList(comId uint, lastId, limit int) ([]*echoapp
 		return nil, errors.Wrap(err, "db not find notify list")
 	}
 	return list, nil
+}
+
+func (aSvr SiteService) GetBannerList(ctx context.Context, comId uint, page, position string, limit int) ([]*echoapp.BannerBrief, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "GetBannerList")
+	defer func() {
+		// 4. 接口调用完，在tag中设置request和reply
+		span.SetTag("com_id", comId)
+		span.SetTag("page", page)
+		span.SetTag("position", position)
+		span.Finish()
+	}()
+
+	if position == "" {
+		position = "index"
+	}
+	if limit == 0 || limit > 12 {
+		limit = 6
+	}
+
+	var banners []*echoapp.BannerBrief
+	if err := aSvr.db.Debug().Where("com_id = ? and page = ? and status ='publish'", comId, page).
+		Where("position = ?", position).
+		Limit(limit).Find(&banners).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			return []*echoapp.BannerBrief{}, nil
+		}
+		return nil, errors.Wrap(err, "GetBannerList")
+	}
+	return banners, nil
+}
+
+func (aSvr SiteService) GetIndexPageBanners(ctx context.Context, comId uint) (*echoapp.PageBanners, error) {
+	var err error
+	pageBanners := &echoapp.PageBanners{}
+	pageBanners.Scroll1, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionScroll1, 6)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetIndexPageBanners")
+	}
+
+	pageBanners.ADs, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionAD, 1)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetIndexPageBanners")
+	}
+
+	pageBanners.Categories, err = aSvr.GetBannerList(ctx, comId, "index", echoapp.BannerPositionCategory, 6)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetIndexPageBanners")
+	}
+
+	return pageBanners, nil
 }

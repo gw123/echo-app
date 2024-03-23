@@ -1,7 +1,6 @@
 package echoapp_middlewares
 
 import (
-	"github.com/gw123/glog"
 	"net/http"
 
 	"github.com/gw123/echo-app/components"
@@ -16,6 +15,7 @@ type JwsMiddlewaresOptions struct {
 	//调试时候使用直接模拟一个用户id,正式环境要把这个设置为0
 	MockUserId int64
 	IgnoreAuth bool
+	IsTry      bool
 }
 
 func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
@@ -37,11 +37,12 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			tokenCookie, err := c.Cookie("token")
 			if err == nil {
 				token = tokenCookie.Value
-				glog.Info("read token from Cookie: " + token)
+				echoapp_util.ExtractEntry(c).Info("read token from Cookie: " + token)
 			}
 
 			auth := req.Header.Get(echo.HeaderAuthorization)
 			if token == "" && len(auth) == 0 && opt.IgnoreAuth {
+				echoapp_util.ExtractEntry(c).Info("ignoreAuth")
 				return next(c)
 			}
 
@@ -49,21 +50,41 @@ func NewJwsMiddlewares(opt JwsMiddlewaresOptions) echo.MiddlewareFunc {
 			l := len(authScheme)
 			if token == "" {
 				if !(len(auth) > l+1 && auth[:l] == authScheme) {
-					echoapp_util.ExtractEntry(c).Error("未设置token")
-					return c.JSON(http.StatusUnauthorized, "未授权")
+					echoapp_util.ExtractEntry(c).Error("获取请求token失败")
+					if opt.IsTry {
+						return next(c)
+					} else {
+						return c.JSON(http.StatusUnauthorized, "未授权")
+					}
 				}
 				token = auth[l+1:]
 			}
 			userId, payload, err := opt.Jws.ParseToken(token)
 			if err != nil {
 				if opt.IgnoreAuth {
+					echoapp_util.ExtractEntry(c).Error("未设置token")
 					return next(c)
 				} else {
 					echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
-					return c.JSON(http.StatusUnauthorized, "未授权")
+					if c.Request().Header.Get(echo.HeaderContentType) == echo.MIMEApplicationJSON {
+						if opt.IsTry {
+							return next(c)
+						} else {
+							return c.JSON(http.StatusUnauthorized, "未授权2")
+						}
+					} else {
+						if opt.IsTry {
+							return next(c)
+						} else {
+							data := make(map[string]interface{})
+							data["auth_url"] = c.Request().RequestURI
+							return c.Render(http.StatusOK, "callback", data)
+						}
+					}
 				}
 			}
 
+			echoapp_util.ExtractEntry(c).Infof("userID: %d, payload: %s", userId, payload)
 			//glog.Infof("userId:%d", userId)
 			echoapp_util.SetCtxUserId(c, userId)
 			echoapp_util.SetCtxJwsPayload(c, payload)

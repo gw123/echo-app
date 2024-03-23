@@ -10,8 +10,19 @@
 make set-config
 make set-dev-config
 
-# 编译docker镜像
+# 制作镜像
+make  
+## 使用docker-compose快速部署 
 make docker-all
+
+## 使用k8s快速部署
+make update-k8s
+
+# 前端快速使用 
+ 在配置文件 设置origin 后前端可以使用localhost去访问方便前端快速开发,或者定位问题 
+http://localhost:8081/index-dev/14#/
+
+
 
 ## app/EchoApp 是一个常用接口集合, EchoApp所有属性都是私有防止未初始化被使用，
 ## 在app.go中GetServiceName函数里面使用单例模式方式防止重复创建

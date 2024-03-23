@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"context"
 	"strconv"
+	"time"
 
 	echoapp "github.com/gw123/echo-app"
 	echoapp_util "github.com/gw123/echo-app/util"
+	"github.com/gw123/glog"
 	"github.com/labstack/echo"
 )
 
@@ -132,10 +135,11 @@ func (sCtl *GoodsController) AddCartGoods(ctx echo.Context) error {
 	if err := ctx.Bind(&goosdItem); err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
+	echoapp_util.ExtractEntry(ctx).Infof("addCartGoods goodsItem : %+v", goosdItem)
 	//强制新加时数量为1
 	goosdItem.Num = 1
 	if err := sCtl.goodsSvr.AddCartGoods(comID, uint(userId), goosdItem); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
+		return sCtl.AppErr(ctx, echoapp.AppErrCartItemNeedRemove)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -174,7 +178,7 @@ func (sCtl *GoodsController) UpdateCartGoods(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, "参数错误", err)
 	}
 	if err := sCtl.goodsSvr.UpdateCartGoods(comID, uint(userID), goosdItem); err != nil {
-		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
+		return sCtl.AppErr(ctx, echoapp.AppErrCartItemNeedRemove)
 	}
 	return sCtl.Success(ctx, nil)
 }
@@ -199,4 +203,100 @@ func (sCtl *GoodsController) ClearCart(ctx echo.Context) error {
 		return sCtl.Fail(ctx, echoapp.CodeDBError, "保存失败", err)
 	}
 	return sCtl.Success(ctx, nil)
+}
+
+//GetSeckillingGoodsList 获取秒杀商品接口 返回当天所有秒杀商品，
+func (sCtl *GoodsController) GetSeckillingGoodsList(ctx echo.Context) error {
+	seckillParams, err := sCtl.goodsSvr.GetSeckillingGoodsList(ctx, time.Now())
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "GetSeckillingGoodsList", err)
+	}
+	mapp := make(map[string][]*echoapp.SeckillingGoodsRespose)
+	for _, seckillingGoods := range seckillParams {
+		if seckillingGoods.Status == "offline" {
+
+			continue
+		}
+		start, err := echoapp_util.ParseCronString(seckillingGoods.Crontab)
+
+		if err != nil {
+			echoapp_util.ExtractEntry(ctx).WithField("ParseCronString", seckillingGoods.Crontab)
+			continue
+		}
+		goodsInfo, err := sCtl.goodsSvr.GetGoodsById(uint(seckillingGoods.GoodsID))
+		if err != nil {
+			echoapp_util.ExtractEntry(ctx).WithField("GetGoodsById", seckillingGoods.GoodsID)
+			continue
+		}
+		seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
+			GoodsID:    seckillingGoods.GoodsID,
+			StartAt:    start,
+			Name:       goodsInfo.Name,
+			SmallCover: goodsInfo.SmallCover,
+			Price:      float32(seckillingGoods.Price),
+			RealPrice:  goodsInfo.RealPrice,
+			SaleNum:    goodsInfo.Num,
+			Status:     seckillingGoods.Status,
+		}
+		mapp[start] = append(mapp[start], seckillingGoodsRespose)
+	}
+	return sCtl.Success(ctx, mapp)
+
+}
+
+func (sCtl *GoodsController) GetSeckillingGoodsByQueryTime(ctx echo.Context) error {
+	startTimeStr := ctx.QueryParam("startTime")
+	startTime, err := echoapp_util.ParseWithLocation("Asia/Shanghai", startTimeStr)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "ParseWithLocation", err)
+	}
+	//lastId, limitint := echoapp_util.GetCtxListParams(ctx)
+	seckillParams, err := sCtl.goodsSvr.GetSeckillingGoodsList(ctx, startTime)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeInnerError, "GetSeckillingGoodsList", err)
+	}
+	seckillingGoodsList := []*echoapp.SeckillingGoodsRespose{}
+	for _, seckillingGoods := range seckillParams {
+		if seckillingGoods.Status == "offline" {
+			glog.ExtractEntry(context.Background()).WithField("offline goodsID", seckillingGoods.GoodsID)
+			continue
+		}
+		ok, err := echoapp_util.ParseCronStringByStartTime(seckillingGoods.Crontab, seckillingGoods.StartAt, seckillingGoods.EndAt, startTime)
+		if !ok || err != nil {
+			glog.ExtractEntry(context.Background()).WithField("ParseCronString", seckillingGoods.Crontab)
+			continue
+		}
+		goodsInfo, err := sCtl.goodsSvr.GetGoodsById(uint(seckillingGoods.GoodsID))
+		if err != nil {
+			glog.ExtractTraceID(context.Background())
+			continue
+		}
+		seckillingGoodsRespose := &echoapp.SeckillingGoodsRespose{
+			GoodsID: seckillingGoods.GoodsID,
+			//StartAt:    seckillingGoods.StartAt,
+			Name:       goodsInfo.Name,
+			SmallCover: goodsInfo.SmallCover,
+			Price:      float32(seckillingGoods.Price),
+			RealPrice:  goodsInfo.RealPrice,
+			Num:        goodsInfo.Num,
+			Status:     seckillingGoods.Status,
+		}
+		seckillingGoodsList = append(seckillingGoodsList, seckillingGoodsRespose)
+
+	}
+	return sCtl.Success(ctx, seckillingGoodsList)
+}
+
+func (sCtl *GoodsController) GetCartGoodsNum(ctx echo.Context) error {
+	userID, err := echoapp_util.GetCtxtUserId(ctx)
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "授权失败", err)
+	}
+	comID := echoapp_util.GetCtxComId(ctx)
+
+	num, err := sCtl.goodsSvr.GetCartGoodsNum(comID, uint(userID))
+	if err != nil {
+		return sCtl.Fail(ctx, echoapp.CodeArgument, "获取购物车失败", err)
+	}
+	return sCtl.Success(ctx, map[string]interface{}{"num": num})
 }

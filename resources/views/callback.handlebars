@@ -7,9 +7,40 @@
 <noscript><strong>Please enable JavaScript to continue.</strong></noscript>
 <div id=app></div>
 <script>
-    var url = window.location.href.replace(window.location.search, '')
-    url = url.replace('/wxAuthCallBack', '')
-    window.location.replace(url)
+    var url = window.location.href
+    //alert("callback "+url)
+    window.localStorage.setItem("wx_auth_before_return_url", url)
+    // handlebar 转义问题
+    var authUrl =  "{{{auth_url}}}"
+    //alert("authUrl " + authUrl)
+    // 获取cookie
+    function getCookie (name) {
+        var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)")
+        if (arr = document.cookie.match(reg)) {
+            return unescape(arr[2])
+        } else {
+            return null
+        }
+    }
+
+    // 设置cookie
+    function setCookie (c_name, value, days) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() + days*24*60*60*1000);
+        document.cookie = c_name + "=" + escape(value) + ";expires=" + exp.toGMTString()
+    }
+
+    // 删除cookie
+    function delCookie (name) {
+        var exp = new Date()
+        exp.setTime(exp.getTime() - 1)
+        var cval = getCookie(name)
+        if (cval != null)
+            document.cookie = name + "=" + cval + ";expires=" + exp.toGMTString()
+    }
+
+    delCookie("token")
+    window.location.href = authUrl
 </script>
 </body>
 </html>

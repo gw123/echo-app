@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/gw123/echo-app/components"
-
+	"github.com/gw123/echo-app/app/app_components"
 	"github.com/gw123/echo-app/services/activity"
 
 	"github.com/gw123/echo-app/observer"
@@ -103,11 +102,11 @@ var OrderPaidCmd = &cobra.Command{
 	Short: "微信支付成功回调",
 	Long:  `微信支付成功回调`,
 	Run: func(cmd *cobra.Command, args []string) {
-		db, err := app.GetDb("shop")
+		db, err := app_components.GetShopDb()
 		if err != nil {
 			panic(err)
 		}
-		redis, err := components.NewRedisClient(echoapp.ConfigOpts.Redis)
+		redis, err := app_components.GetRedis()
 		if err != nil {
 			panic(err)
 		}

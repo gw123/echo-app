@@ -352,64 +352,98 @@ func (sCtl *UserController) AddUserHistory(ctx echo.Context) error {
 func (sCtl *UserController) GetUserHistoryList(ctx echo.Context) error {
 	lastId, limitint := echoapp_util.GetCtxListParams(ctx)
 	userId, err := echoapp_util.GetCtxtUserId(ctx)
+	comID := echoapp_util.GetCtxComId(ctx)
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, echoapp.ErrArgument.Error(), err)
 	}
-	hisList, err := sCtl.userSvr.GetUserHistoryList(userId, lastId, limitint)
+	limitint = 10
+	hisList, err := sCtl.userSvr.GetUserHistoryList(userId, int64(comID), lastId, limitint)
+
 	if err != nil {
 		return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
 	}
 	type GoodsInfo struct {
-		//BrowsTime string
-		ID         uint    `json:"id"`
+		BrowsTime  string
+		GoodsID    uint    `json:"goods_id"`
 		Price      float32 `json:"price"`
 		Name       string  `json:"name"`
 		SmallCover string  `json:"cover"`
 		GoodsType  string  `json:"goods_type" `
+		Count      int     `json:"count"`
 	}
-	hisResMap := make(map[string][]*GoodsInfo)
+	//hisResMap := make(map[string][]*GoodsInfo)
 	var goodslist []*GoodsInfo
-	hisListLen := len(hisList)
-	browseTime := hisList[0].CreatedAt.Format("2006-01-02")
-	goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
-	//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[0].TargetId)
-	if err != nil {
-		glog.Info("sCtl.goodSvr.GetGoodsById")
-		//return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
-	}
-	tempGoods := &GoodsInfo{}
-	tempGoods.Name = goods.Name
-	tempGoods.Price = goods.Price
-	tempGoods.GoodsType = goods.GoodsType
-	tempGoods.SmallCover = goods.SmallCover
-	goodslist = append(goodslist, tempGoods)
-	for i := 1; i < hisListLen; i++ {
-		tempGoods := &GoodsInfo{}
-		//if hisList[i].Type=="goods"{
-		goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
-		//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[i].TargetId)
+	//hisListLen := len(hisList)
+	//browseTime := hisList[0].CreatedAt.Format("2006-01-02")
+	for _, v := range hisList {
+		goods, err := sCtl.goodSvr.GetGoodsById(v.TargetId)
 		if err != nil {
 			glog.Info("sCtl.goodSvr.GetGoodsById")
 			continue
 		}
-		tempGoods.ID = goods.ID
+		tempGoods := &GoodsInfo{}
 		tempGoods.Name = goods.Name
 		tempGoods.Price = goods.Price
-		tempGoods.GoodsType = goods.GoodsType
+		tempGoods.GoodsType = v.Type
 		tempGoods.SmallCover = goods.SmallCover
-		//}s
-		curTime := hisList[i].CreatedAt.Format("2006-01-02")
-		if curTime == browseTime {
-			goodslist = append(goodslist, tempGoods)
-		} else {
-			hisResMap[browseTime] = goodslist
-			browseTime = curTime
-			goodslist = nil
-			goodslist = append(goodslist, tempGoods)
+		tempGoods.Count = v.Count
+		tempGoods.GoodsID = v.TargetId
+		if v.UpdatedAt.String() != "" {
+			tempGoods.BrowsTime = v.UpdatedAt.Format("2006-01-02 15:04")
 		}
-		hisResMap[browseTime] = goodslist
+		tempGoods.BrowsTime = v.CreatedAt.Format("2006-01-02 15:04")
+
+		//curTime := v.CreatedAt.Format("2006-01-02")
+		// if curTime == browseTime {
+		// 	goodslist = append(goodslist, tempGoods)
+		// } else {
+		// 	//hisResMap[browseTime] = goodslist
+		// 	browseTime = curTime
+		// 	goodslist = nil
+		goodslist = append(goodslist, tempGoods)
 	}
-	return sCtl.Success(ctx, hisResMap)
+	//goodslist = append(goodslist, tempGoods)
+	///hisResMap[browseTime] = goodslist
+	//}
+	//goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
+	//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[0].TargetId)
+	// if err != nil {
+	// 	glog.Info("sCtl.goodSvr.GetGoodsById")
+	// 	//return sCtl.Fail(ctx, echoapp.CodeArgument, err.Error(), err)
+	// }
+	// tempGoods := &GoodsInfo{}
+	// tempGoods.Name = goods.Name
+	// tempGoods.Price = goods.Price
+	// tempGoods.GoodsType = goods.GoodsType
+	// tempGoods.SmallCover = goods.SmallCover
+	// goodslist = append(goodslist, tempGoods)
+	// for i := 1; i < hisListLen; i++ {
+	// 	tempGoods := &GoodsInfo{}
+	// 	//if hisList[i].Type=="goods"{
+	// 	goods, err := sCtl.goodSvr.GetGoodsById(hisList[0].TargetId)
+	// 	//goods, err := sCtl.goodSvr.GetCachedGoodsById(hisList[i].TargetId)
+	// 	if err != nil {
+	// 		glog.Info("sCtl.goodSvr.GetGoodsById")
+	// 		continue
+	// 	}
+	// 	tempGoods.ID = goods.ID
+	// 	tempGoods.Name = goods.Name
+	// 	tempGoods.Price = goods.Price
+	// 	tempGoods.GoodsType = goods.GoodsType
+	// 	tempGoods.SmallCover = goods.SmallCover
+	// 	//}s
+	// 	curTime := hisList[i].CreatedAt.Format("2006-01-02")
+	// 	if curTime == browseTime {
+	// 		goodslist = append(goodslist, tempGoods)
+	// 	} else {
+	// 		hisResMap[browseTime] = goodslist
+	// 		browseTime = curTime
+	// 		goodslist = nil
+	// 		goodslist = append(goodslist, tempGoods)
+	// 	}
+	// 	hisResMap[browseTime] = goodslist
+	// }
+	return sCtl.Success(ctx, goodslist)
 }
 func (sCtl *UserController) GetUserBrowseLeaderboard(ctx echo.Context) error {
 	targetType := ctx.QueryParam("targetType")

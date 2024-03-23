@@ -2,7 +2,10 @@ package echoapp
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
+
+	_ "github.com/spf13/viper/remote"
 
 	"github.com/gw123/echo-app/libs/etcd"
 
@@ -50,4 +53,25 @@ func Test_Config(t *testing.T) {
 		return
 	}
 	spew.Dump(ConfigOpts)
+}
+
+func TestIntoStruct(t *testing.T) {
+	eletype := reflect.ValueOf(ConfigOpts)
+	t.Log(eletype.String())
+
+	t.Log(eletype.Field(0).Type().String())
+	t.Log(eletype.Type().Field(0).Tag.Get("json"))
+}
+
+func TestGetApolloClient(t *testing.T) {
+	client, err := GetApolloClient()
+	if err != nil {
+		panic(err)
+	}
+
+	val, err := client.GetCache().Get("api_version")
+	if err != nil {
+		panic(err)
+	}
+	t.Log(val)
 }

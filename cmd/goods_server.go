@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gw123/glog"
-
 	echoapp "github.com/gw123/echo-app"
 	"github.com/gw123/echo-app/app"
 	"github.com/gw123/echo-app/controllers"
@@ -45,7 +43,6 @@ func startGoodsServer() {
 			req := ctx.Request()
 			return (req.RequestURI == "/" && req.Method == "HEAD") || (req.RequestURI == "/favicon.ico" && req.Method == "GET")
 		},
-		Logger: glog.JsonEntry(),
 	})
 	e.Use(corsMiddleware, loggerMiddleware)
 	//e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
@@ -61,6 +58,7 @@ func startGoodsServer() {
 	tryJwsOpt := echoapp_middlewares.JwsMiddlewaresOptions{
 		Skipper:    middleware.DefaultSkipper,
 		Jws:        app.MustGetJwsHelper(),
+		MockUserId: 12,
 		IgnoreAuth: true,
 	}
 	tryJwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(tryJwsOpt)
@@ -76,7 +74,8 @@ func startGoodsServer() {
 	normal.GET("/getGoodsTags", goodsCtl.GetGoodsTags)
 	normal.GET("/getGoodsDetail", goodsCtl.GetGoodsInfo)
 	normal.GET("/getVipInfo", goodsCtl.GetVipDesc)
-
+	normal.GET("/getGoodsSeckillingList", goodsCtl.GetSeckillingGoodsList)
+	normal.GET("/getCoodsSeckillingListByQueryTime", goodsCtl.GetSeckillingGoodsByQueryTime)
 	//cart
 	jwsAuth := e.Group("/" + mode + "/goods/:com_id")
 	jwsMiddleware := echoapp_middlewares.NewJwsMiddlewares(echoapp_middlewares.JwsMiddlewaresOptions{
@@ -85,6 +84,9 @@ func startGoodsServer() {
 	})
 	jwsAuth.Use(jwsMiddleware, limitMiddleware, companyMiddleware)
 	jwsAuth.GET("/getCartGoodsList", goodsCtl.GetCartGoodsList)
+	//todo cartgoods num
+	jwsAuth.GET("/getCartGoodsNum", goodsCtl.GetCartGoodsNum)
+
 	jwsAuth.POST("/addCartGoods", goodsCtl.AddCartGoods)
 	jwsAuth.POST("/delCartGoods", goodsCtl.DelCartGoods)
 	jwsAuth.POST("/clearCart", goodsCtl.ClearCart)

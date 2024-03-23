@@ -287,7 +287,7 @@ func (u *UserService) AutoRegisterWxUser(newUser *echoapp.User) (user *echoapp.U
 	user, err = u.GetUserByOpenId(newUser.ComId, newUser.Openid)
 	if err == nil {
 		//用户存在更新jwstoken
-		glog.Infof("用户已经存在 %+v", user)
+		glog.DefaultLogger().Info("用户已经存在 %+v", user)
 		user.JwsToken, err = u.jws.CreateToken(user.Id, string(payload))
 		if err != nil {
 			return nil, errors.Wrap(err, "createToken")
@@ -629,50 +629,87 @@ func (u *UserService) UpdateCacheUserCollection(collection *echoapp.Collection) 
 	return errors.Wrap(err, "UpdateCacheUserCollection:sadd")
 }
 
+//redis
+// func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
+// 	if history.TargetId <= 0 {
+// 		return errors.New("目标不存在")
+// 	}
+// 	if err := uSvr.UpdateCacheUserHistory(history); err != nil {
+// 		return errors.Wrap(err, "UpdateCacheUserHistory")
+// 	}
+// 	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
+// 	//fmt.Println(len)
+// 	if err != nil {
+// 		if len == 0 {
+// 			return errors.Wrap(err, "redis Llen is nil")
+// 		}
+// 		return errors.Wrap(err, "resdis LLen")
+// 	}
+// 	if len >= 1 {
+// 		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Millisecond*5).Val(); ok {
+// 			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
+// 			if err != nil {
+// 				uSvr.redis.Del(RedisUserHistoryLockKey)
+// 				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
+// 			}
+// 			for _, val := range targetArr {
+// 				var resHistory = &echoapp.History{}
+// 				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 					continue
+// 				}
+// 				//storehis := &echoapp.History{}
+// 				if err := uSvr.db.Where(resHistory).First(resHistory).Error; err != nil {
+// 					if err == gorm.ErrRecordNotFound {
+// 						resHistory.Count++
+// 						resHistory.UpdatedAt = time.Now()
+// 						if err := uSvr.db.Create(resHistory).Error; err != nil {
+// 							glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 							continue
+// 						}
+// 						continue
+// 					}
+// 					glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", resHistory)
+// 					continue
+// 				}
+// 				resHistory.Count++
+// 				if err := uSvr.db.Save(resHistory).Error; err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
+// 					continue
+// 				}
+// 				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
+// 				if err != nil {
+// 					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
+// 					continue
+// 				}
+// 			}
+// 			uSvr.redis.Del(RedisUserHistoryLockKey)
+// 		} else {
+// 			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
+// 		}
+// 	}
+// 	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
+// 		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
+// 	}
+// 	return nil
+// }
+
 func (uSvr *UserService) CreateUserHistory(history *echoapp.History) error {
 	if history.TargetId <= 0 {
 		return errors.New("目标不存在")
 	}
-	len, err := uSvr.redis.LLen(RedisUserHistoryListKey).Result()
-	//fmt.Println(len)
-	if err != nil {
-		if len == 0 {
-			return errors.Wrap(err, "redis Llen is nil")
+	if err := uSvr.db.Where(history).First(history).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			history.Count++
+			history.UpdatedAt = time.Now()
+			return uSvr.db.Create(history).Error
+
 		}
-		return errors.Wrap(err, "resdis LLen")
+		glog.DefaultLogger().WithField("db.Where(resHistory).First(?)", history)
+		return errors.Wrap(err, "db query")
 	}
-	if len >= 2 {
-		if ok := uSvr.redis.SetNX(RedisUserHistoryLockKey, 1, time.Second*5).Val(); ok {
-			targetArr, err := uSvr.GetCacheUserHistoryList(uint(len))
-			if err != nil {
-				uSvr.redis.Del(RedisUserHistoryLockKey)
-				return errors.Wrap(err, "CreateUserHistory->GetCacheUserHistoryList")
-			}
-			for _, val := range targetArr {
-				var resHistory = &echoapp.History{}
-				if err := json.Unmarshal([]byte(val), resHistory); err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
-					continue
-				}
-				if err := uSvr.db.Create(resHistory).Error; err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, val)
-					continue
-				}
-				delHisVal, err := uSvr.redis.RPop(RedisUserHistoryListKey).Result()
-				if err != nil {
-					glog.DefaultLogger().WithField(RedisUserHistoryListKey, "RPop:"+delHisVal)
-					continue
-				}
-			}
-			uSvr.redis.Del(RedisUserHistoryLockKey)
-		} else {
-			glog.DefaultLogger().Warn("CreateUserHistory 获取锁失败")
-		}
-	}
-	if err := uSvr.UpdateCacheUserHistoryHot(history); err != nil {
-		glog.DefaultLogger().WithField(FormatUserHistoryHotKey(history.ComId, history.Type), history.TargetId)
-	}
-	return uSvr.UpdateCacheUserHistory(history)
+	history.Count++
+	return uSvr.db.Save(history).Error
 }
 
 func (u *UserService) GetCacheUserHistoryList(length uint) ([]string, error) {
@@ -696,14 +733,24 @@ func (u *UserService) GetCacheUserHistoryHotZset(comId uint, targetType string) 
 	dataArr, err := u.redis.ZRevRange(FormatUserHistoryHotKey(comId, targetType), 0, setLen-1).Result()
 	return dataArr, err
 }
-
-func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) ([]*echoapp.History, error) {
+func (u *UserService) GetUserHistory(comID, userID, targetID int, targettype string) (*echoapp.History, error) {
+	history := &echoapp.History{}
+	if err := u.db.Debug().
+		Table("user_history").
+		Where("user_id=? AND com_id =? AND target_id=? AND type=?", userID, comID, targetID, targettype).
+		Find(history).
+		Error; err != nil {
+		return nil, err
+	}
+	return history, nil
+}
+func (u *UserService) GetUserHistoryList(userId, comID int64, lastId uint, limit int) ([]*echoapp.History, error) {
 	var historyList []*echoapp.History
 	if err := u.db.Debug().
 		Table("user_history").
-		Where("user_id=? AND id>?", userId, lastId).
+		Where("user_id=? AND com_id=? AND id>?", userId, comID, lastId).
 		Limit(limit).
-		Order("created_at asc").
+		Order("updated_at desc").
 		Find(&historyList).
 		Error; err != nil {
 		return nil, errors.Wrap(err, "GetUserCollectList")
@@ -712,6 +759,7 @@ func (u *UserService) GetUserHistoryList(userId int64, lastId uint, limit int) (
 }
 
 func (u *UserService) UpdateCacheUserHistory(history *echoapp.History) (err error) {
+
 	data, err := json.Marshal(history)
 	if err != nil {
 		return errors.Wrap(err, "redis set")

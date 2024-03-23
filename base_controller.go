@@ -33,7 +33,9 @@ func (b *BaseController) Fail(ctx echo.Context, errcode int, msg string, innerEr
 		Msg:       msg,
 	}
 	ctx.JSON(http.StatusOK, response)
-
+	if innerErr == nil {
+		innerErr = errors.New(msg)
+	}
 	return innerErr
 }
 
@@ -43,6 +45,11 @@ func (b *BaseController) AppErr(ctx echo.Context, appError AppError) error {
 		Msg:       appError.GetOuter(),
 	}
 	ctx.JSON(http.StatusOK, response)
+
+	if appError.GetInner() == nil {
+		appError.WithInner(errors.New(appError.GetOuter()))
+	}
+
 	if appError.GetInner().Error() == appError.GetOuter() {
 		return appError.GetInner()
 	}

@@ -201,7 +201,7 @@ func (aSvr ActivityService) GetCachedCouponsByIds(couponIds []uint) ([]*echoapp.
 	for _, id := range couponIds {
 		coupon, err := aSvr.GetCachedCouponById(id)
 		if err != nil {
-			glog.JsonLogger().WithError(err).Warningf("coupon :%d not found in cache", id)
+			glog.DefaultLogger().WithError(err).Warningf("coupon :%d not found in cache", id)
 			continue
 		}
 		coupons = append(coupons, coupon)
@@ -252,11 +252,11 @@ func (aSvr ActivityService) GetCouponsByActivity(comId uint, activityId uint) ([
 //获取当前订单用户可以使用的优惠券 已经领取 ，未领取
 func (aSvr *ActivityService) GetUserCouponsByOrder(comId uint, order *echoapp.Order) ([]*echoapp.Coupon, []*echoapp.Coupon, error) {
 	var couponIds []uint
-	glog.JsonLogger().Infof("GetCouponsByOrder goodsList: %+v", order.GoodsList)
+	glog.DefaultLogger().Infof("GetCouponsByOrder goodsList: %+v", order.GoodsList)
 	for _, goods := range order.GoodsList {
 		ids, err := aSvr.GetCouponIdsByGoodsId(comId, goods.GoodsId)
 		if err != nil {
-			glog.JsonLogger().WithError(err).Warnf("GetCouponIdsByGoodsId->goodsId %d", goods.GoodsId)
+			glog.DefaultLogger().WithError(err).Warnf("GetCouponIdsByGoodsId->goodsId %d", goods.GoodsId)
 			continue
 		}
 
@@ -388,12 +388,12 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 		select {
 		case <-timeoutCtx.Done():
 			lock.Refresh(time.Second*3, nil)
-			glog.JsonLogger().Warnf("触发刷新redlock操作")
+			glog.DefaultLogger().Warnf("触发刷新redlock操作")
 		case <-runOverCh:
 			return
 		}
 	}()
-	glog.JsonLogger().Warnf("开始领取优惠券")
+	glog.DefaultLogger().Warnf("开始领取优惠券")
 	coupon, err := func() (*echoapp.Coupon, error) {
 		//加上锁防止超领现象, 减少锁的粒度,使用乐观模式 假设领取成功先扣掉一张优惠券,领取失败后面有补偿机制
 		lock, err = aSvr.lock.Obtain(echoapp.FormatRedisMutexCreateCoupon(couponId), time.Second*5, &redislock.Options{
@@ -432,7 +432,7 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 		return err
 	}
 
-	glog.JsonLogger().Warnf("判断优惠券是否可以领取")
+	glog.DefaultLogger().Warnf("判断优惠券是否可以领取")
 	err = func() error {
 		userCoupons, err := aSvr.GetUserCouponByCouponIds(comId, userId, []uint{couponId}, echoapp.CouponStatusAll)
 		if err != nil {
@@ -442,16 +442,16 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 		switch coupon.Type {
 		case echoapp.CouponTypeOnce:
 			if len(userCoupons) >= 1 {
-				glog.JsonLogger().Warnf("该优惠券只能领取一次")
+				glog.DefaultLogger().Warnf("该优惠券只能领取一次")
 				return errors.Errorf("该优惠券只能领取一次%d", len(userCoupons))
 			}
 		case echoapp.CouponTypeDaily:
-			glog.JsonLogger().Warnf("每日优惠券")
+			glog.DefaultLogger().Warnf("每日优惠券")
 			if len(userCoupons) >= 1 {
 				for _, userCoupon := range userCoupons {
-					glog.JsonLogger().Warnf("userCoupon %s", userCoupon.CreatedAt.Local().String())
+					glog.DefaultLogger().Warnf("userCoupon %s", userCoupon.CreatedAt.Local().String())
 					if time.Now().Sub(userCoupon.CreatedAt) < time.Hour*24 {
-						glog.JsonLogger().Warnf("该优惠券每日只能领取一次")
+						glog.DefaultLogger().Warnf("该优惠券每日只能领取一次")
 						return errors.New("该优惠券每日只能领取一次")
 					}
 				}
@@ -482,7 +482,7 @@ func (aSvr ActivityService) CreateUserCoupon(comId uint, userId uint, couponId u
 			}
 		}
 
-		glog.JsonLogger().Warnf("组装优惠券")
+		glog.DefaultLogger().Warnf("组装优惠券")
 		userCoupon := &echoapp.UserCoupon{
 			ComId:     comId,
 			CouponId:  couponId,
@@ -587,7 +587,7 @@ func (aSvr ActivityService) GetUserCouponByCouponIds(comId uint, userId uint, co
 	for _, userCoupon := range userCoupons {
 		coupon, err := aSvr.GetCachedCouponById(userCoupon.CouponId)
 		if err != nil {
-			glog.JsonLogger().WithError(err).Errorf("获取缓存优惠券失败: %d", userCoupon.CouponId)
+			glog.DefaultLogger().WithError(err).Errorf("获取缓存优惠券失败: %d", userCoupon.CouponId)
 		}
 		coupon.ExpireAt = userCoupon.ExpireAt
 		userCoupon.BaseCoupon = coupon
@@ -627,26 +627,26 @@ func (aSvr ActivityService) UpdateCachedCouponsByComId(comId uint, lastId uint) 
 		return nil, errors.Wrap(err, "GetCouponsByComId")
 	}
 
-	glog.JsonLogger().Infof("com_id : %d ,coupons len:%d", comId, len(coupons))
+	glog.DefaultLogger().Infof("com_id : %d ,coupons len:%d", comId, len(coupons))
 	for _, coupon := range coupons {
-		glog.JsonLogger().Infof("update cache couponId:%d, rangeType:%s", coupon.Id, coupon.RangeType)
+		glog.DefaultLogger().Infof("update cache couponId:%d, rangeType:%s", coupon.Id, coupon.RangeType)
 		couponData, err := json.Marshal(coupon)
 		if err != nil {
-			glog.JsonLogger().WithError(err).Errorf("json.Marshal", echoapp.FormatCoupon(coupon.Id))
+			glog.DefaultLogger().WithError(err).Errorf("json.Marshal", echoapp.FormatCoupon(coupon.Id))
 		}
 		if err := aSvr.redis.Set(echoapp.FormatCoupon(coupon.Id), string(couponData), coupon.ExpireAt.Sub(time.Now())).Err(); err != nil {
-			glog.JsonLogger().WithError(err).Errorf("Set key %s", echoapp.FormatCoupon(coupon.Id))
+			glog.DefaultLogger().WithError(err).Errorf("Set key %s", echoapp.FormatCoupon(coupon.Id))
 		}
 
 		if coupon.RangeType == echoapp.CouponRangeTypeAll {
 			if err := aSvr.redis.SAdd(echoapp.FormatAllGoodsCoupons(comId), coupon.Id).Err(); err != nil {
-				glog.JsonLogger().WithError(err).Errorf("Sadd key:%s val:%d",
+				glog.DefaultLogger().WithError(err).Errorf("Sadd key:%s val:%d",
 					echoapp.FormatAllGoodsCoupons(comId), coupon.Id)
 			}
 		} else if coupon.RangeType == echoapp.CouponRangeTypeRange {
 			for _, goodsId := range coupon.Range {
 				if err := aSvr.redis.SAdd(echoapp.FormatGoodsCouponsKey(comId, goodsId), coupon.Id).Err(); err != nil {
-					glog.JsonLogger().WithError(err).Errorf("Sadd key:%s val:%d",
+					glog.DefaultLogger().WithError(err).Errorf("Sadd key:%s val:%d",
 						echoapp.FormatAllGoodsCoupons(comId), coupon.Id)
 				}
 			}
@@ -681,6 +681,57 @@ func (aSvr ActivityService) GetUserAwards(userID, lastID, limit uint) ([]*echoap
 	return userAwards, nil
 }
 
+// 获取用户的奖品
+func (aSvr ActivityService) GetUserAward(awardID uint) (*echoapp.UserAward, error) {
+	var userAwards echoapp.UserAward
+	if err := aSvr.db.Where("id = ?", awardID).Find(&userAwards).Error; err != nil {
+		return nil, errors.Wrap(err, "getUserAward")
+	}
+	return &userAwards, nil
+}
+
+// 核销用户的商品 staffID 核销员工ID, userAwardID 用户奖品表主键 , num 核销数量
+func (aSvr ActivityService) CheckUserAward(staffID, userAwardID uint, num int) error {
+	var userAwards echoapp.UserAward
+	if err := aSvr.db.Where("id = ?", userAwardID).Find(&userAwards).Error; err != nil {
+		return errors.Wrap(err, "getUserAward")
+	}
+
+	if userAwards.Num < uint(num) {
+		return errors.New("超过可以核销的上限")
+	}
+
+	tx := aSvr.db.Begin()
+
+	userAwards.Num = userAwards.Num - uint(num)
+	glog.DefaultLogger().WithField("arawd", userAwards).Info("user award")
+	if err := tx.Save(&userAwards).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "save UserAward")
+	}
+
+	history := &echoapp.AwardHistory{
+		UserID:    userAwards.UserID,
+		StaffID:   staffID,
+		ComID:     userAwards.ComID,
+		GoodsID:   userAwards.GoodsID,
+		Method:    "grapAward",
+		Num:       -num,
+		CreatedAt: time.Now(),
+	}
+
+	glog.DefaultLogger().WithField("history", history).Info("award history")
+	if err := tx.Debug().Save(history).Error; err != nil {
+		tx.Rollback()
+		return errors.Wrap(err, "save UserAward")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return errors.Wrap(err, "tx commit err")
+	}
+	return nil
+}
+
 // 用户奖品历史获得和领取的记录
 func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
 	var awardHistories []*echoapp.AwardHistory
@@ -693,8 +744,36 @@ func (aSvr ActivityService) GetAwardHistoryByUserID(userID, lastID, limit uint) 
 		limit = 10
 	}
 
-	query.Limit(limit).Order("id desc")
-	if err := query.Find(&awardHistories).Error; err != nil {
+	query = query.Limit(limit).Order("id desc")
+	if err := query.Debug().Find(&awardHistories).Error; err != nil {
+		return nil, errors.Wrap(err, "db exec")
+	}
+
+	for _, award := range awardHistories {
+		goods, err := aSvr.goodsSvr.GetCachedGoodsById(award.GoodsID)
+		if err != nil {
+			return nil, errors.Wrap(err, "db exec")
+		}
+		award.Goods = &goods.GoodsBrief
+	}
+
+	return awardHistories, nil
+}
+
+//staffCheckedAwards
+func (aSvr ActivityService) StaffCheckedAwards(comID, staffID, lastID, limit uint) ([]*echoapp.AwardHistory, error) {
+	var awardHistories []*echoapp.AwardHistory
+	query := aSvr.db.Debug().Where("com_id = ? and staff_id = ? and method = 'grapAward' ", comID, staffID)
+	if lastID > 0 {
+		query = query.Where("id < ? ", lastID)
+	}
+
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	query = query.Limit(limit).Order("id desc")
+	if err := query.Debug().Find(&awardHistories).Error; err != nil {
 		return nil, errors.Wrap(err, "db exec")
 	}
 

@@ -1,8 +1,15 @@
 package echoapp
 
 import (
+	"context"
 	"fmt"
 	"time"
+)
+
+const (
+	BannerPositionScroll1  = "scroll_1"
+	BannerPositionAD       = "ad_1"
+	BannerPositionCategory = "category"
 )
 
 func FormatBannerListRedisKey(comId uint, position string) string {
@@ -53,13 +60,21 @@ type Banner struct {
 	EndAt     time.Time  `json:"end_at"`
 }
 
+// 每个页面的banner图
+type PageBanners struct {
+	Scroll1    []*BannerBrief `json:"scroll_1"`
+	ADs        []*BannerBrief `json:"ads"`
+	Categories []*BannerBrief `json:"categories"`
+}
+
 type SiteService interface {
 	GetNotifyList(comId uint, lastId, limit int) ([]*Notify, error)
 	GetNotifyDetail(id int) (*Notify, error)
 	//
-	GetBannerList(comId uint, position string, limit int) ([]*BannerBrief, error)
-	UpdateCachedBannerList(comId uint, position string) error
-	GetCachedBannerList(comId uint, position string) ([]*BannerBrief, error)
+	GetBannerList(ctx context.Context, comId uint, page, position string, limit int) ([]*BannerBrief, error)
+	UpdateCachedBannerList(ctx context.Context, comId uint, position string) error
+	GetCachedBannerList(ctx context.Context, comId uint, position string) ([]*BannerBrief, error)
 	GetIndexBanner(comId uint) ([]*BannerBrief, error)
+	GetIndexPageBanners(ctx context.Context, comId uint) (*PageBanners, error)
 	//GetActivityById(id int) (*Banner, error)
 }
