@@ -20,7 +20,7 @@ func NewUserMiddlewares(skipper middleware.Skipper, usrSvr echoapp.UserService) 
 				echoapp_util.ExtractEntry(c).Errorf("jwsMiddleware ParseToken %s", err.Error())
 				return c.JSON(http.StatusUnauthorized, "未授权")
 			}
-			//reids做了全量缓存
+			//reins做了全量缓存
 			user, err := usrSvr.GetUserById(userId)
 			if err != nil {
 				echoapp_util.ExtractEntry(c).Errorf("查找缓存失败UserId %d,err:%s", userId, err.Error())

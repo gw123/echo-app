@@ -63,7 +63,7 @@ func init() {
 	// will be global for your application.
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
-	RootCmd.PersistentFlags().StringVar(&cfgType, "config-type", "apollo", "local|etcd")
+	RootCmd.PersistentFlags().StringVar(&cfgType, "config-type", "file", "local|etcd")
 
 	RootCmd.PersistentFlags().StringSliceVar(&etcdEndpoints, "etcd-endpoints", []string{}, "endpoints")
 	RootCmd.PersistentFlags().StringVar(&etcdUsername, "etcd-username", "", "username")

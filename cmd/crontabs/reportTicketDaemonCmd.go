@@ -70,8 +70,8 @@ func doReportHttpRequest(url, app_key string, data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "DoRequest->http.NewRequest")
 	}
-	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSONCharsetUTF8)
+	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
 	req.Header.Set("appKey", app_key)
 
 	res, err := http.DefaultClient.Do(req)
@@ -120,7 +120,7 @@ func reportDailyTicket() error {
 			return errors.Wrap(err, "json.Marshal")
 		}
 		echoapp_util.DefaultLogger().Info(string(data))
-		url := options.BaseUrl + "/upload-data/tourist/real-gate-day"
+		url := options.BaseUrl + "/data-api/api/daySummary"
 		responseData, err := doReportHttpRequest(url, options.AppKey, data)
 		if err != nil {
 			return errors.Wrap(err, "doReportHttpRequest")
